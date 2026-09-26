@@ -23,7 +23,7 @@ func test_treino() -> void:
 	if p == null:
 		return
 	check(level.layout["rooms"].size() >= 8, "fase de treino gerada")
-	check(p.is_on_floor(), "jogador nasce no chão")
+	check(p.grounded(), "jogador nasce no chão")
 	var x0 := p.global_position.x
 	Input.action_press("move_right")
 	await _frames(90)
@@ -33,16 +33,22 @@ func test_treino() -> void:
 	var y0 := p.global_position.y
 	Input.action_press("jump")
 	await _frames(14)
-	check(p.global_position.y < y0 - 20.0, "pula (%.1f -> %.1f)" % [y0, p.global_position.y])
+	check(p.global_position.y < y0 - 8.0, "pula (%.1f -> %.1f)" % [y0, p.global_position.y])
 	Input.action_release("jump")
 	await _frames(90)
-	check(p.is_on_floor(), "aterrissa")
-	await _tap("dash")
-	check(p.state == Player.State.DASH or p.dash_cd > 0.0, "dash")
+	check(p.grounded(), "aterrissa")
+	Input.action_press("dash")
+	var dashed := false
+	for k in 6:
+		await _frames(1)
+		if p.state == Player.State.DASH or p.dash_cd > 0.0:
+			dashed = true
+	Input.action_release("dash")
+	check(dashed, "dash")
 	await _frames(60)
 	# combate: esqueleto logo à frente
 	p.facing = 1
-	var en: Enemy = level._make_enemy("skeleton", 1, p.global_position + Vector2(28, 0), -1)
+	var en: Enemy = level._make_enemy("skeleton", 1, p.global_position + Vector2(14, 0), -1)
 	level.entities.add_child(en)
 	await _frames(10)
 	var hp0 := en.hp
@@ -55,7 +61,7 @@ func test_treino() -> void:
 	p.focus = p.max_focus()
 	var before := tree.get_nodes_in_group("projectiles").size()
 	Game.profile["spell_slots"] = ["chama", "passo_etereo"]
-	await _tap("spell_1")
+	await _tap("spell_1", 2)
 	await _frames(2)
 	check(tree.get_nodes_in_group("projectiles").size() > before or p.focus < p.max_focus(), "Chama conjurada")
 	# aparar um projétil inimigo
@@ -67,8 +73,8 @@ func test_treino() -> void:
 	info.amount = 10.0
 	info.team = Layers.Team.ENEMY
 	proj.info = info
-	proj.velocity = Vector2(-200, 0)
-	proj.global_position = p.body_center() + Vector2(60, 0)
+	proj.velocity = Vector2(-100, 0)
+	proj.global_position = p.body_center() + Vector2(30, 0)
 	level.entities.add_child(proj)
 	await _frames(20)
 	await _tap("parry")

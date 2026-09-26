@@ -1,0 +1,33 @@
+{
+ "size": [
+  14,
+  16
+ ],
+ "feet": [
+  7,
+  8
+ ],
+ "cols": 7,
+ "anims": {
+  "idle": {
+   "start": 0,
+   "count": 3,
+   "fps": 6
+  },
+  "cast": {
+   "start": 3,
+   "count": 2,
+   "fps": 8
+  },
+  "appear": {
+   "start": 5,
+   "count": 1,
+   "fps": 8
+  },
+  "vanish": {
+   "start": 6,
+   "count": 1,
+   "fps": 8
+  }
+ }
+}

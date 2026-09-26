@@ -55,7 +55,7 @@ func start(new_step: Dictionary, new_kind: String, facing: int, charge: float = 
 	_hits_done = 0
 	hitbox.team = actor.team
 	hitbox.info_factory = _make_info
-	hitbox.set_box(step.get("box", [0, -30, 40, 30]), facing)
+	hitbox.set_box(step.get("box", [0, -12, 16, 12]), facing)
 	hitbox.pogo = step.get("pogo", false)
 	started.emit(step, kind)
 

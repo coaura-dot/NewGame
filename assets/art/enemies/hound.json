@@ -1,0 +1,33 @@
+{
+ "size": [
+  18,
+  12
+ ],
+ "feet": [
+  9,
+  12
+ ],
+ "cols": 8,
+ "anims": {
+  "idle": {
+   "start": 0,
+   "count": 2,
+   "fps": 3
+  },
+  "run": {
+   "start": 2,
+   "count": 4,
+   "fps": 12
+  },
+  "jump": {
+   "start": 6,
+   "count": 1,
+   "fps": 8
+  },
+  "windup": {
+   "start": 7,
+   "count": 1,
+   "fps": 8
+  }
+ }
+}

@@ -1,0 +1,23 @@
+{
+ "size": [
+  16,
+  18
+ ],
+ "feet": [
+  8,
+  18
+ ],
+ "cols": 4,
+ "anims": {
+  "idle": {
+   "start": 0,
+   "count": 2,
+   "fps": 3
+  },
+  "breath": {
+   "start": 2,
+   "count": 2,
+   "fps": 8
+  }
+ }
+}

@@ -1,0 +1,23 @@
+{
+ "size": [
+  36,
+  36
+ ],
+ "feet": [
+  18,
+  18
+ ],
+ "cols": 6,
+ "anims": {
+  "idle": {
+   "start": 0,
+   "count": 4,
+   "fps": 8
+  },
+  "attack": {
+   "start": 4,
+   "count": 2,
+   "fps": 10
+  }
+ }
+}

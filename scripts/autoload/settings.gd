@@ -4,27 +4,32 @@ extends Node
 ## motion blur, sombras...) pode ser desligado aqui.
 
 const PATH := "user://settings.cfg"
+## Versão do formato. Ao mudar padrões visuais importantes, suba este número:
+## configurações de vídeo antigas são descartadas (o resto é mantido).
+const VERSION := 2
 
 const DEFAULTS := {
 	"video": {
 		"fullscreen": false,
 		"vsync": true,
-		"integer_scaling": false,
+		"integer_scaling": true, # pixels perfeitos (tarjas pretas se a tela não for múltipla de 320x180)
+		"smooth_camera": true, # rolagem subpixel da câmera (desligue para o "pixel puro" do Celeste original)
 		"bloom": true,
-		"bloom_intensity": 0.8,
+		"bloom_intensity": 0.6,
 		"god_rays": true,
 		"motion_blur": true,
-		"motion_blur_strength": 0.6,
+		"motion_blur_strength": 0.5,
 		"dynamic_lights": true,
-		"shadows": true,
-		"chromatic_aberration": true,
-		"vignette": true,
-		"film_grain": true,
+		"shadows": false,
+		"chromatic_aberration": false,
+		"vignette": false,
+		"screen_flash": true,
 		"afterimages": true,
-		"particles": 2, # 0 = mínimo, 1 = médio, 2 = alto
+		"particles": 1, # 0 = mínimo, 1 = normal, 2 = muitas
+		"ambient_particles": true,
 		"screen_shake": 1.0,
 		"hitstop": true,
-		"damage_numbers": true,
+		"damage_numbers": false,
 	},
 	"audio": {
 		"master": 0.8,
@@ -113,7 +118,10 @@ func _load() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) != OK:
 		return
+	var old := int(cfg.get_value("meta", "version", 1)) < VERSION
 	for section in DEFAULTS.keys():
+		if old and section == "video":
+			continue
 		for key in DEFAULTS[section].keys():
 			if cfg.has_section_key(section, key):
 				data[section][key] = cfg.get_value(section, key)
@@ -121,6 +129,7 @@ func _load() -> void:
 
 func save() -> void:
 	var cfg := ConfigFile.new()
+	cfg.set_value("meta", "version", VERSION)
 	for section in data.keys():
 		for key in data[section].keys():
 			cfg.set_value(section, key, data[section][key])
@@ -144,7 +153,7 @@ func apply() -> void:
 	elif win.mode == Window.MODE_FULLSCREEN:
 		win.mode = Window.MODE_WINDOWED
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if video("vsync") else DisplayServer.VSYNC_DISABLED)
-	win.content_scale_stretch = Window.CONTENT_SCALE_STRETCH_INTEGER if video("integer_scaling") else Window.CONTENT_SCALE_STRETCH_FRACTIONAL
+	get_tree().root.content_scale_stretch = Window.CONTENT_SCALE_STRETCH_INTEGER if video("integer_scaling") else Window.CONTENT_SCALE_STRETCH_FRACTIONAL
 	_apply_audio()
 
 

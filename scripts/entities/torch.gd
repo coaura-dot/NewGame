@@ -1,41 +1,40 @@
 class_name Torch
 extends Node2D
-## Tocha/lanterna: chama procedural + luz com cintilação (sombras opcionais).
+## Tocha na parede: suporte + chaminha pixelada + brilho suave (bloom).
+
+const TEX := preload("res://assets/art/props/torch.png")
 
 var color: Color = Color(1.8, 0.9, 0.4)
 var _light: PointLight2D
+var _glow: Sprite2D
 var _t: float = 0.0
-var _flames: Array = []
 
 
 func _ready() -> void:
 	z_index = -5
 	_t = randf() * 10.0
-	_light = LightUtil.make_light(Color(color.r, color.g, color.b).clamp(), 1.1, 1.1, true)
+	_light = LightUtil.make_light(Color(color.r, color.g, color.b).clamp(), 0.7, 1.0, true)
 	if _light:
+		_light.position = Vector2(0, -3)
 		add_child(_light)
-	material = CanvasItemMaterial.new()
-	(material as CanvasItemMaterial).blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	_glow = LightUtil.make_glow(Color(color.r * 0.6, color.g * 0.5, color.b * 0.4, 0.35), 9.0)
+	_glow.position = Vector2(0, -3)
+	add_child(_glow)
 
 
 func _process(delta: float) -> void:
 	_t += delta
+	var f := 1.0 + 0.1 * sin(_t * 11.0) + 0.06 * sin(_t * 23.0)
 	if _light:
-		_light.energy = 1.0 + 0.12 * sin(_t * 11.0) + 0.08 * sin(_t * 23.0)
-	if randf() < delta * 14.0:
-		_flames.append([Vector2(randf_range(-2, 2), 0), randf_range(0.35, 0.6), 0.0])
-	for f in _flames:
-		f[2] += delta
-		f[0].y -= 22.0 * delta
-		f[0].x += sin(_t * 8.0 + f[1] * 10.0) * 6.0 * delta
-	_flames = _flames.filter(func(f): return f[2] < f[1])
+		_light.energy = 0.42 * f
+	_glow.scale = Vector2.ONE * (18.0 / 64.0) * f
 	queue_redraw()
 
 
 func _draw() -> void:
-	draw_rect(Rect2(-2, 0, 4, 8), Color(0.25, 0.18, 0.12))
-	draw_circle(Vector2(0, -2), 4.0 + sin(_t * 12.0) * 0.6, Color(color.r, color.g * 0.9, color.b, 0.9))
-	draw_circle(Vector2(0, -2), 2.0, Color(3.0, 2.6, 1.6))
-	for f in _flames:
-		var k: float = 1.0 - f[2] / f[1]
-		draw_circle(f[0] + Vector2(0, -4), 2.2 * k, Color(color.r, color.g * k, color.b * k, k))
+	draw_texture(TEX, Vector2(-3, -1))
+	var k := int(_t * 10.0) % 3
+	var hot := Color(minf(color.r * 1.3, 3.0), minf(color.g * 1.3, 3.0), minf(color.b * 1.2, 3.0))
+	draw_rect(Rect2(-1, -3, 2, 2), color)
+	draw_rect(Rect2(-1 + (1 if k == 1 else 0), -4 - (1 if k == 2 else 0), 1, 1), color)
+	draw_rect(Rect2(0, -2, 1, 1), hot)

@@ -10,7 +10,7 @@ var velocity: Vector2 = Vector2.ZERO
 var lifetime: float = 2.0
 var pierce: bool = false
 var homing: float = 0.0
-var radius: float = 6.0
+var radius: float = 3.0
 var color: Color = Color(2.4, 1.2, 0.4)
 var gravity_y: float = 0.0
 var reflectable: bool = true
@@ -41,10 +41,8 @@ func _ready() -> void:
 	add_child(cs)
 	body_entered.connect(_on_body)
 	z_index = 25
-	material = CanvasItemMaterial.new()
-	(material as CanvasItemMaterial).blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	if light_enabled:
-		var l := LightUtil.make_light(Color(color.r, color.g, color.b).clamp() , 0.9, 0.25 + radius * 0.02)
+		var l := LightUtil.make_light(Color(color.r, color.g, color.b).clamp(), 0.7, 0.3 + radius * 0.04)
 		if l:
 			add_child(l)
 
@@ -64,7 +62,7 @@ func _physics_process(delta: float) -> void:
 	global_position += velocity * d
 	rotation = velocity.angle() if texture else 0.0
 	_trail.push_front(global_position)
-	if _trail.size() > 8:
+	if _trail.size() > 5:
 		_trail.pop_back()
 	lifetime -= d
 	if lifetime <= 0.0:
@@ -76,7 +74,7 @@ func _physics_process(delta: float) -> void:
 			var hi := info.duplicate_info()
 			hi.direction = velocity.normalized()
 			if hi.knockback == Vector2.ZERO:
-				hi.knockback = velocity.normalized() * 120.0 + Vector2(0, -60)
+				hi.knockback = velocity.normalized() * 60.0 + Vector2(0, -30)
 			hi.hit_position = global_position
 			a.receive(hi)
 			if not pierce:
@@ -87,7 +85,7 @@ func _physics_process(delta: float) -> void:
 
 func _nearest_enemy() -> Node:
 	var best: Node = null
-	var best_d := 260.0
+	var best_d := 130.0
 	for a in get_tree().get_nodes_in_group("actors"):
 		if a.team == team or a.dead:
 			continue
@@ -107,7 +105,7 @@ func _explode(impact: bool) -> void:
 		return
 	_dead = true
 	if impact:
-		FX.burst(global_position, color, 10, 150.0)
+		FX.burst(global_position, color, 5, 70.0)
 	queue_free()
 
 
@@ -121,12 +119,12 @@ func reflect(new_owner: Node) -> void:
 	var aim := Vector2(new_owner.facing, 0)
 	if new_owner.has_method("aim_direction"):
 		aim = new_owner.aim_direction()
-	velocity = aim.normalized() * maxf(velocity.length() * 1.35, 260.0)
+	velocity = aim.normalized() * maxf(velocity.length() * 1.35, 130.0)
 	lifetime = maxf(lifetime, 1.2)
 	_hit.clear()
 	color = Color(color.b, color.g, color.r) * 1.2
 	FX.hitstop(0.06)
-	FX.burst(global_position, Color(3, 3, 3), 12, 200.0)
+	FX.hit_spark(global_position, velocity.normalized(), Color(3, 3, 3), true)
 	Audio.play("parry")
 
 
@@ -134,13 +132,14 @@ func _draw() -> void:
 	var inv := get_global_transform().affine_inverse()
 	for i in _trail.size():
 		var f := 1.0 - float(i) / _trail.size()
-		draw_circle(inv * _trail[i], radius * 0.7 * f, Color(color.r, color.g, color.b, 0.35 * f))
+		var r := maxf(radius * 0.6 * f, 0.5)
+		draw_rect(Rect2((inv * _trail[i]).round() - Vector2(r, r), Vector2(r, r) * 2.0), Color(color.r, color.g, color.b, 0.3 * f))
 	if texture:
 		var fw := texture.get_width() / hframes
 		var frame := int(_anim_t * 12.0) % hframes
 		var src := Rect2(frame * fw, 0, fw, texture.get_height())
-		draw_texture_rect_region(texture, Rect2(Vector2(-fw * 0.5, -texture.get_height() * 0.5), Vector2(fw, texture.get_height())), src, Color(1.6, 1.4, 1.2))
+		draw_texture_rect_region(texture, Rect2(Vector2(-fw * 0.5, -texture.get_height() * 0.5), Vector2(fw, texture.get_height())), src)
 	else:
-		draw_circle(Vector2.ZERO, radius * 1.6, Color(color.r, color.g, color.b, 0.25))
-		draw_circle(Vector2.ZERO, radius, color)
-		draw_circle(Vector2.ZERO, radius * 0.45, Color(3.5, 3.5, 3.5))
+		var r := maxf(radius, 1.0)
+		draw_rect(Rect2(Vector2(-r, -r), Vector2(r, r) * 2.0), color)
+		draw_rect(Rect2(Vector2(-r * 0.5, -r * 0.5).round(), Vector2(maxf(r, 1.0), maxf(r, 1.0))), Color(3.0, 3.0, 3.0))

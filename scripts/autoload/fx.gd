@@ -1,17 +1,21 @@
 extends Node
-## "Game feel": hitstop, câmera lenta, tremor de tela (trauma), números de
-## dano, faíscas e cortes. Todos respeitam as opções de vídeo/assistência.
+## "Game feel": hitstop, câmera lenta, tremor de tela (trauma), faíscas de
+## impacto, cortes e textos no mundo. Tudo na escala de 320x180 e contido —
+## a tela deve continuar limpa. Respeita as opções de vídeo/assistência.
 
 const SlashArc := preload("res://scripts/fx/slash_arc.gd")
 const FloatingText := preload("res://scripts/fx/floating_text.gd")
 const Burst := preload("res://scripts/fx/burst.gd")
+const HitSpark := preload("res://scripts/fx/hit_spark.gd")
+const FONT_SMALL := preload("res://assets/fonts/kenney_mini.ttf")
 
-var camera: Camera2D = null
+var camera: Node = null
 var effects_root: Node = null ## onde efeitos de mundo são instanciados
 
 var shake_offset: Vector2 = Vector2.ZERO
 var trauma: float = 0.0
-var flash_amount: float = 0.0 ## lido pelo post-process (aberração cromática)
+var flash_amount: float = 0.0 ## aberração cromática (golpes fortes)
+var screen_flash: float = 0.0 ## clarão branco na tela (aparo perfeito, dano)
 var slowmo_active: bool = false
 
 var _hitstop_until: float = 0.0
@@ -42,15 +46,15 @@ func _process(_delta: float) -> void:
 	if get_tree().paused:
 		ts = 1.0
 	elif now < _hitstop_until:
-		ts *= 0.0
+		ts = 0.0
 	elif slowmo_active:
 		ts *= _slowmo_scale
 	Engine.time_scale = ts
-	# tremor por trauma (quadrático)
-	trauma = maxf(trauma - real_dt * 1.6, 0.0)
+	trauma = maxf(trauma - real_dt * 2.2, 0.0)
 	var amt: float = trauma * trauma * float(Settings.video("screen_shake"))
-	shake_offset = Vector2(_noise.get_noise_2d(_t * 60.0, 0.0), _noise.get_noise_2d(0.0, _t * 60.0)) * 14.0 * amt
-	flash_amount = maxf(flash_amount - real_dt * 4.0, 0.0)
+	shake_offset = Vector2(_noise.get_noise_2d(_t * 60.0, 0.0), _noise.get_noise_2d(0.0, _t * 60.0)) * 5.0 * amt
+	flash_amount = maxf(flash_amount - real_dt * 5.0, 0.0)
+	screen_flash = maxf(screen_flash - real_dt * 6.0, 0.0)
 
 
 # ---------------------------------------------------------------------------
@@ -83,8 +87,15 @@ func shake(amount: float) -> void:
 	trauma = clampf(trauma + amount, 0.0, 1.0)
 
 
+## Aberração cromática curta (se ligada). Mantido o nome por compatibilidade.
 func flash(amount: float = 1.0) -> void:
 	flash_amount = maxf(flash_amount, amount)
+
+
+## Clarão branco na tela inteira (bem curto).
+func white_flash(amount: float = 0.35) -> void:
+	if Settings.video("screen_flash"):
+		screen_flash = maxf(screen_flash, amount)
 
 
 # ---------------------------------------------------------------------------
@@ -94,6 +105,8 @@ func flash(amount: float = 1.0) -> void:
 func _root() -> Node:
 	if is_instance_valid(effects_root):
 		return effects_root
+	if PixelView.current and is_instance_valid(PixelView.current):
+		return PixelView.current.world
 	return get_tree().current_scene
 
 
@@ -102,9 +115,9 @@ func damage_number(pos: Vector2, amount: float, crit: bool = false, color: Color
 		return
 	var t := FloatingText.new()
 	t.text = str(int(round(amount)))
-	t.color = Color(2.2, 1.6, 0.4) if crit else color
-	t.big = crit
-	t.global_position = pos + Vector2(randf_range(-6, 6), -10)
+	t.color = Color(1.0, 0.85, 0.35) if crit else color
+	t.global_position = pos + Vector2(randf_range(-3, 3), -4)
+	t.small = true
 	_root().add_child(t)
 
 
@@ -116,7 +129,7 @@ func text(pos: Vector2, s: String, color: Color = Color(1, 1, 1)) -> void:
 	_root().add_child(t)
 
 
-func slash(pos: Vector2, facing: int, arc_deg: float, radius: float, color: Color, rotation_offset: float = 0.0, thrust: bool = false) -> void:
+func slash(pos: Vector2, facing: int, arc_deg: float, radius: float, color: Color, rotation_offset: float = 0.0, thrust: bool = false, width: float = 3.0) -> void:
 	var s := SlashArc.new()
 	s.global_position = pos
 	s.facing = facing
@@ -124,29 +137,43 @@ func slash(pos: Vector2, facing: int, arc_deg: float, radius: float, color: Colo
 	s.radius = radius
 	s.color = color
 	s.thrust = thrust
+	s.width = width
 	s.rotation = rotation_offset
 	_root().add_child(s)
 
 
-func burst(pos: Vector2, color: Color, amount: int = 10, speed: float = 160.0, dir: Vector2 = Vector2.ZERO, spread_deg: float = 180.0, lifetime: float = 0.35, size: float = 2.0) -> void:
+func burst(pos: Vector2, color: Color, amount: int = 6, speed: float = 80.0, dir: Vector2 = Vector2.ZERO, spread_deg: float = 180.0, lifetime: float = 0.3, size: float = 1.0) -> void:
 	var q: int = int(Settings.video("particles"))
-	if q == 0:
-		amount = int(amount * 0.35)
-	elif q == 1:
-		amount = int(amount * 0.65)
+	amount = int(amount * [0.35, 0.7, 1.0][clampi(q, 0, 2)])
 	if amount <= 0:
 		return
 	var b := Burst.new()
 	b.global_position = pos
-	b.setup(color, amount, speed, dir, spread_deg, lifetime, size)
+	b.setup(color, amount, speed, dir, spread_deg, lifetime, maxf(size, 1.0))
 	_root().add_child(b)
 
 
-## Pacote padrão de impacto: hitstop + tremor + faíscas + número.
-func impact(pos: Vector2, dir: Vector2, amount: float, crit: bool, heavy: bool, color: Color = Color(2.0, 1.8, 1.4)) -> void:
-	hitstop(0.09 if crit or heavy else 0.05)
-	shake(0.35 if heavy else (0.25 if crit else 0.14))
-	burst(pos, color, 14 if crit else 9, 220.0, dir, 70.0, 0.28, 2.0)
-	damage_number(pos, amount, crit)
+## Poeira no chão (pulo, aterrissagem, virada).
+func dust(pos: Vector2, dir: Vector2 = Vector2.UP, amount: int = 3) -> void:
+	burst(pos, Color(0.92, 0.9, 0.86, 0.8), amount, 30.0, dir, 70.0, 0.25, 1.0)
+
+
+## Faísca de impacto estilo Hollow Knight: um clarão em estrela + poucas lascas.
+func hit_spark(pos: Vector2, dir: Vector2, color: Color = Color(2.2, 2.1, 1.9), big: bool = false) -> void:
+	var s := HitSpark.new()
+	s.global_position = pos
+	s.dir = dir
+	s.color = color
+	s.big = big
+	_root().add_child(s)
+
+
+## Pacote padrão de impacto: hitstop + tremor + faísca + número (opcional).
+func impact(pos: Vector2, dir: Vector2, amount: float, crit: bool, heavy: bool, color: Color = Color(2.2, 2.0, 1.8)) -> void:
+	hitstop(0.075 if crit or heavy else 0.045)
+	shake(0.28 if heavy else (0.2 if crit else 0.12))
+	hit_spark(pos, dir, color, crit or heavy)
+	burst(pos, Color(color.r * 0.6, color.g * 0.6, color.b * 0.6), 4 if not heavy else 7, 110.0, dir, 50.0, 0.22, 1.0)
+	damage_number(pos + Vector2(0, -6), amount, crit)
 	if crit or heavy:
-		flash(0.6)
+		flash(0.5)

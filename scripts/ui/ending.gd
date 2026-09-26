@@ -4,7 +4,7 @@ extends Control
 
 func _ready() -> void:
 	theme = UIKit.theme()
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	UIKit.fit(self)
 	var bg := ColorRect.new()
 	bg.color = Color(0.02, 0.01, 0.04)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)

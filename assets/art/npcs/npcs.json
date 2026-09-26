@@ -1,0 +1,25 @@
+{
+ "size": [
+  16,
+  16
+ ],
+ "roles": [
+  "ferreira",
+  "mercador",
+  "curandeira",
+  "sabio",
+  "capita",
+  "receptador",
+  "bardo",
+  "anciao",
+  "crianca"
+ ],
+ "species": [
+  "humano",
+  "orc",
+  "goblin",
+  "mago",
+  "barbaro",
+  "celeste"
+ ]
+}

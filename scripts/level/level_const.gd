@@ -8,7 +8,7 @@ extends RefCounted
 ##   U:   linha 0, colunas 18..21
 ##   D:   linhas 21..23, colunas 18..21 (com plataforma one-way na linha 23)
 
-const TILE := 16
+const TILE := 8
 const ROOM_W := 40
 const ROOM_H := 24
 const FLOOR_ROW := 21

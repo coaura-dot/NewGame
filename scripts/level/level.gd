@@ -17,10 +17,11 @@ var siege: bool = false
 
 var player: Player
 var camera: GameCamera
+var pixel_view: PixelView
+var world: Node2D ## raiz do mundo (dentro da tela interna 320x180)
 var entities: Node2D
 var hud: Node
 var pause_menu: Node
-var postfx: PostFX
 var checkpoint: Node = null
 var spawn_pos: Vector2 = Vector2.ZERO
 var boss_defeated: bool = false
@@ -44,6 +45,9 @@ func _ready() -> void:
 	biome = DB.biome(params["biome"])
 	dimension = DB.dimension(params.get("dimension", "prima"))
 	rng.seed = int(params.get("seed", 1)) + 99
+	pixel_view = PixelView.new()
+	add_child(pixel_view)
+	world = pixel_view.world
 	_build_world()
 	_spawn_entities()
 	_spawn_player()
@@ -97,20 +101,22 @@ func _resolve_params() -> void:
 
 
 func _build_world() -> void:
-	var ambient_a: Array = biome.get("ambient", [0.5, 0.5, 0.6])
-	var ambient := Color(ambient_a[0], ambient_a[1], ambient_a[2])
+	# tela limpa: nada de escurecer a cena inteira. Só um leve tom em biomas
+	# escuros / regra de pouca luz (as luzes então aparecem de leve).
+	var dim_k := 1.0
+	if biome.get("tags", []).has("dark"):
+		dim_k = 0.9
 	if dimension.get("rules", []).has("low_light"):
-		ambient *= 0.6
-	if not Settings.video("dynamic_lights"):
-		ambient = ambient.lerp(Color.WHITE, 0.45)
-	var cm := CanvasModulate.new()
-	cm.color = ambient
-	add_child(cm)
-	var built := LevelBuilder.build(self, layout, biome)
+		dim_k *= 0.72
+	if dim_k < 0.999:
+		var cm := CanvasModulate.new()
+		cm.color = Color(dim_k, dim_k, dim_k * 1.04)
+		world.add_child(cm)
+	LevelBuilder.build(world, layout, biome, params["biome"])
 	entities = Node2D.new()
 	entities.name = "Entities"
 	entities.z_index = 5
-	add_child(entities)
+	world.add_child(entities)
 	FX.effects_root = entities
 	for r in layout["rooms"]:
 		var o: Array = r["origin"]
@@ -133,8 +139,7 @@ func _spawn_entities() -> void:
 	var tier: int = int(params.get("tier", 1))
 	var torch_a: Array = biome.get("torch", [1.8, 0.9, 0.4])
 	var torch_color := Color(torch_a[0], torch_a[1], torch_a[2])
-	var tex: Texture2D = load("res://assets/art/tilesets/%s.png" % biome.get("tileset", "castle"))
-	var tint_a: Array = biome.get("tint", [1, 1, 1])
+	var tex: Texture2D = TileSetBuilder.texture_for(params["biome"])
 	for e in layout["entities"]:
 		var room: int = int(e.get("room", 0))
 		var data: Dictionary = e.get("data", {})
@@ -173,7 +178,7 @@ func _spawn_entities() -> void:
 				var s := Saw.new()
 				s.position = _tile_center(e["tile"])
 				if rng.randf() < 0.5:
-					s.travel = Vector2(rng.randf_range(-48, 48), rng.randf_range(-24, 24))
+					s.travel = Vector2(rng.randf_range(-24, 24), rng.randf_range(-12, 12)).round()
 				node = s
 			"torch":
 				var t := Torch.new()
@@ -184,7 +189,7 @@ func _spawn_entities() -> void:
 				var ls := LightShaft.new()
 				var pos := _tile_corner(e["tile"]) + Vector2(T * 0.5, 0)
 				ls.position = pos
-				ls.setup(Color(torch_color.r * 0.8, torch_color.g * 0.85, torch_color.b * 1.2 + 0.3), _shaft_height(e["tile"]), 64.0)
+				ls.setup(Color(torch_color.r * 0.8, torch_color.g * 0.85, torch_color.b * 1.2 + 0.3), _shaft_height(e["tile"]), 28.0)
 				entities.add_child(ls)
 			"gate":
 				var g := Gate.new()
@@ -244,7 +249,6 @@ func _spawn_entities() -> void:
 				var b := BreakableWall.new()
 				b.pound_only = e["type"] == "cracked_floor"
 				b.tile_tex = tex
-				b.tint = Color(tint_a[0], tint_a[1], tint_a[2])
 				b.position = _tile_corner(e["tile"])
 				node = b
 		if node:
@@ -263,7 +267,7 @@ func _shaft_height(tile: Array) -> float:
 	while y < rows.size() and n < 18 and rows[y][x] != "#":
 		y += 1
 		n += 1
-	return maxf(n * T, 48.0)
+	return maxf(n * T, 24.0)
 
 
 func _make_enemy(id: String, tier: int, pos: Vector2, room: int) -> Enemy:
@@ -285,28 +289,37 @@ func _spawn_player() -> void:
 	entities.add_child(player)
 	camera = GameCamera.new()
 	camera.target = player
-	add_child(camera)
+	world.add_child(camera)
 	camera.set_bounds(Rect2(0, 0, layout["width"] * T, layout["height"] * T))
+	var idx := _room_at(player.global_position)
+	if idx >= 0:
+		camera.set_room(room_rect(idx))
 	camera.snap()
-	camera.make_current()
-	var amb := AmbientParticles.new()
-	amb.setup(biome.get("particles", "dust"), camera)
-	add_child(amb)
+	pixel_view.camera = camera
+	if Settings.video("ambient_particles"):
+		var amb := AmbientParticles.new()
+		amb.setup(biome.get("particles", "dust"))
+		world.add_child(amb)
+
+
+## Retângulo (em px) da sala de índice idx.
+func room_rect(idx: int) -> Rect2:
+	var o: Array = layout["rooms"][idx]["origin"]
+	return Rect2(int(o[0]) * T, int(o[1]) * T, LevelConst.ROOM_W * T, LevelConst.ROOM_H * T)
+
+
+func _room_at(pos: Vector2) -> int:
+	var cell := Vector2i(int(floor(pos.x / (LevelConst.ROOM_W * T))), int(floor((pos.y - 4.0) / (LevelConst.ROOM_H * T))))
+	return _room_index_by_cell.get(cell, -1)
 
 
 func _build_layers() -> void:
 	var bg := BackgroundLayer.new()
-	var ambient_a: Array = biome.get("ambient", [0.5, 0.5, 0.6])
-	var tint_a: Array = biome.get("tint", [1, 1, 1])
-	var bg_tint := Color(tint_a[0], tint_a[1], tint_a[2]) * Color(ambient_a[0] * 1.5, ambient_a[1] * 1.5, ambient_a[2] * 1.5)
 	bg.camera = camera
-	bg.build(biome.get("background", "town"), bg_tint)
-	add_child(bg)
-	postfx = PostFX.new()
-	postfx.camera = camera
-	postfx.player = player
-	postfx.build(self, dimension, biome.get("tags", []).has("outdoor"))
-	add_child(postfx)
+	bg.level_height = layout["height"] * T
+	bg.build(params["biome"])
+	world.add_child(bg)
+	pixel_view.set_grade(dimension.get("grade", {}), biome.get("tags", []).has("outdoor"))
 	hud = load("res://scripts/ui/hud.gd").new()
 	hud.level = self
 	add_child(hud)
@@ -322,12 +335,12 @@ func _build_layers() -> void:
 func _physics_process(_delta: float) -> void:
 	if player == null or player.dead:
 		return
-	var cell := Vector2i(int(player.global_position.x) / (LevelConst.ROOM_W * T), int(player.global_position.y - 8) / (LevelConst.ROOM_H * T))
-	var idx: int = _room_index_by_cell.get(cell, -1)
+	var idx := _room_at(player.global_position)
 	if idx != _current_room and idx >= 0:
 		_current_room = idx
+		camera.set_room(room_rect(idx))
 		_on_room_entered(idx)
-	if player.global_position.y > layout["height"] * T + 64:
+	if player.global_position.y > layout["height"] * T + 32:
 		player.take_status_damage(10.0, "fall")
 		player._hazard_respawn()
 
@@ -345,6 +358,8 @@ func _on_room_entered(idx: int) -> void:
 		if room.get("type", "") == "boss" and boss_node and is_instance_valid(boss_node):
 			if hud and hud.has_method("show_boss"):
 				hud.show_boss(boss_node)
+		if player and player.emote:
+			player.emote.show_emote("!", 0.8)
 	else:
 		_mark_cleared(idx)
 
@@ -371,11 +386,11 @@ func on_enemy_killed(en: Node) -> void:
 	result["kills"] = int(result["kills"]) + 1
 	var pos: Vector2 = en.body_center()
 	for id in en.roll_drops():
-		spawn_pickup(id, pos, Vector2(rng.randf_range(-60, 60), -180))
+		spawn_pickup(id, pos, Vector2(rng.randf_range(-30, 30), -110))
 	var cur: Array = en.data.get("currency", [2, 5])
 	spawn_currency(rng.randi_range(int(cur[0]), int(cur[1])), pos)
 	if rng.randf() < 0.06:
-		spawn_pickup("pocao_vida", pos, Vector2(0, -150))
+		spawn_pickup("pocao_vida", pos, Vector2(0, -90))
 	if en == boss_node:
 		boss_defeated = true
 		result["boss_killed"] = true
@@ -421,7 +436,7 @@ func set_checkpoint(cp: Node) -> void:
 # Drops
 # ---------------------------------------------------------------------------
 
-func spawn_pickup(id: String, pos: Vector2, vel: Vector2 = Vector2(0, -150)) -> void:
+func spawn_pickup(id: String, pos: Vector2, vel: Vector2 = Vector2(0, -90)) -> void:
 	var p := Pickup.new()
 	p.item_id = id
 	p.position = pos
@@ -437,7 +452,7 @@ func spawn_currency(amount: int, pos: Vector2) -> void:
 		var p := Pickup.new()
 		p.currency = chunk
 		p.position = pos
-		p.velocity = Vector2(rng.randf_range(-90, 90), rng.randf_range(-220, -120))
+		p.velocity = Vector2(rng.randf_range(-45, 45), rng.randf_range(-130, -70))
 		entities.call_deferred("add_child", p)
 
 
@@ -457,6 +472,10 @@ func _on_player_died(_p: Node) -> void:
 	if checkpoint and is_instance_valid(checkpoint):
 		at = checkpoint.global_position
 	player.revive(at)
+	var idx := _room_at(at)
+	if idx >= 0:
+		_current_room = idx
+		camera.set_room(room_rect(idx))
 	camera.snap()
 	FX.clear_time_effects()
 

@@ -20,18 +20,21 @@ var _region_title: String = ""
 func _ready() -> void:
 	layer = 10
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# HUD em pixel art, direto na tela 320x180
+	_draw_node = Control.new()
+	_draw_node.position = Vector2.ZERO
+	_draw_node.size = Vector2(320, 180)
+	_draw_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_draw_node.draw.connect(_draw_hud)
+	add_child(_draw_node)
+	# painéis e avisos: diagramados em 480x270 e reduzidos
 	_root = Control.new()
-	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	UIKit.fit(_root)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.theme = UIKit.theme()
 	add_child(_root)
-	_draw_node = Control.new()
-	_draw_node.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_draw_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_draw_node.draw.connect(_draw_hud)
-	_root.add_child(_draw_node)
 	_toasts = UIKit.vbox(2)
-	_toasts.position = Vector2(140, 34)
+	_toasts.position = Vector2(140, 44)
 	_toasts.size = Vector2(200, 100)
 	_toasts.alignment = BoxContainer.ALIGNMENT_BEGIN
 	_toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -69,10 +72,10 @@ func toast(text: String) -> void:
 	l.add_theme_constant_override("outline_size", 3)
 	_toasts.add_child(l)
 	var tw := l.create_tween()
-	tw.tween_interval(2.4)
-	tw.tween_property(l, "modulate:a", 0.0, 0.6)
+	tw.tween_interval(2.2)
+	tw.tween_property(l, "modulate:a", 0.0, 0.5)
 	tw.tween_callback(l.queue_free)
-	if _toasts.get_child_count() > 4:
+	if _toasts.get_child_count() > 3:
 		_toasts.get_child(0).queue_free()
 
 
@@ -85,123 +88,165 @@ func hide_boss() -> void:
 
 
 # ---------------------------------------------------------------------------
-# Desenho da HUD
+# Desenho da HUD (pixel art 1x)
 # ---------------------------------------------------------------------------
 
-func _text(pos: Vector2, s: String, size: int, color: Color, outline: bool = true) -> void:
+const SMALL := preload("res://assets/fonts/kenney_mini.ttf")
+const INK := Color(0.106, 0.082, 0.157)
+const MASK := Color(0.96, 0.94, 0.9)
+const MASK_EMPTY := Color(0.3, 0.27, 0.36)
+const HP_PER_MASK := 20.0
+
+
+func _text(pos: Vector2, s: String, _size: int = 8, color: Color = Color(1, 1, 1), outline: bool = true) -> void:
+	var d := _draw_node
+	pos = pos.round()
 	if outline:
-		_draw_node.draw_string_outline(FONT, pos, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 3, Color(0.04, 0.02, 0.07, color.a))
-	_draw_node.draw_string(FONT, pos, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+		for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+			d.draw_string(SMALL, pos + o, s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(INK.r, INK.g, INK.b, color.a))
+	d.draw_string(SMALL, pos, s, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, color)
 
 
 func _bar(rect: Rect2, ratio: float, color: Color, ghost: float = -1.0) -> void:
 	var d := _draw_node
-	d.draw_rect(rect.grow(1), Color(0.02, 0.01, 0.04, 0.9))
-	d.draw_rect(rect, Color(0.12, 0.1, 0.16))
+	d.draw_rect(rect.grow(1), INK)
+	d.draw_rect(rect, Color(0.18, 0.15, 0.24))
 	if ghost > ratio:
-		d.draw_rect(Rect2(rect.position, Vector2(rect.size.x * ghost, rect.size.y)), Color(1.0, 0.9, 0.8, 0.6))
-	d.draw_rect(Rect2(rect.position, Vector2(rect.size.x * clampf(ratio, 0, 1), rect.size.y)), color)
-	d.draw_rect(Rect2(rect.position, Vector2(rect.size.x * clampf(ratio, 0, 1), 1)), Color(color.r * 1.4, color.g * 1.4, color.b * 1.4))
+		d.draw_rect(Rect2(rect.position, Vector2(roundf(rect.size.x * ghost), rect.size.y)), Color(1.0, 0.95, 0.85, 0.7))
+	d.draw_rect(Rect2(rect.position, Vector2(roundf(rect.size.x * clampf(ratio, 0, 1)), rect.size.y)), color)
+
+
+## Máscara de vida (7x8): cheia, parcial ou vazia.
+func _mask(pos: Vector2, fill: float) -> void:
+	var d := _draw_node
+	var rows := [[1, 5], [0, 7], [0, 7], [0, 7], [1, 5], [2, 3]]
+	for j in rows.size():
+		d.draw_rect(Rect2(pos + Vector2(rows[j][0] - 1, j), Vector2(rows[j][1] + 2, 1)), INK)
+	d.draw_rect(Rect2(pos + Vector2(0, -1), Vector2(7, 1)), INK)
+	d.draw_rect(Rect2(pos + Vector2(2, 6), Vector2(3, 1)), INK)
+	for j in rows.size():
+		var c := MASK_EMPTY
+		var level_y := 6.0 * (1.0 - fill)
+		if fill >= 0.999 or float(j) >= level_y:
+			c = MASK
+		d.draw_rect(Rect2(pos + Vector2(rows[j][0], j), Vector2(rows[j][1], 1)), c)
+	# olhinhos
+	d.draw_rect(Rect2(pos + Vector2(2, 2), Vector2(1, 2)), INK)
+	d.draw_rect(Rect2(pos + Vector2(4, 2), Vector2(1, 2)), INK)
 
 
 func _draw_hud() -> void:
 	var d := _draw_node
 	if player == null or not is_instance_valid(player):
 		return
-	# vida / foco
-	var ratio: float = player.hp / maxf(player.max_hp(), 1.0)
-	var hp_col := Color(0.85, 0.18, 0.25) if ratio > 0.3 else Color(1.6 + 0.6 * sin(Time.get_ticks_msec() / 120.0), 0.2, 0.3)
-	_bar(Rect2(10, 10, 110, 7), ratio, hp_col, _hp_ghost)
-	_text(Vector2(124, 17), "%d/%d" % [int(player.hp), int(player.max_hp())], 10, UIKit.INK)
-	_bar(Rect2(10, 20, 80, 4), player.focus / maxf(player.max_focus(), 1.0), Color(0.35, 0.6, 1.4))
-	# dashes
+	# orbe de foco (alma) — enche de baixo para cima
+	var fr: float = player.focus / maxf(player.max_focus(), 1.0)
+	var oc := Vector2(12, 12)
+	d.draw_circle(oc, 9.0, INK)
+	d.draw_circle(oc, 8.0, Color(0.16, 0.14, 0.24))
+	var fill_h := int(roundf(16.0 * fr))
+	for y in range(16 - fill_h, 16):
+		var yy := float(y) - 8.0 + 0.5
+		var half := sqrt(maxf(64.0 - yy * yy, 0.0))
+		d.draw_rect(Rect2(oc.x - half, oc.y - 8 + y, half * 2.0, 1), Color(0.85, 0.9, 1.0) if fr >= Player.HEAL_COST / player.max_focus() else Color(0.55, 0.62, 0.85))
+	if fr > 0.02:
+		d.draw_rect(Rect2(oc.x - 3, oc.y - 8 + 16 - fill_h, 2, 1), Color(1.6, 1.7, 2.0))
+	# máscaras de vida
+	var masks := int(ceil(player.max_hp() / HP_PER_MASK))
+	for i in masks:
+		var v: float = clampf((player.hp - i * HP_PER_MASK) / HP_PER_MASK, 0.0, 1.0)
+		_mask(Vector2(24 + i * 9, 5), v)
+	# dashes (losangos) e pulo duplo
 	var md: int = player.max_dashes()
 	for i in md:
-		var c := Color(0.5, 2.0, 2.2) if i < player.dashes else Color(0.2, 0.25, 0.3)
-		var x := 12.0 + i * 9.0
-		d.draw_colored_polygon(PackedVector2Array([Vector2(x, 28), Vector2(x + 3, 31), Vector2(x, 34), Vector2(x - 3, 31)]), c)
-	if player.max_air_jumps() > 0:
-		var aj := Color(1.6, 1.4, 2.4) if player.air_jumps > 0 else Color(0.25, 0.22, 0.3)
-		d.draw_circle(Vector2(12.0 + md * 9.0 + 4.0, 31), 2.5, aj)
+		var c := Color(0.88, 0.28, 0.3) if i < player.dashes else Color(0.3, 0.27, 0.36)
+		var x := 25.0 + i * 6.0
+		d.draw_rect(Rect2(x, 15, 3, 1), INK)
+		d.draw_rect(Rect2(x - 1, 16, 5, 1), INK)
+		d.draw_rect(Rect2(x, 17, 3, 1), INK)
+		d.draw_rect(Rect2(x + 1, 16, 1, 1), c)
+		d.draw_rect(Rect2(x, 16, 1, 1), c)
+		d.draw_rect(Rect2(x + 2, 16, 1, 1), c)
 	# status ativos
-	var sx := 10.0
+	var sx := 24.0
 	for id in player.status.active.keys():
 		var sc: Color = StatusController.DEFS[id]["color"]
-		d.draw_rect(Rect2(sx, 38, 6, 6), sc)
-		sx += 8.0
+		d.draw_rect(Rect2(sx - 1, 21, 5, 5), INK)
+		d.draw_rect(Rect2(sx, 22, 3, 3), sc)
+		sx += 6.0
 	if player.ward_charges > 0:
-		_text(Vector2(sx + 2, 44), "Égide x%d" % player.ward_charges, 9, Color(2.0, 1.8, 1.0))
-	# brasas
-	var cur := int(Game.profile.get("currency", 0))
-	d.draw_circle(Vector2(452, 13), 3.0, Color(2.4, 1.4, 0.4))
-	_text(Vector2(458, 17), str(cur), 12, Color(1.0, 0.8, 0.45))
-	# arma + magias (canto inferior esquerdo)
-	var wid: String = player.weapon_id
-	var wicon := DB.icon(wid)
-	d.draw_rect(Rect2(8, 244, 20, 20), Color(0.05, 0.04, 0.08, 0.85))
-	if wicon:
-		d.draw_texture(wicon, Vector2(10, 246))
-	_text(Vector2(8, 240), DB.display_name(wid), 10, UIKit.DIM)
+		_text(Vector2(sx + 2, 26), "Égide x%d" % player.ward_charges, 8, Color(1.0, 0.9, 0.6))
+	# brasas (canto superior direito)
+	var cur := str(int(Game.profile.get("currency", 0)))
+	var cw := SMALL.get_string_size(cur, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	d.draw_rect(Rect2(308 - cw - 8, 6, 5, 5), INK)
+	d.draw_rect(Rect2(308 - cw - 7, 7, 3, 3), Color(1.9, 1.3, 0.35))
+	_text(Vector2(310 - cw, 11), cur, 8, Color(1.0, 0.85, 0.5))
+	# arma e magias (canto inferior esquerdo)
 	var slots: Array = Game.profile.get("spell_slots", [])
 	var keys := [Settings.binding_label("spell_1"), Settings.binding_label("spell_2")]
 	for i in slots.size():
 		var sid: String = slots[i]
-		var x := 34.0 + i * 24.0
-		d.draw_rect(Rect2(x, 244, 20, 20), Color(0.05, 0.04, 0.08, 0.85))
+		var x := 6.0 + i * 20.0
+		d.draw_rect(Rect2(x - 1, 157, 18, 18), INK)
+		d.draw_rect(Rect2(x, 158, 16, 16), Color(0.16, 0.14, 0.24))
 		var ic := DB.icon(sid)
 		if ic:
-			d.draw_texture(ic, Vector2(x + 2, 246))
+			d.draw_texture(ic, Vector2(x, 158))
 		var cd: float = player.caster.cooldown_left(sid)
 		var total: float = float(DB.spell(sid).get("cooldown", 1.0))
 		if cd > 0.0:
-			d.draw_rect(Rect2(x, 244 + 20 * (1.0 - cd / maxf(total, 0.01)), 20, 20 * cd / maxf(total, 0.01)), Color(0, 0, 0, 0.6))
-		var level_ := Inventory.spell_level(Game.profile, sid)
-		var cost: float = player.caster.cost_of(sid, level_)
-		if player.focus < cost:
-			d.draw_rect(Rect2(x, 244, 20, 20), Color(0.1, 0.1, 0.4, 0.45))
-		_text(Vector2(x + 13, 262), keys[i] if i < keys.size() else "", 9, UIKit.GOLD)
-	if not Game.profile.get("sigils", {}).is_empty():
-		_text(Vector2(84, 262), "[%s] Sigilo" % Settings.binding_label("sigil"), 9, UIKit.DIM)
+			var k := cd / maxf(total, 0.01)
+			d.draw_rect(Rect2(x, 158 + roundf(16 * (1.0 - k)), 16, roundf(16 * k)), Color(0, 0, 0, 0.6))
+		var lvl := Inventory.spell_level(Game.profile, sid)
+		if player.focus < player.caster.cost_of(sid, lvl):
+			d.draw_rect(Rect2(x, 158, 16, 16), Color(0.1, 0.1, 0.35, 0.5))
+		_text(Vector2(x + 11, 156), keys[i] if i < keys.size() else "", 8, Color(1.0, 0.85, 0.5))
+	var info_x := 8.0 + slots.size() * 20.0
+	_text(Vector2(info_x, 166), DB.display_name(player.weapon_id), 8, Color(0.85, 0.82, 0.9))
 	var potions := int(Game.profile.get("items", {}).get("pocao_vida", 0))
 	if potions > 0:
-		_text(Vector2(84, 252), "[%s] Poção x%d" % [Settings.binding_label("heal"), potions], 9, Color(1.4, 0.6, 0.7))
+		_text(Vector2(info_x, 175), "%s poção x%d" % [Settings.binding_label("heal"), potions], 8, Color(1.0, 0.6, 0.7))
 	# combo
-	if _combo >= 2:
-		var s := 18 + int(_combo_pop * 8.0)
-		var col := Color(2.2, 1.6, 0.6) if _combo >= 10 else UIKit.GOLD
-		_text(Vector2(400, 120), str(_combo), s, col)
-		_text(Vector2(402, 132), "COMBO", 10, UIKit.DIM)
+	if _combo >= 3:
+		var col := Color(1.0, 0.85, 0.35) if _combo >= 10 else Color(0.96, 0.94, 0.9)
+		_text(Vector2(292, 30 - roundf(_combo_pop * 2.0)), "x%d" % _combo, 8, col)
 		if player.rhythm_stacks > 0:
-			_text(Vector2(402, 142), "♪ x%d" % player.rhythm_stacks, 10, Color(2.0, 1.4, 2.6))
+			_text(Vector2(292, 40), "♪%d" % player.rhythm_stacks, 8, Color(0.8, 0.6, 1.0))
 	# chefe
 	if boss and is_instance_valid(boss) and not boss.dead:
 		var br: float = boss.hp / maxf(boss.max_hp(), 1.0)
-		_text(Vector2(140, 246), boss.data.get("name", "Chefe"), 12, Color(1.6, 0.7, 0.5))
-		_bar(Rect2(140, 250, 200, 6), br, Color(1.4, 0.35, 0.2))
+		var bn: String = boss.data.get("name", "Chefe")
+		var bw := SMALL.get_string_size(bn, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		_text(Vector2(160 - roundf(bw * 0.5), 164), bn, 8, Color(1.0, 0.7, 0.55))
+		_bar(Rect2(90, 168, 140, 3), br, Color(0.9, 0.3, 0.25))
 	# título da região
 	if _region_title_t > 0.0 and _region_title != "":
 		var a := minf(_region_title_t, 1.0) * minf((3.5 - _region_title_t) * 2.0, 1.0)
-		var w := FONT.get_string_size(_region_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
-		_text(Vector2(240 - w * 0.5, 80), _region_title, 20, Color(1.0, 0.85, 0.55, a))
+		var w := SMALL.get_string_size(_region_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+		var pos := Vector2(roundf(160 - w * 0.5), 44)
+		for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(0, 2)]:
+			d.draw_string(SMALL, pos + o, _region_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(INK.r, INK.g, INK.b, a))
+		d.draw_string(SMALL, pos, _region_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.93, 0.8, a))
 	# sobreposição do sigilo
 	if player.state == Player.State.SIGIL:
-		d.draw_rect(Rect2(0, 0, 480, 270), Color(0.05, 0.0, 0.12, 0.35))
+		d.draw_rect(Rect2(0, 0, 320, 180), Color(0.05, 0.0, 0.12, 0.3))
 		var guides := []
 		for sid in Game.profile.get("sigils", {}).keys():
 			guides.append(DB.spell(sid).get("sigil", ""))
 		for i in guides.size():
 			var gp := SigilRecognizer.guide_points(guides[i])
-			var origin := Vector2(30 + i * 44, 60)
+			var origin := Vector2(20 + i * 30, 40)
 			var pts := PackedVector2Array()
 			for p in gp:
-				pts.append(origin + p * 14.0)
+				pts.append(origin + p * 9.0)
 			if pts.size() > 1:
 				d.draw_polyline(pts, Color(1.4, 1.2, 2.4, 0.6), 1.0)
-		_text(Vector2(14, 38), "Desenhe um sigilo e solte", 10, UIKit.INK)
+		_text(Vector2(10, 28), "Desenhe um sigilo e solte", 8, Color(0.96, 0.94, 0.9))
 		var sp: PackedVector2Array = player.sigil_points
 		if sp.size() > 1:
-			d.draw_polyline(sp, Color(1.0, 0.6, 2.6, 0.5), 5.0)
-			d.draw_polyline(sp, Color(2.6, 2.2, 3.6), 1.5)
+			d.draw_polyline(sp, Color(1.0, 0.6, 2.6, 0.5), 3.0)
+			d.draw_polyline(sp, Color(2.6, 2.2, 3.6), 1.0)
 
 
 # ---------------------------------------------------------------------------

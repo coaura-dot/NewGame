@@ -80,16 +80,16 @@ static func spell_score(spell_id: String, db: Node, level: int = 0) -> float:
 			aoe = 1.0 + 0.5 * db.spell_value(spell_id, "chain", level) + (0.5 if s.get("pierce", false) else 0.0)
 		"nova", "eruption", "smite":
 			total = dmg
-			aoe = maxf(1.0, radius / 40.0)
+			aoe = maxf(1.0, radius / 20.0)
 		"storm":
 			total = dmg * count
 		"field":
 			var ticks: float = db.spell_value(spell_id, "duration", level) / maxf(float(s.get("tick", 0.25)), 0.05)
 			total = dmg * ticks + db.spell_value(spell_id, "implode", level)
-			aoe = maxf(1.0, radius / 40.0)
+			aoe = maxf(1.0, radius / 20.0)
 			control += 0.4 * db.spell_value(spell_id, "duration", level)
 		"time_field":
-			control += (1.0 - float(s.get("time_scale", 1.0))) * db.spell_value(spell_id, "duration", level) * maxf(1.0, radius / 60.0) * 0.9
+			control += (1.0 - float(s.get("time_scale", 1.0))) * db.spell_value(spell_id, "duration", level) * maxf(1.0, radius / 30.0) * 0.9
 		"blink":
 			control += 0.8
 		"rewind":

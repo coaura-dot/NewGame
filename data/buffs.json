@@ -1,105 +1,477 @@
 {
   "_doc": "Relíquias/buffs combináveis (estilo Dead Cells). triggers: on = evento (hit, kill, dash, dash_through, parry, perfect_parry, perfect_dodge, spell_cast, hurt, pogo, combo), if = condições, do = efeitos. damage_mods = multiplicadores condicionais aplicados ao dano do dono. As combinações emergem de tags e status compartilhados.",
   "centelha": {
-    "name": "Centelha", "icon": 70, "tier": 1, "rarity": "common", "tags": ["fire"],
+    "name": "Centelha",
+    "icon": 70,
+    "tier": 1,
+    "rarity": "common",
+    "tags": [
+      "fire"
+    ],
     "desc": "20% de chance de incendiar ao acertar.",
-    "triggers": [{"on": "hit", "if": {"chance": 0.2}, "do": [{"apply_status": {"burn": 1}}]}]
+    "triggers": [
+      {
+        "on": "hit",
+        "if": {
+          "chance": 0.2
+        },
+        "do": [
+          {
+            "apply_status": {
+              "burn": 1
+            }
+          }
+        ]
+      }
+    ]
   },
   "combustao": {
-    "name": "Combustão", "icon": 29, "tier": 2, "rarity": "rare", "tags": ["fire", "bleed"],
+    "name": "Combustão",
+    "icon": 29,
+    "tier": 2,
+    "rarity": "rare",
+    "tags": [
+      "fire",
+      "bleed"
+    ],
     "desc": "Sangramento em alvo em chamas explode (dano em área).",
-    "triggers": [{"on": "hit", "if": {"target_has": "burn", "target_status_min": {"bleed": 3}}, "do": [{"explode": {"damage": 12, "radius": 48, "consume": "bleed"}}]}]
+    "triggers": [
+      {
+        "on": "hit",
+        "if": {
+          "target_has": "burn",
+          "target_status_min": {
+            "bleed": 3
+          }
+        },
+        "do": [
+          {
+            "explode": {
+              "damage": 12,
+              "radius": 24,
+              "consume": "bleed"
+            }
+          }
+        ]
+      }
+    ]
   },
   "pacto_sangue": {
-    "name": "Pacto de Sangue", "icon": 28, "tier": 1, "rarity": "common", "tags": ["bleed", "heal"],
+    "name": "Pacto de Sangue",
+    "icon": 28,
+    "tier": 1,
+    "rarity": "common",
+    "tags": [
+      "bleed",
+      "heal"
+    ],
     "desc": "Matar cura 3. +20% dano de sangramento.",
-    "passive": {"stats": {"bleed_power": 0.2}},
-    "triggers": [{"on": "kill", "do": [{"heal": 3}]}]
+    "passive": {
+      "stats": {
+        "bleed_power": 0.2
+      }
+    },
+    "triggers": [
+      {
+        "on": "kill",
+        "do": [
+          {
+            "heal": 3
+          }
+        ]
+      }
+    ]
   },
   "embalo": {
-    "name": "Embalo", "icon": 50, "tier": 1, "rarity": "common", "tags": ["movement"],
+    "name": "Embalo",
+    "icon": 50,
+    "tier": 1,
+    "rarity": "common",
+    "tags": [
+      "movement"
+    ],
     "desc": "Dano +1% para cada 10 px/s de velocidade acima de 150.",
-    "damage_mods": [{"if": {"speed_min": 150}, "per_speed": 0.001}]
+    "damage_mods": [
+      {
+        "if": {
+          "speed_min": 75
+        },
+        "per_speed": 0.001
+      }
+    ]
   },
   "acrobata": {
-    "name": "Acrobata", "icon": 51, "tier": 1, "rarity": "common", "tags": ["movement"],
+    "name": "Acrobata",
+    "icon": 51,
+    "tier": 1,
+    "rarity": "common",
+    "tags": [
+      "movement"
+    ],
     "desc": "+25% dano no ar. Quicar (pogo) restaura Foco.",
-    "damage_mods": [{"if": {"airborne": true}, "mult": 1.25}],
-    "triggers": [{"on": "pogo", "do": [{"focus": 6}]}]
+    "damage_mods": [
+      {
+        "if": {
+          "airborne": true
+        },
+        "mult": 1.25
+      }
+    ],
+    "triggers": [
+      {
+        "on": "pogo",
+        "do": [
+          {
+            "focus": 6
+          }
+        ]
+      }
+    ]
   },
   "eco_lamina": {
-    "name": "Eco da Lâmina", "icon": 5, "tier": 2, "rarity": "rare", "tags": ["combo"],
+    "name": "Eco da Lâmina",
+    "icon": 5,
+    "tier": 2,
+    "rarity": "rare",
+    "tags": [
+      "combo"
+    ],
     "desc": "Todo 5º acerto do combo dispara um corte fantasma.",
-    "triggers": [{"on": "combo", "if": {"every": 5}, "do": [{"spawn_spell": {"spell": "seta_arcana", "free": true}}]}]
+    "triggers": [
+      {
+        "on": "combo",
+        "if": {
+          "every": 5
+        },
+        "do": [
+          {
+            "spawn_spell": {
+              "spell": "seta_arcana",
+              "free": true
+            }
+          }
+        ]
+      }
+    ]
   },
   "mestre_riposta": {
-    "name": "Mestre da Riposta", "icon": 25, "tier": 1, "rarity": "common", "tags": ["parry"],
+    "name": "Mestre da Riposta",
+    "icon": 25,
+    "tier": 1,
+    "rarity": "common",
+    "tags": [
+      "parry"
+    ],
     "desc": "Aparar perfeito garante crítico no próximo golpe e recarrega o dash.",
-    "triggers": [{"on": "perfect_parry", "do": [{"crit_next": true}, {"refill_dash": true}]}]
+    "triggers": [
+      {
+        "on": "perfect_parry",
+        "do": [
+          {
+            "crit_next": true
+          },
+          {
+            "refill_dash": true
+          }
+        ]
+      }
+    ]
   },
   "estilhacar": {
-    "name": "Estilhaçar", "icon": 30, "tier": 2, "rarity": "rare", "tags": ["ice"],
+    "name": "Estilhaçar",
+    "icon": 30,
+    "tier": 2,
+    "rarity": "rare",
+    "tags": [
+      "ice"
+    ],
     "desc": "Golpes pesados em alvos congelados causam dano x2.",
-    "damage_mods": [{"if": {"target_has": "frozen", "heavy": true}, "mult": 2.0}]
+    "damage_mods": [
+      {
+        "if": {
+          "target_has": "frozen",
+          "heavy": true
+        },
+        "mult": 2.0
+      }
+    ]
   },
   "passo_tempestade": {
-    "name": "Passo da Tempestade", "icon": 48, "tier": 2, "rarity": "rare", "tags": ["lightning", "movement"],
+    "name": "Passo da Tempestade",
+    "icon": 48,
+    "tier": 2,
+    "rarity": "rare",
+    "tags": [
+      "lightning",
+      "movement"
+    ],
     "desc": "Atravessar inimigos com dash aplica Choque.",
-    "triggers": [{"on": "dash_through", "do": [{"apply_status": {"shock": 1}}]}]
+    "triggers": [
+      {
+        "on": "dash_through",
+        "do": [
+          {
+            "apply_status": {
+              "shock": 1
+            }
+          }
+        ]
+      }
+    ]
   },
   "fome_vazio": {
-    "name": "Fome do Vazio", "icon": 54, "tier": 2, "rarity": "rare", "tags": ["void", "gravity"],
+    "name": "Fome do Vazio",
+    "icon": 54,
+    "tier": 2,
+    "rarity": "rare",
+    "tags": [
+      "void",
+      "gravity"
+    ],
     "desc": "Inimigos puxados por gravidade recebem +30% dano. Matar restaura 10 Foco.",
-    "damage_mods": [{"if": {"target_has": "pulled"}, "mult": 1.3}],
-    "triggers": [{"on": "kill", "if": {"target_has": "pulled"}, "do": [{"focus": 10}]}]
+    "damage_mods": [
+      {
+        "if": {
+          "target_has": "pulled"
+        },
+        "mult": 1.3
+      }
+    ],
+    "triggers": [
+      {
+        "on": "kill",
+        "if": {
+          "target_has": "pulled"
+        },
+        "do": [
+          {
+            "focus": 10
+          }
+        ]
+      }
+    ]
   },
   "lamina_cronal": {
-    "name": "Lâmina Cronal", "icon": 71, "tier": 2, "rarity": "rare", "tags": ["time"],
+    "name": "Lâmina Cronal",
+    "icon": 71,
+    "tier": 2,
+    "rarity": "rare",
+    "tags": [
+      "time"
+    ],
     "desc": "+40% dano contra alvos desacelerados.",
-    "damage_mods": [{"if": {"target_has": "slowed"}, "mult": 1.4}]
+    "damage_mods": [
+      {
+        "if": {
+          "target_has": "slowed"
+        },
+        "mult": 1.4
+      }
+    ]
   },
   "olho_carrasco": {
-    "name": "Olho do Carrasco", "icon": 34, "tier": 1, "rarity": "common", "tags": ["crit"],
+    "name": "Olho do Carrasco",
+    "icon": 34,
+    "tier": 1,
+    "rarity": "common",
+    "tags": [
+      "crit"
+    ],
     "desc": "+10% crítico. Críticos marcam o alvo (+20% dano recebido).",
-    "passive": {"stats": {"crit_chance": 0.1}},
-    "triggers": [{"on": "crit", "do": [{"apply_status": {"mark": 1}}]}]
+    "passive": {
+      "stats": {
+        "crit_chance": 0.1
+      }
+    },
+    "triggers": [
+      {
+        "on": "crit",
+        "do": [
+          {
+            "apply_status": {
+              "mark": 1
+            }
+          }
+        ]
+      }
+    ]
   },
   "ultimo_suspiro": {
-    "name": "Último Suspiro", "icon": 31, "tier": 2, "rarity": "rare", "tags": ["risk"],
+    "name": "Último Suspiro",
+    "icon": 31,
+    "tier": 2,
+    "rarity": "rare",
+    "tags": [
+      "risk"
+    ],
     "desc": "Abaixo de 30% de vida: +35% dano e esquivas mais longas.",
-    "damage_mods": [{"if": {"hp_below": 0.3}, "mult": 1.35}]
+    "damage_mods": [
+      {
+        "if": {
+          "hp_below": 0.3
+        },
+        "mult": 1.35
+      }
+    ]
   },
   "conducao": {
-    "name": "Condução", "icon": 43, "tier": 2, "rarity": "rare", "tags": ["lightning", "water"],
+    "name": "Condução",
+    "icon": 43,
+    "tier": 2,
+    "rarity": "rare",
+    "tags": [
+      "lightning",
+      "water"
+    ],
     "desc": "Alvos molhados com Choque espalham o choque para perto.",
-    "triggers": [{"on": "hit", "if": {"target_has": "wet", "target_status_min": {"shock": 1}}, "do": [{"spread_status": {"status": "shock", "radius": 80}}]}]
+    "triggers": [
+      {
+        "on": "hit",
+        "if": {
+          "target_has": "wet",
+          "target_status_min": {
+            "shock": 1
+          }
+        },
+        "do": [
+          {
+            "spread_status": {
+              "status": "shock",
+              "radius": 40
+            }
+          }
+        ]
+      }
+    ]
   },
   "vigia_cura_aparar": {
-    "name": "Vigia: Cura", "icon": 44, "tier": 1, "rarity": "set", "hidden": true,
-    "triggers": [{"on": "perfect_parry", "do": [{"heal": 4}]}]
+    "name": "Vigia: Cura",
+    "icon": 44,
+    "tier": 1,
+    "rarity": "set",
+    "hidden": true,
+    "triggers": [
+      {
+        "on": "perfect_parry",
+        "do": [
+          {
+            "heal": 4
+          }
+        ]
+      }
+    ]
   },
   "vigia_furia_aparar": {
-    "name": "Vigia: Fúria", "icon": 44, "tier": 1, "rarity": "set", "hidden": true,
-    "triggers": [{"on": "perfect_parry", "do": [{"temp_buff": {"stats": {"attack": 0.25}, "duration": 3.0}}]}]
+    "name": "Vigia: Fúria",
+    "icon": 44,
+    "tier": 1,
+    "rarity": "set",
+    "hidden": true,
+    "triggers": [
+      {
+        "on": "perfect_parry",
+        "do": [
+          {
+            "temp_buff": {
+              "stats": {
+                "attack": 0.25
+              },
+              "duration": 3.0
+            }
+          }
+        ]
+      }
+    ]
   },
   "sombra_rastro": {
-    "name": "Sombra: Rastro", "icon": 55, "tier": 1, "rarity": "set", "hidden": true,
-    "triggers": [{"on": "dash_through", "do": [{"bonus_damage": 6}]}]
+    "name": "Sombra: Rastro",
+    "icon": 55,
+    "tier": 1,
+    "rarity": "set",
+    "hidden": true,
+    "triggers": [
+      {
+        "on": "dash_through",
+        "do": [
+          {
+            "bonus_damage": 6
+          }
+        ]
+      }
+    ]
   },
   "arcanista_terceira_gratis": {
-    "name": "Arcanista: Fluxo", "icon": 53, "tier": 2, "rarity": "set", "hidden": true,
-    "triggers": [{"on": "spell_cast", "if": {"every": 3}, "do": [{"refund_spell": true}]}]
+    "name": "Arcanista: Fluxo",
+    "icon": 53,
+    "tier": 2,
+    "rarity": "set",
+    "hidden": true,
+    "triggers": [
+      {
+        "on": "spell_cast",
+        "if": {
+          "every": 3
+        },
+        "do": [
+          {
+            "refund_spell": true
+          }
+        ]
+      }
+    ]
   },
   "carrasco_contagio": {
-    "name": "Carrasco: Contágio", "icon": 35, "tier": 2, "rarity": "set", "hidden": true,
-    "triggers": [{"on": "kill", "if": {"target_has": "bleed"}, "do": [{"spread_status": {"status": "bleed", "radius": 90}}]}]
+    "name": "Carrasco: Contágio",
+    "icon": 35,
+    "tier": 2,
+    "rarity": "set",
+    "hidden": true,
+    "triggers": [
+      {
+        "on": "kill",
+        "if": {
+          "target_has": "bleed"
+        },
+        "do": [
+          {
+            "spread_status": {
+              "status": "bleed",
+              "radius": 45
+            }
+          }
+        ]
+      }
+    ]
   },
   "brasa_rastro": {
-    "name": "Brasa: Rastro", "icon": 29, "tier": 2, "rarity": "set", "hidden": true,
-    "triggers": [{"on": "dash_through", "do": [{"apply_status": {"burn": 2}}]}]
+    "name": "Brasa: Rastro",
+    "icon": 29,
+    "tier": 2,
+    "rarity": "set",
+    "hidden": true,
+    "triggers": [
+      {
+        "on": "dash_through",
+        "do": [
+          {
+            "apply_status": {
+              "burn": 2
+            }
+          }
+        ]
+      }
+    ]
   },
   "cronomante_desconto": {
-    "name": "Cronomante: Desconto", "icon": 71, "tier": 3, "rarity": "set", "hidden": true,
-    "passive": {"stats": {"time_spell_cost": -0.3}}
+    "name": "Cronomante: Desconto",
+    "icon": 71,
+    "tier": 3,
+    "rarity": "set",
+    "hidden": true,
+    "passive": {
+      "stats": {
+        "time_spell_cost": -0.3
+      }
+    }
   }
 }

@@ -151,6 +151,18 @@ static func hbox(sep: int = 4) -> HBoxContainer:
 	return h
 
 
+## Os menus são diagramados num espaço virtual de 480x270 e reduzidos para a
+## tela interna de 320x180 (texto continua legível com a escala da janela).
+const UI_SIZE := Vector2(480, 270)
+
+
+static func fit(c: Control) -> void:
+	c.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	c.position = Vector2.ZERO
+	c.size = UI_SIZE
+	c.scale = Vector2(320.0 / UI_SIZE.x, 180.0 / UI_SIZE.y)
+
+
 static func centered(child: Control) -> CenterContainer:
 	var c := CenterContainer.new()
 	c.set_anchors_preset(Control.PRESET_FULL_RECT)

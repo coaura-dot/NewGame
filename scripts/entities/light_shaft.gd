@@ -13,8 +13,9 @@ func setup(tint: Color, height: float = 150.0, width: float = 70.0) -> void:
 	m.shader = SHADER
 	m.set_shader_parameter("color", tint)
 	m.set_shader_parameter("seed", randf() * 100.0)
+	m.set_shader_parameter("intensity", 0.16)
 	m.set_shader_parameter("skew", randf_range(-0.25, 0.25))
 	material = m
-	z_index = 8
+	z_index = -3
 	visible = bool(Settings.video("god_rays"))
 	Events.settings_changed.connect(func(): visible = bool(Settings.video("god_rays")))

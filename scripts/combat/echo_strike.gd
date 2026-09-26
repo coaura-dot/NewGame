@@ -25,7 +25,7 @@ static func spawn(p: Node, s: Dictionary, k: String, m: float) -> void:
 	e.facing = p.facing
 	e.global_position = p.global_position
 	p.get_parent().add_child(e)
-	var g := AfterImage.from_sprite(p.sprite, Color(0.6, 2.6, 2.4, 0.8), DELAY + 0.2)
+	var g := AfterImage.from_sprite(p.rig if "rig" in p and p.rig else p.sprite, Color(0.6, 2.6, 2.4, 0.8), DELAY + 0.2)
 	if g:
 		p.get_parent().add_child(g)
 
@@ -41,7 +41,7 @@ func _ready() -> void:
 		info.tags.append("echo")
 		return info
 	add_child(_hitbox)
-	_hitbox.set_box(step.get("box", [0, -30, 40, 30]), facing)
+	_hitbox.set_box(step.get("box", [0, -12, 16, 12]), facing)
 
 
 func _physics_process(delta: float) -> void:
@@ -49,7 +49,7 @@ func _physics_process(delta: float) -> void:
 	if not _fired and _t >= DELAY:
 		_fired = true
 		_hitbox.activate()
-		var arc: Array = step.get("arc", [150, 40])
-		FX.slash(global_position + Vector2(0, -22), facing, float(arc[0]), float(arc[1]), Color(0.6, 2.8, 2.6))
+		var arc: Array = step.get("arc", [150, 14])
+		FX.slash(global_position + Vector2(0, -6), facing, float(arc[0]), float(arc[1]), Color(0.6, 2.6, 2.4))
 	if _t >= DELAY + float(step.get("active", 0.08)) + 0.02:
 		queue_free()

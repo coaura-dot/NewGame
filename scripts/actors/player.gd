@@ -1,69 +1,105 @@
 class_name Player
 extends Actor
-## Jogador. Movimento no estilo Celeste (aceleração, inércia, coyote time,
-## buffer de pulo, pulo variável, correção de quina, dash em 8 direções com
-## super/hyper, deslizar/saltar/escalar parede) + combate no estilo Katana
-## Zero (combos, pesado carregado, ataque em dash, pogo, aparar que rebate
-## projéteis, esquiva com câmera lenta, ritmo, magias e sigilos desenhados).
+## O herói — uma criaturinha de ~13 px numa tela de 320x180.
 ##
-## Tudo que é "número de feel" está nas constantes abaixo — ajuste à vontade.
+## MOVIMENTO no estilo Celeste, com os números do próprio Celeste (px/s na
+## escala de tiles de 8 px): aceleração/inércia, coyote time, buffer de pulo,
+## pulo variável, meia gravidade no ápice, correção de quina, deslizar/saltar/
+## escalar parede, dash em 8 direções com super/hyper/wallbounce. O corpo anda
+## em PIXELS INTEIROS (resto subpixel acumulado), igual ao Celeste — colisão
+## exata, nada de "escorregar" em quinas.
+##
+## COMBATE no estilo Hollow Knight: golpear NÃO trava o movimento (corre,
+## pula e dá dash batendo), golpes direcionais (lado / cima / baixo no ar =
+## pogo), recuo ao acertar, faísca + hitstop curto, dano no jogador com
+## congelamento e invencibilidade. Por cima: combos, pesado carregável (arte
+## da lâmina), ataque em dash, aparar, esquiva, magias, sigilos e foco (cura).
+##
+## Tudo que é "número de feel" está nas constantes abaixo.
 
 signal focus_changed(current: float, maximum: float)
 signal state_changed(state: int)
 
-enum State { NORMAL, DASH, CLIMB, ATTACK, DODGE, HURT, DEAD, SIGIL, POUND, RESPAWN }
+enum State { NORMAL, DASH, CLIMB, ATTACK, DODGE, HURT, DEAD, SIGIL, POUND, RESPAWN, HEAL, REST }
 
-# --- Corrida / ar ---
-const MAX_RUN := 170.0
-const RUN_ACCEL := 1700.0
-const RUN_DECEL := 1500.0
-const RUN_REDUCE := 480.0 ## acima da velocidade máxima (preserva o embalo)
-const AIR_MULT := 0.7
-# --- Gravidade / pulo ---
-const GRAVITY := 1800.0
-const MAX_FALL := 330.0
-const FAST_FALL := 470.0
-const HALF_GRAV_THRESHOLD := 70.0
-const JUMP_SPEED := 262.0
-const JUMP_H_BOOST := 45.0
-const VAR_JUMP_TIME := 0.17
-const DOUBLE_JUMP_SPEED := 238.0
+# --- Corrida (Celeste) ---
+const MAX_RUN := 90.0
+const RUN_ACCEL := 1000.0
+const RUN_REDUCE := 400.0 ## acima da velocidade máxima (preserva o embalo)
+const AIR_MULT := 0.65
+const DUCK_FRICTION := 500.0
+# --- Gravidade / pulo (Celeste) ---
+const GRAVITY := 900.0
+const MAX_FALL := 160.0
+const FAST_MAX_FALL := 240.0
+const FAST_MAX_ACCEL := 300.0
+const HALF_GRAV_THRESHOLD := 40.0
+const JUMP_SPEED := 105.0
+const JUMP_H_BOOST := 40.0
+const VAR_JUMP_TIME := 0.2
+const DOUBLE_JUMP_SPEED := 100.0
 const COYOTE := 0.1
-const JUMP_BUFFER := 0.12
-# --- Parede ---
-const WALL_SLIDE_MAX := 95.0
-const WALL_JUMP_H := 230.0
+const JUMP_BUFFER := 0.1
+const UPWARD_CORNER := 4
+# --- Parede (Celeste) ---
+const WALL_JUMP_H := MAX_RUN + JUMP_H_BOOST
 const WALL_JUMP_FORCE_TIME := 0.16
-const WALL_COYOTE := 0.08
-const CLIMB_SPEED := 85.0
-const CLIMB_STAMINA := 1.4
-# --- Dash ---
-const DASH_SPEED := 520.0
-const DASH_TIME := 0.14
-const DASH_END_SPEED := 300.0
-const DASH_COOLDOWN := 0.16
-const DASH_IFRAMES := 0.06
-const SUPER_H := 560.0
-const HYPER_H := 650.0
-# --- Defesa ---
-const DODGE_SPEED := 310.0
-const DODGE_TIME := 0.3
-const DODGE_IFRAMES := 0.24
+const WALL_JUMP_CHECK := 3
+const WALL_SLIDE_START := 20.0
+const WALL_SLIDE_TIME := 1.2
+const CLIMB_UP := 45.0
+const CLIMB_DOWN := 80.0
+const CLIMB_STAMINA := 110.0
+const CLIMB_UP_COST := 45.45
+const CLIMB_STILL_COST := 10.0
+const CLIMB_JUMP_COST := 27.5
+const CLIMB_HOP_Y := 120.0
+const CLIMB_HOP_X := 100.0
+# --- Dash (Celeste) ---
+const DASH_SPEED := 240.0
+const DASH_END_SPEED := 160.0
+const DASH_END_UP_MULT := 0.75
+const DASH_TIME := 0.15
+const DASH_COOLDOWN := 0.2
+const DASH_REFILL_COOLDOWN := 0.1
+const DASH_CORNER := 4
+const DASH_FREEZE := 0.03
+const SUPER_H := 260.0
+const HYPER_X_MULT := 1.25
+const HYPER_Y_MULT := 0.5
+const SUPER_WALL_JUMP_SPEED := 160.0
+const SUPER_WALL_JUMP_H := MAX_RUN + JUMP_H_BOOST * 2.0
+const SUPER_WALL_JUMP_VAR := 0.25
+# --- Combate (Hollow Knight) ---
+const POGO_SPEED := 150.0
+const RECOIL_X := 120.0
+const RECOIL_TIME := 0.08
+const RECOIL_UP := 40.0
+const HURT_TIME := 0.18
+const HURT_IFRAMES := 1.1
+const HURT_FREEZE := 0.1
+const HURT_KNOCK_X := 110.0
+const HURT_KNOCK_Y := 110.0
+const DODGE_SPEED := 170.0
+const DODGE_TIME := 0.2
+const DODGE_IFRAMES := 0.18
 const DODGE_COOLDOWN := 0.35
-const PERFECT_DODGE_WINDOW := 0.12
+const PERFECT_DODGE_WINDOW := 0.1
 const PARRY_WINDOW := 0.17
 const PERFECT_PARRY := 0.075
 const PARRY_COOLDOWN := 0.3
-const HURT_TIME := 0.24
-const HURT_IFRAMES := 0.9
-# --- Outros ---
-const POGO_SPEED := 300.0
-const POUND_SPEED := 640.0
-const CORNER_CORRECTION := 6
-const BODY := Vector2(12, 38)
-const COMBO_TIMEOUT := 1.3
+const POUND_SPEED := 320.0
+const ATTACK_BUFFER := 0.12
+const COMBO_TIMEOUT := 1.2
 const FOCUS_MAX_BASE := 100.0
-const ATTACK_BUFFER := 0.16
+const HEAL_HOLD := 0.2 ## segurar para focar; toque rápido = poção
+const HEAL_TIME := 0.85
+const HEAL_COST := 33.0
+const HEAL_AMOUNT := 20.0 ## uma "máscara"
+# --- Corpo ---
+const BODY := Vector2(8, 11)
+const DUCK_BODY := Vector2(8, 6)
+const HURT_SIZE := Vector2(6, 9)
 
 var state: int = State.NORMAL
 var level: Node = null ## a fase (Level) — define respawn, checkpoints etc.
@@ -73,29 +109,37 @@ var phys: Dictionary = {}
 var rules: Array = []
 var g_dir: float = 1.0
 
-# timers e flags de movimento
+# movimento
+var on_ground := false
+var was_on_floor := false
 var coyote_t := 0.0
 var jump_buffer_t := 0.0
 var var_jump_t := 0.0
 var var_jump_speed := 0.0
 var force_move_x := 0
 var force_move_t := 0.0
-var wall_dir := 0
-var wall_coyote_t := 0.0
-var last_wall_dir := 0
+var wall_dir := 0 ## parede encostada (-1/1) segurando na direção dela
+var wall_slide_t := 0.0
 var stamina := CLIMB_STAMINA
 var air_jumps := 0
 var dashes := 1
 var dash_cd := 0.0
+var dash_refill_cd := 0.0
 var dash_t := 0.0
 var dash_dir := Vector2.RIGHT
 var dash_on_ground := false
-var dash_grace := 0.0
-var _after_t := 0.0
+var max_fall := MAX_FALL
+var ducking := false
 var drop_t := 0.0
-var was_on_floor := false
 var input_x := 0.0
 var input_y := 0.0
+var recoil_t := 0.0
+var recoil_x := 0.0
+var _rem := Vector2.ZERO
+var _after_t := 0.0
+var _prev_pos := Vector2.ZERO
+var _fall_start_y := 0.0
+var _land_speed := 0.0
 
 # combate
 var moveset: Dictionary = {}
@@ -104,6 +148,7 @@ var combo_index := 0
 var combo_count := 0
 var combo_timer := 0.0
 var attack_buffer_t := 0.0
+var attack_dir := "side" ## side | up | down
 var heavy_charging := false
 var heavy_t := 0.0
 var rhythm_stacks := 0
@@ -113,6 +158,8 @@ var blocking := false
 var dodge_t := 0.0
 var dodge_cd := 0.0
 var hurt_t := 0.0
+var heal_hold_t := 0.0
+var heal_t := 0.0
 var focus := 0.0
 var buffs: BuffSystem
 var echo_charges := 0
@@ -125,8 +172,19 @@ var _history: Array = [] ## [pos, hp]
 var _history_t := 0.0
 var _spell_refund: Dictionary = {}
 var _using_mouse := false
+var _dash_through_hit: Dictionary = {}
+var _recent_hits: Array = [] ## tempos dos últimos danos (para o emote de raiva)
+var _idle_t := 0.0
+var _cast_pose_t := 0.0
+
+# nós
 var interact_area: Area2D
 var light: PointLight2D
+var rig: HeroRig
+var scarf: Scarf
+var emote: EmoteBubble
+var body_shape: CollisionShape2D
+var hurtbox: Hurtbox
 
 
 func _ready() -> void:
@@ -134,23 +192,33 @@ func _ready() -> void:
 	super._ready()
 	add_to_group("actors")
 	add_to_group("player")
-	var cs := CollisionShape2D.new()
+	safe_margin = 0.01
+	body_shape = CollisionShape2D.new()
 	var rect := RectangleShape2D.new()
 	rect.size = BODY
-	cs.shape = rect
-	cs.position = Vector2(0, -BODY.y * 0.5)
-	add_child(cs)
-	setup_sprite("hero")
-	var hb := Hurtbox.make(self, Vector2(12, 32), Vector2(0, -18))
-	add_child(hb)
+	body_shape.shape = rect
+	body_shape.position = Vector2(0, -BODY.y * 0.5)
+	add_child(body_shape)
+	rig = HeroRig.new()
+	rig.name = "Rig"
+	add_child(rig)
+	_mat = rig.mat
+	scarf = Scarf.new()
+	scarf.host = self
+	add_child(scarf)
+	emote = EmoteBubble.new()
+	emote.height = 14.0
+	add_child(emote)
+	hurtbox = Hurtbox.make(self, HURT_SIZE, Vector2(0, -HURT_SIZE.y * 0.5 - 1.0))
+	add_child(hurtbox)
 	interact_area = Area2D.new()
 	interact_area.collision_layer = 0
 	interact_area.collision_mask = Layers.INTERACT
 	var ic := CollisionShape2D.new()
 	var circ := CircleShape2D.new()
-	circ.radius = 20.0
+	circ.radius = 10.0
 	ic.shape = circ
-	ic.position = Vector2(0, -18)
+	ic.position = Vector2(0, -6)
 	interact_area.add_child(ic)
 	add_child(interact_area)
 	attack = AttackRunner.new(self)
@@ -160,16 +228,19 @@ func _ready() -> void:
 	caster = SpellCaster.new(self)
 	add_child(caster)
 	buffs = BuffSystem.new(self)
-	light = LightUtil.make_light(Color(1.0, 0.85, 0.7), 0.55, 0.7, true)
+	light = LightUtil.make_light(Color(1.0, 0.9, 0.8), 0.35, 0.8)
 	if light:
-		light.position = Vector2(0, -22)
+		light.position = Vector2(0, -6)
 		add_child(light)
 	apply_profile()
 	hp = max_hp()
 	focus = 30.0
+	global_position = global_position.round()
+	_prev_pos = global_position
 	last_safe_pos = global_position
 	Events.player_spawned.emit(self)
 	Events.settings_changed.connect(_on_settings_changed)
+	_update_scarf_color()
 
 
 ## Relê equipamento, atributos, buffs e física da dimensão a partir do perfil.
@@ -187,8 +258,8 @@ func apply_profile() -> void:
 	rules = dim.get("rules", [])
 	g_dir = float(phys.get("gravity_dir", 1))
 	up_direction = Vector2(0, -g_dir)
-	if sprite:
-		sprite.flip_v = g_dir < 0
+	if rig:
+		rig.flip_v = g_dir < 0
 	dashes = max_dashes()
 
 
@@ -239,9 +310,17 @@ func gain_focus(v: float) -> void:
 
 
 func refill_dash() -> void:
+	var had := dashes
 	dashes = max_dashes()
 	air_jumps = max_air_jumps()
+	if dashes > had and scarf:
+		scarf.flash = 1.0
+	_update_scarf_color()
 	Events.player_dash_changed.emit(dashes, max_dashes())
+
+
+func grounded() -> bool:
+	return on_ground
 
 
 func _set_state(s: int) -> void:
@@ -251,11 +330,38 @@ func _set_state(s: int) -> void:
 	state_changed.emit(s)
 
 
+func _update_scarf_color() -> void:
+	if scarf == null:
+		return
+	if dashes <= 0 and not Settings.gameplay("infinite_dash"):
+		scarf.color = Scarf.COL_NONE
+	elif dashes >= 2:
+		scarf.color = Scarf.COL_TWO
+	else:
+		scarf.color = Scarf.COL_ONE
+
+
+## Âncora do cachecol (pescoço) na posição INTERPOLADA de exibição.
+func scarf_anchor() -> Vector2:
+	var f := Engine.get_physics_interpolation_fraction()
+	var base := _prev_pos.lerp(global_position, f) if is_physics_interpolated_and_enabled() else global_position
+	return base + rig.anchor("neck")
+
+
+func scarf_visible() -> bool:
+	return rig.visible and state != State.DEAD and rig.anim != "dead"
+
+
+func body_center() -> Vector2:
+	return global_position + Vector2(0, -6 * g_dir if not ducking else -3 * g_dir)
+
+
 # ---------------------------------------------------------------------------
 # Loop principal
 # ---------------------------------------------------------------------------
 
 func _actor_physics(d: float, raw: float) -> void:
+	_prev_pos = global_position
 	_read_input()
 	_timers(d)
 	caster.tick(d)
@@ -264,20 +370,21 @@ func _actor_physics(d: float, raw: float) -> void:
 	attack.tick(d)
 	_record_history(d)
 	match state:
-		State.NORMAL: _st_normal(d)
+		State.NORMAL, State.ATTACK: _st_normal(d)
 		State.DASH: _st_dash(d)
 		State.CLIMB: _st_climb(d)
-		State.ATTACK: _st_attack(d)
 		State.DODGE: _st_dodge(d)
 		State.HURT: _st_hurt(d)
 		State.SIGIL: _st_sigil(d, raw)
 		State.POUND: _st_pound(d)
+		State.HEAL: _st_heal(d)
+		State.REST: _st_rest(d)
 		State.RESPAWN, State.DEAD:
 			velocity = Vector2.ZERO
 	if state != State.RESPAWN and state != State.DEAD:
 		_move(d)
 		_after_move(d)
-	_animate()
+	_animate(d)
 
 
 func _read_input() -> void:
@@ -291,6 +398,8 @@ func _read_input() -> void:
 		jump_buffer_t = JUMP_BUFFER
 	if Input.is_action_just_pressed("attack"):
 		attack_buffer_t = ATTACK_BUFFER
+	if input_x != 0.0 or input_y != 0.0 or not Input.get_vector("move_left", "move_right", "move_up", "move_down").is_zero_approx():
+		_idle_t = 0.0
 
 
 func _input(event: InputEvent) -> void:
@@ -299,6 +408,8 @@ func _input(event: InputEvent) -> void:
 		_using_mouse = true
 	elif event is InputEventJoypadButton or (event is InputEventJoypadMotion and absf(event.axis_value) > 0.5):
 		_using_mouse = false
+	if event.is_pressed() and not event.is_echo():
+		_idle_t = 0.0
 
 
 func _timers(d: float) -> void:
@@ -306,15 +417,16 @@ func _timers(d: float) -> void:
 	jump_buffer_t -= d
 	var_jump_t -= d
 	force_move_t -= d
-	wall_coyote_t -= d
 	dash_cd -= d
-	dash_grace -= d
+	dash_refill_cd -= d
 	drop_t -= d
 	parry_t -= d
 	parry_cd -= d
 	dodge_cd -= d
 	attack_buffer_t -= d
 	combo_timer -= d
+	recoil_t -= d
+	_cast_pose_t -= d
 	if combo_timer <= 0.0 and combo_count > 0:
 		combo_count = 0
 		Events.combo_changed.emit(0)
@@ -326,10 +438,6 @@ func _timers(d: float) -> void:
 		collision_mask |= Layers.ONE_WAY
 	if Settings.gameplay("infinite_dash"):
 		dashes = max_dashes()
-
-
-func _gravity() -> float:
-	return GRAVITY * float(phys.get("gravity", 1.0)) * g_dir
 
 
 func _max_run() -> float:
@@ -344,15 +452,98 @@ func _set_vy(v: float) -> void:
 	velocity.y = v * g_dir
 
 
-func _on_ground() -> bool:
-	return is_on_floor()
+# ---------------------------------------------------------------------------
+# Colisão em pixels inteiros (estilo Celeste)
+# ---------------------------------------------------------------------------
+
+func _collides(offset: Vector2) -> bool:
+	return test_move(global_transform, offset)
 
 
-func _probe_wall() -> int:
-	for dir in [1, -1]:
-		if test_move(global_transform, Vector2(dir * 2, 0)):
-			return dir
-	return 0
+func _wall_at(dir: int, dist: int = 1) -> bool:
+	return _collides(Vector2(dir * dist, 0))
+
+
+func _move(d: float) -> void:
+	var total := velocity + external_velocity
+	_move_h(total.x * d)
+	_move_v(total.y * d)
+
+
+func _move_h(amount: float) -> void:
+	_rem.x += amount
+	var mv := int(roundf(_rem.x))
+	if mv == 0:
+		return
+	_rem.x -= mv
+	var s := signi(mv)
+	while mv != 0:
+		if _collides(Vector2(s, 0)):
+			# correção de quina no dash horizontal: sobe/desce até 4 px
+			if state == State.DASH and absf(dash_dir.x) > 0.5 and _dash_corner(s):
+				continue
+			_rem.x = 0.0
+			_on_collide_h()
+			return
+		global_position.x += s
+		mv -= s
+
+
+func _dash_corner(s: int) -> bool:
+	var dirs := [-g_dir] if dash_dir.y * g_dir <= 0.0 else [g_dir]
+	if absf(dash_dir.y) < 0.1:
+		dirs = [-g_dir, g_dir]
+	for i in range(1, DASH_CORNER + 1):
+		for dy in dirs:
+			var off := Vector2(0, dy * i)
+			if not _collides(off) and not test_move(global_transform.translated(off), Vector2(s, 0)):
+				global_position += off + Vector2(s, 0)
+				return true
+	return false
+
+
+func _move_v(amount: float) -> void:
+	_rem.y += amount
+	var mv := int(roundf(_rem.y))
+	if mv == 0:
+		return
+	_rem.y -= mv
+	var s := signi(mv)
+	while mv != 0:
+		if _collides(Vector2(0, s)):
+			# correção de quina ao subir (4 px para o lado livre)
+			if s * g_dir < 0 and state != State.CLIMB and _up_corner(s):
+				continue
+			_rem.y = 0.0
+			_on_collide_v(s)
+			return
+		global_position.y += s
+		mv -= s
+
+
+func _up_corner(s: int) -> bool:
+	var order := [-1, 1] if velocity.x <= 0.0 else [1, -1]
+	for i in range(1, UPWARD_CORNER + 1):
+		for dx in order:
+			var off := Vector2(dx * i, 0)
+			if not _collides(off) and not test_move(global_transform.translated(off), Vector2(0, s)):
+				global_position += off + Vector2(0, s)
+				return true
+	return false
+
+
+func _on_collide_h() -> void:
+	if state == State.DASH:
+		FX.dust(global_position + Vector2(signf(velocity.x) * 4.0, -6), Vector2(-signf(velocity.x), 0), 3)
+	velocity.x = 0.0
+
+
+func _on_collide_v(s: int) -> void:
+	if s * g_dir > 0:
+		_land_speed = _vy()
+	else:
+		var_jump_t = 0.0
+	velocity.y = 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -361,33 +552,47 @@ func _probe_wall() -> int:
 
 func _run(d: float, accel_mult: float = 1.0) -> void:
 	var max_run := _max_run()
-	var mult := (1.0 if _on_ground() else AIR_MULT * float(phys.get("air_control", 1.0))) * accel_mult
+	var mult := (1.0 if on_ground else AIR_MULT * float(phys.get("air_control", 1.0))) * accel_mult
 	var move := input_x
 	if force_move_t > 0.0:
 		move = force_move_x
-	if absf(velocity.x) > max_run and signf(velocity.x) == move:
+	if ducking and on_ground:
+		velocity.x = move_toward(velocity.x, 0.0, DUCK_FRICTION * d)
+	elif absf(velocity.x) > max_run and signf(velocity.x) == move:
 		velocity.x = move_toward(velocity.x, max_run * move, RUN_REDUCE * mult * d)
-	elif move != 0.0:
-		velocity.x = move_toward(velocity.x, max_run * move, RUN_ACCEL * mult * d)
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, RUN_DECEL * mult * float(phys.get("friction", 1.0)) * d)
-	if move != 0.0 and state != State.ATTACK:
+		var friction := float(phys.get("friction", 1.0)) if move == 0.0 else 1.0
+		velocity.x = move_toward(velocity.x, max_run * move, RUN_ACCEL * mult * friction * d)
+	if recoil_t > 0.0:
+		velocity.x = recoil_x
+	if move != 0.0 and not _attack_locks_facing():
 		facing = int(move)
 
 
-func _fall(d: float) -> void:
+func _attack_locks_facing() -> bool:
+	return attack.is_busy() and attack.phase != AttackRunner.Phase.RECOVERY
+
+
+func _gravity_step(d: float) -> void:
 	var g := GRAVITY * float(phys.get("gravity", 1.0))
 	var vy := _vy()
 	# meia gravidade no ápice segurando pulo (feel de Celeste)
-	if absf(vy) < HALF_GRAV_THRESHOLD and Input.is_action_pressed("jump"):
-		g *= 0.5
-	var max_fall := FAST_FALL if input_y > 0 else MAX_FALL
-	# deslizar na parede
-	if wall_dir != 0 and input_x == wall_dir and vy > 0.0 and not _on_ground():
-		max_fall = WALL_SLIDE_MAX
-		if rng.randf() < 0.3:
-			FX.burst(global_position + Vector2(wall_dir * 7, -30), Color(0.9, 0.9, 1.0, 0.5), 1, 30.0, Vector2.DOWN, 20.0, 0.3, 1.5)
-	vy = move_toward(vy, max_fall, g * d)
+	var mult := 0.5 if absf(vy) < HALF_GRAV_THRESHOLD and Input.is_action_pressed("jump") else 1.0
+	# queda rápida segurando baixo
+	if input_y * g_dir > 0.0 and vy >= max_fall:
+		max_fall = move_toward(max_fall, FAST_MAX_FALL, FAST_MAX_ACCEL * d)
+	else:
+		max_fall = move_toward(max_fall, MAX_FALL, FAST_MAX_ACCEL * d)
+	var mf := max_fall
+	# deslizar na parede (começa devagar e acelera, como em Celeste)
+	if wall_dir != 0 and input_x == wall_dir and vy > 0.0 and not on_ground and state == State.NORMAL:
+		wall_slide_t = minf(wall_slide_t + d, WALL_SLIDE_TIME)
+		mf = lerpf(WALL_SLIDE_START, MAX_FALL, wall_slide_t / WALL_SLIDE_TIME)
+		if rng.randf() < d * 14.0:
+			FX.dust(global_position + Vector2(wall_dir * 4, -9), Vector2.DOWN, 1)
+	else:
+		wall_slide_t = maxf(wall_slide_t - d * 3.0, 0.0)
+	vy = move_toward(vy, mf, g * mult * d)
 	if var_jump_t > 0.0:
 		if Input.is_action_pressed("jump"):
 			vy = minf(vy, -var_jump_speed)
@@ -401,66 +606,128 @@ func _try_jump() -> bool:
 		return false
 	var jmult := float(phys.get("jump", 1.0))
 	# soltar de plataforma one-way (baixo + pulo)
-	if _on_ground() and input_y > 0 and _standing_on_one_way():
+	if on_ground and input_y * g_dir > 0 and _standing_on_one_way():
 		jump_buffer_t = 0.0
-		drop_t = 0.25
+		drop_t = 0.2
 		collision_mask &= ~Layers.ONE_WAY
-		global_position.y += 2 * g_dir
+		global_position.y += 1 * g_dir
 		return true
-	if _on_ground() or coyote_t > 0.0:
+	if on_ground or coyote_t > 0.0:
 		_jump(JUMP_SPEED * jmult)
 		velocity.x += JUMP_H_BOOST * input_x
 		return true
-	if wall_dir != 0 or wall_coyote_t > 0.0:
-		var wd := wall_dir if wall_dir != 0 else last_wall_dir
-		_jump(JUMP_SPEED * jmult)
-		velocity.x = -wd * WALL_JUMP_H
-		force_move_x = -wd
-		force_move_t = WALL_JUMP_FORCE_TIME
-		facing = -wd
-		FX.burst(global_position + Vector2(wd * 6, -10), Color(0.9, 0.9, 1.0, 0.7), 6, 90.0, Vector2(-wd, -0.3), 40.0)
+	# salto de parede: basta estar a até 3 px de uma parede (Celeste)
+	var wd := 0
+	if _wall_at(1, WALL_JUMP_CHECK):
+		wd = 1
+	elif _wall_at(-1, WALL_JUMP_CHECK):
+		wd = -1
+	if wd != 0 and Game.has_ability("wall_jump"):
+		_wall_jump(wd, jmult)
 		return true
 	if air_jumps > 0:
 		air_jumps -= 1
 		_jump(DOUBLE_JUMP_SPEED * jmult)
-		velocity.x = MAX_RUN * input_x if input_x != 0 else velocity.x
-		FX.burst(global_position, Color(1.8, 1.6, 2.4, 0.8), 10, 110.0, Vector2.DOWN, 60.0)
-		var ai := AfterImage.from_sprite(sprite, Color(1.4, 1.2, 2.2, 0.6))
-		if ai:
-			get_parent().add_child(ai)
+		if input_x != 0.0:
+			velocity.x = maxf(absf(velocity.x), MAX_RUN) * input_x
+		FX.burst(global_position, Color(1.8, 1.7, 2.2, 0.9), 6, 60.0, Vector2.DOWN, 60.0)
+		_ghost(Color(1.2, 1.2, 1.8, 0.7))
+		rig.bump(Vector2(0.75, 1.3))
 		return true
 	return false
+
+
+func _wall_jump(wd: int, jmult: float) -> void:
+	# pular "subindo" encostado segurando na parede e sem empurrar para fora = climb jump
+	if state == State.CLIMB and input_x != -wd and Game.has_ability("wall_climb"):
+		stamina -= CLIMB_JUMP_COST
+		_jump(JUMP_SPEED * jmult)
+		velocity.x = 0.0
+		_set_state(State.NORMAL)
+		return
+	_jump(JUMP_SPEED * jmult)
+	velocity.x = -wd * WALL_JUMP_H
+	force_move_x = -wd
+	force_move_t = WALL_JUMP_FORCE_TIME
+	facing = -wd
+	_set_state(State.NORMAL)
+	FX.dust(global_position + Vector2(wd * 4, -4), Vector2(-wd, -0.4), 4)
+	rig.bump(Vector2(0.8, 1.2))
 
 
 func _jump(speed: float) -> void:
 	jump_buffer_t = 0.0
 	coyote_t = 0.0
-	wall_coyote_t = 0.0
 	_set_vy(-speed)
 	var_jump_t = VAR_JUMP_TIME
 	var_jump_speed = speed
-	Audio.play("jump", 0.1, -6.0)
-	FX.burst(global_position, Color(0.85, 0.85, 0.95, 0.6), 5, 70.0, Vector2.UP, 70.0, 0.3, 2.0)
+	on_ground = false
+	Audio.play("jump", 0.1, -8.0)
+	FX.dust(global_position, Vector2.UP, 3)
+	rig.bump(Vector2(0.7, 1.35))
 
 
 func _standing_on_one_way() -> bool:
 	var saved := collision_mask
 	collision_mask = Layers.WORLD
-	var solid_below := test_move(global_transform, Vector2(0, 2 * g_dir))
+	var solid_below := _collides(Vector2(0, g_dir))
 	collision_mask = saved
 	return not solid_below
 
 
+func _set_duck(v: bool) -> void:
+	if v == ducking:
+		return
+	if not v and not _can_stand():
+		return
+	ducking = v
+	var size := DUCK_BODY if v else BODY
+	(body_shape.shape as RectangleShape2D).size = size
+	body_shape.position = Vector2(0, -size.y * 0.5 * g_dir)
+	if v:
+		rig.bump(Vector2(1.2, 0.85))
+
+
+func _can_stand() -> bool:
+	var space := get_world_2d().direct_space_state
+	var q := PhysicsShapeQueryParameters2D.new()
+	var r := RectangleShape2D.new()
+	r.size = BODY - Vector2(0.2, 0.2)
+	q.shape = r
+	q.transform = Transform2D(0.0, global_position + Vector2(0, -BODY.y * 0.5 * g_dir))
+	q.collision_mask = Layers.WORLD
+	return space.intersect_shape(q, 1).is_empty()
+
+
 func _st_normal(d: float) -> void:
-	_run(d)
-	_fall(d)
-	if _try_jump():
-		pass
-	# escalar parede
-	if Game.has_ability("wall_climb") and wall_dir != 0 and not _on_ground() and input_y < 0 and stamina > 0.0:
+	# agachar (só parado no chão, sem atacar)
+	_set_duck(on_ground and input_y * g_dir > 0 and not attack.is_busy() and not heavy_charging)
+	var charge_mult := 0.45 if heavy_charging else 1.0
+	var atk_mult: float = float(moveset.get("move_mult", 1.0)) if attack.is_busy() and attack.phase != AttackRunner.Phase.RECOVERY else 1.0
+	_run(d, charge_mult * atk_mult)
+	if heavy_charging:
+		velocity.x = clampf(velocity.x, -MAX_RUN * 0.45, MAX_RUN * 0.45)
+	_lunge()
+	_gravity_step(d)
+	_try_jump()
+	# escalar parede (segurando cima encostado)
+	if Game.has_ability("wall_climb") and not on_ground and input_y * g_dir < 0 and stamina > 0.0 and (_wall_at(facing) or wall_dir != 0) and not attack.is_busy():
 		_set_state(State.CLIMB)
 		return
 	_common_actions(d)
+
+
+## Avanço (lunge) de golpes no chão (finalizadores e pesados).
+func _lunge() -> void:
+	if not attack.is_busy() or attack.phase == AttackRunner.Phase.RECOVERY:
+		return
+	var lunge := float(attack.step.get("lunge", 0.0))
+	if lunge == 0.0 or attack.kind in ["air", "down_air", "up_air", "dash"]:
+		return
+	if on_ground or attack.kind == "heavy":
+		var want := attack._facing * lunge * (1.0 - attack.progress() * 0.5)
+		if absf(want) > absf(velocity.x) or signf(want) != signf(velocity.x):
+			velocity.x = want
 
 
 ## Ações que podem começar a partir do estado normal.
@@ -468,24 +735,25 @@ func _common_actions(d: float) -> void:
 	if Input.is_action_just_pressed("dash") and _can_dash():
 		_start_dash()
 		return
-	if Input.is_action_just_pressed("dodge") and dodge_cd <= 0.0:
+	if Input.is_action_just_pressed("dodge") and dodge_cd <= 0.0 and not attack.is_busy():
 		_start_dodge()
 		return
 	if Input.is_action_just_pressed("parry"):
 		_start_parry()
 	if moveset.has("block"):
-		blocking = Input.is_action_pressed("parry") and parry_t <= 0.0 and _on_ground()
-	if attack_buffer_t > 0.0 and (not attack.is_busy() or attack.can_chain()):
+		blocking = Input.is_action_pressed("parry") and parry_t <= 0.0 and on_ground
+	# ataque leve: não trava o corpo; pode encadear no fim do golpe anterior
+	if attack_buffer_t > 0.0 and not heavy_charging and (not attack.is_busy() or attack.can_chain()):
 		_start_light()
-		return
-	if Input.is_action_just_pressed("heavy"):
-		if not _on_ground() and input_y > 0 and Game.has_ability("ground_pound"):
+	# pesado: segurar carrega (arte da lâmina), soltar golpeia
+	if Input.is_action_just_pressed("heavy") and not heavy_charging and not attack.is_busy():
+		if not on_ground and input_y * g_dir > 0 and Game.has_ability("ground_pound"):
 			_start_pound()
 			return
 		heavy_charging = true
 		heavy_t = 0.0
-		_set_state(State.ATTACK)
-		return
+	if heavy_charging:
+		_tick_heavy_charge(d)
 	if Input.is_action_just_pressed("spell_1"):
 		_cast_slot(0)
 	elif Input.is_action_just_pressed("spell_2"):
@@ -493,12 +761,51 @@ func _common_actions(d: float) -> void:
 	if Input.is_action_just_pressed("sigil"):
 		_start_sigil()
 		return
-	if Input.is_action_just_pressed("interact") and _on_ground() and input_x == 0:
+	if Input.is_action_just_pressed("interact") and on_ground and input_x == 0 and not attack.is_busy():
 		_interact()
-	if Input.is_action_just_pressed("heal"):
-		_use_potion()
+	_tick_heal_input(d)
 	if Input.is_action_just_pressed("swap_weapon"):
 		swap_weapon()
+
+
+func _tick_heavy_charge(d: float) -> void:
+	heavy_t += d
+	var h: Dictionary = moveset.get("heavy", {})
+	var need := float(h.get("charge", 0.4))
+	if heavy_t >= need and heavy_t - d < need:
+		FX.burst(body_center(), Color(2.4, 2.2, 1.6), 6, 50.0)
+		Audio.play("draw_blade", 0.05, -6.0)
+		rig.set_expression("angry", 0.4)
+		if scarf:
+			scarf.flash = 0.8
+	if heavy_t > need and fmod(heavy_t, 0.16) < d:
+		FX.burst(body_center() + Vector2(randf_range(-4, 4), randf_range(-4, 4)), Color(2.4, 2.0, 1.4), 1, 20.0)
+	if not Input.is_action_pressed("heavy"):
+		heavy_charging = false
+		var charged := heavy_t >= need
+		var mult := float(h.get("charged_mult", 1.5)) if charged else 1.0
+		if input_x != 0.0:
+			facing = int(input_x)
+		attack.cancel()
+		attack.start(h, "heavy", facing, mult)
+		attack_dir = "side"
+		rig.play("slash", true)
+		if charged:
+			FX.flash(0.4)
+			FX.shake(0.15)
+
+
+func _tick_heal_input(d: float) -> void:
+	if Input.is_action_pressed("heal") and on_ground:
+		heal_hold_t += d
+		if heal_hold_t >= HEAL_HOLD and focus >= HEAL_COST and hp < max_hp() and not attack.is_busy():
+			heal_t = 0.0
+			_set_state(State.HEAL)
+			Audio.play("spell", 0.05, -8.0, 0.7)
+	else:
+		if heal_hold_t > 0.0 and heal_hold_t < HEAL_HOLD:
+			_use_potion()
+		heal_hold_t = 0.0
 
 
 func _can_dash() -> bool:
@@ -514,19 +821,26 @@ func _start_dash() -> void:
 		facing = int(signf(dash_dir.x))
 	if not Settings.gameplay("infinite_dash"):
 		dashes -= 1
+	_update_scarf_color()
 	dash_t = DASH_TIME
 	dash_cd = DASH_COOLDOWN
-	dash_on_ground = _on_ground()
-	invuln_time = maxf(invuln_time, DASH_IFRAMES)
+	dash_refill_cd = DASH_REFILL_COOLDOWN
+	dash_on_ground = on_ground
+	_set_duck(false)
+	heavy_charging = false
 	velocity = dash_dir * DASH_SPEED
 	var_jump_t = 0.0
 	_after_t = 0.0
+	_dash_through_hit.clear()
 	_set_state(State.DASH)
-	FX.hitstop(0.035)
-	FX.shake(0.08)
-	Audio.play("dash", 0.1, -3.0)
+	FX.hitstop(DASH_FREEZE)
+	FX.shake(0.06)
+	Audio.play("dash", 0.1, -4.0)
 	Events.player_dash_changed.emit(dashes, max_dashes())
 	buffs.trigger("dash")
+	rig.bump(Vector2(1.35, 0.7) if absf(dash_dir.x) > absf(dash_dir.y) else Vector2(0.7, 1.35))
+	if on_ground and dash_dir.y >= 0.0:
+		FX.dust(global_position, Vector2(-facing, -0.3), 3)
 
 
 func _st_dash(d: float) -> void:
@@ -534,39 +848,45 @@ func _st_dash(d: float) -> void:
 	velocity = dash_dir * DASH_SPEED
 	_after_t -= d
 	if _after_t <= 0.0:
-		_after_t = 0.025
-		var ai := AfterImage.from_sprite(sprite, Color(0.6, 1.4, 2.6, 0.9), 0.22)
-		if ai:
-			get_parent().add_child(ai)
+		_after_t = 0.035
+		_ghost(Color(0.9, 1.6, 2.4, 0.8) if dashes <= 0 else Color(2.2, 0.9, 1.0, 0.8), 0.2)
 	# ataque em dash (corta tudo pelo caminho)
 	if attack_buffer_t > 0.0 and not attack.is_busy() and moveset.has("dash"):
 		attack_buffer_t = 0.0
 		attack.start(moveset["dash"], "dash", facing)
-		_slash_fx(moveset["dash"])
-	# super / hyper (pulo durante dash no chão)
-	if jump_buffer_t > 0.0 and (_on_ground() or coyote_t > 0.0) and dash_on_ground:
+		attack_dir = "side"
+		_slash_fx(moveset["dash"], "dash")
+	# super / hyper (pulo durante dash no chão) e wallbounce (pulo em dash para cima encostado)
+	if jump_buffer_t > 0.0:
 		var jmult := float(phys.get("jump", 1.0))
-		if dash_dir.y > 0.1 and absf(dash_dir.x) > 0.1:
-			_jump(JUMP_SPEED * 0.55 * jmult)
-			velocity.x = signf(dash_dir.x) * HYPER_H
-		else:
-			_jump(JUMP_SPEED * jmult)
-			velocity.x = signf(dash_dir.x if dash_dir.x != 0.0 else facing) * SUPER_H
-		_set_state(State.NORMAL)
-		refill_dash()
-		FX.shake(0.12)
-		return
+		if (on_ground or coyote_t > 0.0) and dash_on_ground and absf(dash_dir.x) > 0.1:
+			var hyper := dash_dir.y * g_dir > 0.1
+			_jump(JUMP_SPEED * jmult * (HYPER_Y_MULT if hyper else 1.0))
+			velocity.x = signf(dash_dir.x) * SUPER_H * (HYPER_X_MULT if hyper else 1.0)
+			_set_state(State.NORMAL)
+			refill_dash()
+			FX.shake(0.1)
+			FX.dust(global_position, Vector2(-facing, -0.2), 5)
+			return
+		if dash_dir.y * g_dir < -0.5 and absf(dash_dir.x) < 0.3 and Game.has_ability("wall_jump"):
+			var wd := 1 if _wall_at(1, WALL_JUMP_CHECK) else (-1 if _wall_at(-1, WALL_JUMP_CHECK) else 0)
+			if wd != 0:
+				_jump(SUPER_WALL_JUMP_SPEED * jmult)
+				var_jump_t = SUPER_WALL_JUMP_VAR
+				velocity.x = -wd * SUPER_WALL_JUMP_H
+				force_move_x = -wd
+				force_move_t = 0.2
+				facing = -wd
+				_set_state(State.NORMAL)
+				FX.shake(0.12)
+				return
 	_dash_through_check()
 	if dash_t <= 0.0:
 		velocity = dash_dir * DASH_END_SPEED
 		if dash_dir.y * g_dir < 0.0:
-			velocity.y *= 0.75
-		dash_grace = 0.08
+			velocity.y *= DASH_END_UP_MULT
 		_set_state(State.NORMAL)
 		buffs.trigger("dash_end")
-
-
-var _dash_through_hit: Dictionary = {}
 
 
 func _dash_through_check() -> void:
@@ -574,42 +894,54 @@ func _dash_through_check() -> void:
 	for a in get_tree().get_nodes_in_group("actors"):
 		if a == self or a.team == team or a.dead:
 			continue
-		if a.body_center().distance_to(body_center()) < 22.0 and not _dash_through_hit.has(a):
+		if a.body_center().distance_to(body_center()) < 10.0 and not _dash_through_hit.has(a):
 			_dash_through_hit[a] = true
 			buffs.trigger("dash_through", {"target": a})
-	if dash_t <= 0.0:
-		_dash_through_hit.clear()
 
 
 func _st_climb(d: float) -> void:
-	var holding := input_y != 0.0
-	if wall_dir == 0 or _on_ground() or stamina <= 0.0 or not holding:
-		if wall_dir == 0 and stamina > 0.0 and input_y < 0:
-			# topo da parede: pulinho para subir na borda
-			_set_vy(-JUMP_SPEED * 0.7)
-			velocity.x = last_wall_dir * 60.0
+	var wd := 0
+	if _wall_at(facing):
+		wd = facing
+	elif _wall_at(-facing):
+		wd = -facing
+	if wd == 0 or on_ground or stamina <= 0.0 or not Game.has_ability("wall_climb"):
+		if wd == 0 and stamina > 0.0 and input_y * g_dir < 0:
+			# topo da parede: pulinho para subir na borda (climb hop)
+			_set_vy(-CLIMB_HOP_Y)
+			velocity.x = facing * CLIMB_HOP_X * 0.6
+			force_move_x = facing
+			force_move_t = 0.12
 		_set_state(State.NORMAL)
 		return
-	velocity.x = wall_dir * 10.0
+	if input_y == 0.0 and input_x != wd:
+		# soltou: volta a deslizar
+		_set_state(State.NORMAL)
+		return
+	facing = wd
+	velocity.x = 0.0
 	var climb := 0.0
-	if input_y < 0:
-		climb = -CLIMB_SPEED
-		stamina -= d
+	if input_y * g_dir < 0:
+		climb = -CLIMB_UP
+		stamina -= CLIMB_UP_COST * d
+	elif input_y * g_dir > 0:
+		climb = CLIMB_DOWN
 	else:
-		climb = CLIMB_SPEED * 1.5
-		stamina -= d * 0.35
-	_set_vy(climb)
-	facing = wall_dir
+		stamina -= CLIMB_STILL_COST * d
+	_set_vy(move_toward(_vy(), climb, 900.0 * d))
+	if stamina < 20.0:
+		emote.show_emote("sweat", 0.4)
+		if fmod(stamina, 4.0) < 1.0:
+			rig.bump(Vector2(1.05, 0.95))
 	if jump_buffer_t > 0.0:
 		_try_jump()
-		_set_state(State.NORMAL)
 		return
 	if Input.is_action_just_pressed("dash") and _can_dash():
 		_start_dash()
 
 
 # ---------------------------------------------------------------------------
-# Ataques
+# Ataques (Hollow Knight: lado / cima / baixo, sem travar o corpo)
 # ---------------------------------------------------------------------------
 
 func _start_light() -> void:
@@ -618,18 +950,22 @@ func _start_light() -> void:
 		return
 	var kind := "light"
 	var step: Dictionary
-	if not _on_ground():
-		if input_y > 0:
-			kind = "down_air"
-		elif input_y < 0:
-			kind = "up_air"
-		else:
-			kind = "air"
-		step = moveset[kind]
-	elif input_y < 0:
+	var up := input_y * g_dir < 0
+	var down := input_y * g_dir > 0
+	if down and not on_ground:
+		kind = "down_air"
+		attack_dir = "down"
+		step = moveset["down_air"]
+	elif up:
 		kind = "up_air"
+		attack_dir = "up"
 		step = moveset["up_air"]
+	elif not on_ground:
+		kind = "air"
+		attack_dir = "side"
+		step = moveset["air"]
 	else:
+		attack_dir = "side"
 		var chain: Array = moveset["light"]
 		if combo_timer <= 0.0 or combo_index >= chain.size():
 			combo_index = 0
@@ -639,7 +975,7 @@ func _start_light() -> void:
 			var beat := float(attack.step.get("beat", 0.07))
 			if absf(attack.time_to_end()) <= beat * 1.6:
 				rhythm_stacks = mini(rhythm_stacks + 1, 5)
-				FX.text(global_position + Vector2(0, -52), "♪ %d" % rhythm_stacks, Color(2.4, 1.6, 3.0))
+				emote.show_emote("note", 0.4)
 			else:
 				rhythm_stacks = 0
 		combo_index += 1
@@ -648,38 +984,60 @@ func _start_light() -> void:
 	attack.cancel()
 	attack.start(step, kind, facing)
 	combo_timer = COMBO_TIMEOUT
-	_set_state(State.ATTACK)
-	play_anim("attack", true)
+	_ducking_off()
+	match attack_dir:
+		"up": rig.play("slash_up", true)
+		"down": rig.play("slash_down", true)
+		_: rig.play("slash", true)
 
 
-func _slash_fx(step: Dictionary) -> void:
-	var box: Array = step.get("box", [0, -30, 40, 30])
-	var center := Vector2((float(box[0]) + float(box[2]) * 0.5) * facing, float(box[1]) + float(box[3]) * 0.5)
-	var c := Color(2.2, 2.4, 3.0)
+func _ducking_off() -> void:
+	if ducking:
+		_set_duck(false)
+
+
+func _slash_fx(step: Dictionary, kind: String) -> void:
+	var box: Array = step.get("box", [0, -12, 16, 12])
+	var c := Color(1.9, 1.95, 2.3)
 	if not moveset.get("weapon_status", {}).is_empty() or step.has("status"):
-		c = Color(3.0, 0.8, 0.9)
+		c = Color(2.4, 0.9, 1.0)
+	var arc: Array = step.get("arc", [150, 12])
+	var radius := float(arc[1]) if arc.size() > 1 else 12.0
+	var width := clampf(radius * 0.28, 2.0, 5.0)
+	var center := body_center()
 	if step.get("thrust", false):
-		FX.slash(global_position + Vector2(float(box[0]) * facing, center.y), facing, 0.0, float(box[2]), c, 0.0, true)
-	elif step.has("arc"):
-		var arc: Array = step["arc"]
+		var dir := Vector2(facing, 0)
 		var rot := 0.0
-		if box[1] > -10:
-			rot = PI * 0.5 * facing
-		elif float(box[1]) < -70:
+		if kind == "up_air":
 			rot = -PI * 0.5 * facing
-		FX.slash(global_position + Vector2(0, -22), facing, float(arc[0]), float(arc[1]), c, rot)
-	Audio.play("swing_heavy" if step.get("dmg", 1.0) > 1.3 else "swing", 0.12, -4.0)
+		elif kind == "down_air":
+			rot = PI * 0.5 * facing
+		FX.slash(center + dir.rotated(rot * facing) * 2.0, facing, 0.0, float(box[2]), c, rot, true, width)
+	else:
+		var rot := 0.0
+		if kind == "up_air":
+			rot = -PI * 0.5 * facing
+		elif kind == "down_air":
+			rot = PI * 0.5 * facing
+		FX.slash(center, facing, float(arc[0]), radius, c, rot, false, width)
+	var blade_dir := Vector2(1, 0)
+	if kind == "up_air":
+		blade_dir = Vector2(0.3, -1).normalized()
+	elif kind == "down_air":
+		blade_dir = Vector2(0.3, 1).normalized()
+	rig.blade = {"len": clampf(radius * 0.5, 4.0, 10.0), "dir": blade_dir, "color": Color(0.92, 0.94, 1.0), "t": 0.08}
+	Audio.play("swing_heavy" if step.get("dmg", 1.0) > 1.3 else "swing", 0.12, -5.0)
 
 
 func _on_attack_activated(step: Dictionary, kind: String) -> void:
 	if kind != "dash":
-		_slash_fx(step)
+		_slash_fx(step, kind)
 	if step.has("projectile"):
 		_throw(step)
-	if step.get("shockwave", false) and _on_ground():
-		FX.shake(0.35)
+	if step.get("shockwave", false) and on_ground:
+		FX.shake(0.25)
 		var ring := NovaFX.new()
-		ring.radius = 70
+		ring.radius = 30
 		ring.color = Color(2.0, 1.6, 1.0)
 		ring.global_position = global_position
 		get_parent().add_child(ring)
@@ -694,74 +1052,13 @@ func _throw(step: Dictionary) -> void:
 	p.owner_actor = self
 	var info := build_attack_info(step, "heavy", attack.charge_mult, null)
 	p.info = info
-	p.velocity = aim_direction() * 420.0
-	p.radius = 4.0
-	p.color = Color(2.4, 2.4, 2.8)
-	p.lifetime = 0.9
+	p.velocity = aim_direction() * 220.0
+	p.radius = 2.0
+	p.color = Color(2.2, 2.2, 2.6)
+	p.lifetime = 0.8
 	p.light_enabled = false
-	p.global_position = body_center() + Vector2(facing * 10, 0)
+	p.global_position = body_center() + Vector2(facing * 5, 0)
 	get_parent().add_child(p)
-
-
-func _st_attack(d: float) -> void:
-	# carregando o pesado
-	if heavy_charging:
-		heavy_t += d
-		velocity.x = move_toward(velocity.x, 0.0, RUN_DECEL * d)
-		_fall(d)
-		if heavy_t > float(moveset.get("heavy", {}).get("charge", 0.4)) and fmod(heavy_t, 0.12) < d:
-			FX.burst(body_center(), Color(2.6, 2.0, 1.0), 3, 60.0)
-		if not Input.is_action_pressed("heavy"):
-			heavy_charging = false
-			var h: Dictionary = moveset.get("heavy", {})
-			var charged := heavy_t >= float(h.get("charge", 0.4))
-			var mult := float(h.get("charged_mult", 1.5)) if charged else 1.0
-			if input_x != 0.0:
-				facing = int(input_x)
-			attack.cancel()
-			attack.start(h, "heavy", facing, mult)
-			if charged:
-				FX.flash(0.4)
-				Audio.play("draw_blade")
-			play_anim("attack", true)
-		return
-	var step := attack.step
-	# avanço (lunge) durante startup/ativo
-	if attack.is_busy() and attack.phase != AttackRunner.Phase.RECOVERY:
-		var lunge := float(step.get("lunge", 0.0))
-		if _on_ground() or attack.kind == "heavy":
-			velocity.x = facing * lunge * (1.0 - attack.progress() * 0.5)
-		else:
-			_run(d, 0.6)
-	else:
-		if _on_ground():
-			velocity.x = move_toward(velocity.x, 0.0, RUN_DECEL * 1.5 * d)
-		else:
-			_run(d, 0.6)
-	_fall(d)
-	# cancelamentos: dash/esquiva/aparar podem cancelar a recuperação
-	if attack.phase == AttackRunner.Phase.RECOVERY or not attack.is_busy():
-		if Input.is_action_just_pressed("dash") and _can_dash():
-			attack.cancel()
-			_start_dash()
-			return
-		if Input.is_action_just_pressed("dodge") and dodge_cd <= 0.0:
-			attack.cancel()
-			_start_dodge()
-			return
-		if Input.is_action_just_pressed("parry"):
-			attack.cancel()
-			_start_parry()
-		if jump_buffer_t > 0.0 and (_on_ground() or coyote_t > 0.0 or air_jumps > 0):
-			attack.cancel()
-			_set_state(State.NORMAL)
-			_try_jump()
-			return
-		if attack_buffer_t > 0.0 and attack.can_chain():
-			_start_light()
-			return
-	if not attack.is_busy():
-		_set_state(State.NORMAL)
 
 
 ## Monta o DamageInfo de um golpe (chamado pelo Hitbox ao acertar).
@@ -779,11 +1076,11 @@ func build_attack_info(step: Dictionary, kind: String, charge: float, target: No
 	info.pogo = step.get("pogo", false)
 	var dir := Vector2(facing, 0)
 	if kind == "down_air":
-		dir = Vector2(0, 1)
+		dir = Vector2(0, g_dir)
 	elif kind == "up_air":
-		dir = Vector2(0, -1)
+		dir = Vector2(0, -g_dir)
 	info.direction = dir
-	info.knockback = dir * float(step.get("kb", 150.0)) + Vector2(0, -60.0 if kind != "down_air" else 0.0)
+	info.knockback = dir * float(step.get("kb", 80.0)) + Vector2(0, -30.0 * g_dir if kind != "down_air" else 0.0)
 	var st: Dictionary = moveset.get("weapon_status", {}).duplicate()
 	for s in step.get("status", {}).keys():
 		st[s] = int(st.get(s, 0)) + int(step["status"][s])
@@ -814,6 +1111,8 @@ func slowmo_bonus() -> bool:
 func _on_attack_landed(target: Node, info: DamageInfo, result: int) -> void:
 	if result == DamageInfo.Result.IGNORED or result == DamageInfo.Result.INVULNERABLE:
 		return
+	# recuo (Hollow Knight): bater empurra o herói um pouco para trás
+	_recoil(info)
 	if not (target is Actor):
 		FX.hitstop(0.03)
 		if info.pogo:
@@ -821,8 +1120,10 @@ func _on_attack_landed(target: Node, info: DamageInfo, result: int) -> void:
 		return
 	if result == DamageInfo.Result.BLOCKED or result == DamageInfo.Result.PARRIED:
 		FX.hitstop(0.05)
+		FX.hit_spark(info.hit_position, info.direction, Color(2.4, 2.4, 2.0), true)
 		Audio.play("hit_metal")
-		velocity.x = -facing * 120.0
+		recoil_x = -facing * RECOIL_X * 1.3
+		recoil_t = RECOIL_TIME * 1.5
 		return
 	combo_count += 1
 	combo_timer = COMBO_TIMEOUT
@@ -837,22 +1138,38 @@ func _on_attack_landed(target: Node, info: DamageInfo, result: int) -> void:
 		_pogo()
 	if info.is_dash_attack:
 		dash_t = maxf(dash_t, 0.04)
-	Audio.play("hit_heavy" if info.is_heavy or info.is_crit else "hit", 0.1, -2.0)
+	Audio.play("hit_heavy" if info.is_heavy or info.is_crit else "hit", 0.1, -3.0)
 	if result == DamageInfo.Result.KILLED:
 		Game.profile["kills"] = int(Game.profile.get("kills", 0)) + 1
 		refill_dash()
 		buffs.trigger("kill", ctx)
+		if rng.randf() < 0.35:
+			rig.set_expression("happy", 0.5)
+
+
+func _recoil(info: DamageInfo) -> void:
+	if info.is_dash_attack or state == State.DASH:
+		return
+	if info.direction.y * g_dir < -0.5:
+		# golpe para cima: leve empurrão para baixo no ar
+		if not on_ground and _vy() < RECOIL_UP:
+			_set_vy(RECOIL_UP)
+			var_jump_t = 0.0
+	elif absf(info.direction.x) > 0.5:
+		recoil_x = -signf(info.direction.x) * RECOIL_X * (1.2 if info.is_heavy else 1.0)
+		recoil_t = RECOIL_TIME
 
 
 func _pogo() -> void:
 	_set_vy(-POGO_SPEED * float(phys.get("jump", 1.0)))
-	var_jump_t = 0.0
+	var_jump_t = 0.12
+	var_jump_speed = POGO_SPEED * float(phys.get("jump", 1.0))
 	refill_dash()
 	buffs.trigger("pogo")
-	FX.burst(global_position + Vector2(0, 6), Color(2.4, 2.4, 2.8), 8, 120.0, Vector2.UP, 60.0)
-	if state == State.ATTACK and attack.kind == "down_air":
+	FX.burst(global_position + Vector2(0, 3), Color(2.2, 2.2, 2.6), 4, 60.0, Vector2.UP, 60.0)
+	rig.bump(Vector2(0.8, 1.25))
+	if attack.kind == "down_air":
 		attack.cancel()
-		_set_state(State.NORMAL)
 
 
 func _start_pound() -> void:
@@ -861,38 +1178,41 @@ func _start_pound() -> void:
 	var_jump_t = 0.0
 	invuln_time = maxf(invuln_time, 0.2)
 	FX.hitstop(0.05)
+	rig.bump(Vector2(0.7, 1.3))
 
 
 func _st_pound(_d: float) -> void:
 	velocity = Vector2(0, POUND_SPEED * g_dir)
-	if _on_ground() or is_on_floor():
+	if on_ground:
 		_pound_impact()
 
 
 func _pound_impact() -> void:
 	_set_state(State.NORMAL)
-	FX.shake(0.55)
+	FX.shake(0.4)
 	Audio.play("break")
+	rig.bump(Vector2(1.5, 0.6))
 	var ring := NovaFX.new()
-	ring.radius = 64
+	ring.radius = 30
 	ring.color = Color(2.0, 1.6, 1.1)
 	ring.global_position = global_position
 	get_parent().add_child(ring)
+	FX.dust(global_position, Vector2.UP, 8)
 	for a in get_tree().get_nodes_in_group("actors"):
-		if a.team != team and not a.dead and a.global_position.distance_to(global_position) < 64.0:
+		if a.team != team and not a.dead and a.global_position.distance_to(global_position) < 30.0:
 			var info := DamageInfo.new()
 			info.amount = float(moveset.get("damage", 10.0)) * 1.4
 			info.damage_type = "blunt"
 			info.team = team
 			info.source = self
-			info.knockback = Vector2(signf(a.global_position.x - global_position.x) * 200.0, -240.0)
+			info.knockback = Vector2(signf(a.global_position.x - global_position.x) * 100.0, -120.0)
 			info.stagger = 4.0
 			for hb in a.get_children():
 				if hb is Hurtbox:
 					hb.receive(info)
 					break
 	for b in get_tree().get_nodes_in_group("cracked_floor"):
-		if b.global_position.distance_to(global_position) < 40.0:
+		if b.global_position.distance_to(global_position) < 20.0:
 			b.shatter()
 
 
@@ -905,11 +1225,13 @@ func _start_parry() -> void:
 		return
 	parry_t = PARRY_WINDOW + float(moveset.get("parry_bonus", 0.0))
 	parry_cd = PARRY_COOLDOWN
-	FX.burst(body_center() + Vector2(facing * 12, 0), Color(2.4, 2.4, 3.0), 4, 60.0)
+	rig.play("cast", true)
+	_cast_pose_t = 0.12
+	FX.burst(body_center() + Vector2(facing * 6, 0), Color(2.2, 2.2, 2.8), 3, 40.0)
 	# área curta que rebate projéteis
 	var hb := attack.hitbox
 	if not attack.is_busy():
-		hb.set_box([-4, -40, 30, 40], facing)
+		hb.set_box([-2, -14, 14, 14], facing)
 		hb.pogo = false
 		hb.info_factory = func(_t): return null
 		hb.activate()
@@ -925,19 +1247,18 @@ func _start_dodge() -> void:
 	invuln_time = maxf(invuln_time, DODGE_IFRAMES)
 	var dir := input_x if input_x != 0.0 else float(facing)
 	facing = int(dir)
-	velocity.x = dir * DODGE_SPEED * (1.0 if _on_ground() else 0.7)
+	velocity.x = dir * DODGE_SPEED * (1.0 if on_ground else 0.75)
 	_set_state(State.DODGE)
-	Audio.play("dash", 0.15, -8.0)
+	Audio.play("dash", 0.15, -9.0)
+	rig.bump(Vector2(1.25, 0.8))
 
 
 func _st_dodge(d: float) -> void:
 	dodge_t -= d
-	velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
-	_fall(d)
+	velocity.x = move_toward(velocity.x, 0.0, 500.0 * d)
+	_gravity_step(d)
 	if fmod(dodge_t, 0.05) < d:
-		var ai := AfterImage.from_sprite(sprite, Color(1.0, 1.0, 1.6, 0.5), 0.2)
-		if ai:
-			get_parent().add_child(ai)
+		_ghost(Color(1.0, 1.0, 1.4, 0.5), 0.16)
 	if dodge_t <= 0.0:
 		_set_state(State.NORMAL)
 
@@ -947,8 +1268,9 @@ func _before_hit(info: DamageInfo) -> int:
 		return DamageInfo.Result.INVULNERABLE
 	# esquiva perfeita: golpe chegou no começo da esquiva
 	if state == State.DODGE and DODGE_TIME - dodge_t <= PERFECT_DODGE_WINDOW and not info.is_hazard:
-		FX.slowmo(0.3, 0.55 * (1.0 + stats.get_stat("perfect_dodge_time")))
-		FX.text(global_position + Vector2(0, -50), "ESQUIVA PERFEITA", Color(1.6, 2.4, 3.0))
+		FX.slowmo(0.3, 0.5 * (1.0 + stats.get_stat("perfect_dodge_time")))
+		emote.show_emote("sweat", 0.8)
+		rig.set_expression("wide", 0.5)
 		gain_focus(12.0)
 		buffs.trigger("perfect_dodge")
 		Events.perfect_dodge.emit(self)
@@ -962,15 +1284,18 @@ func _before_hit(info: DamageInfo) -> int:
 		var attacker: Node = info.source
 		if attacker and is_instance_valid(attacker) and attacker.has_method("on_parried"):
 			attacker.on_parried(self, perfect)
-		FX.hitstop(0.14 if perfect else 0.07)
-		FX.flash(1.0 if perfect else 0.5)
-		FX.shake(0.3 if perfect else 0.15)
-		FX.burst(body_center() + Vector2(facing * 14, 0), Color(3.2, 3.0, 2.2), 20 if perfect else 10, 260.0)
+		FX.hitstop(0.12 if perfect else 0.06)
+		FX.shake(0.25 if perfect else 0.12)
+		FX.hit_spark(body_center() + Vector2(facing * 6, 0), Vector2(facing, 0), Color(3.0, 2.8, 2.0), true)
 		Audio.play("parry_perfect" if perfect else "parry")
 		gain_focus(22.0 if perfect else 10.0)
+		recoil_x = -facing * RECOIL_X
+		recoil_t = RECOIL_TIME
 		if perfect:
 			FX.slowmo(0.35, 0.35)
-			FX.text(global_position + Vector2(0, -50), "APARO PERFEITO", Color(3.0, 2.6, 1.4))
+			FX.white_flash(0.25)
+			emote.show_emote("!", 0.6, true)
+			rig.set_expression("angry", 0.6)
 			refill_dash()
 			buffs.trigger("perfect_parry")
 		buffs.trigger("parry")
@@ -982,8 +1307,9 @@ func _before_hit(info: DamageInfo) -> int:
 		if from_front:
 			info.amount *= 1.0 - float(moveset.get("block", 0.8))
 			Audio.play("block")
-			FX.burst(body_center() + Vector2(facing * 12, 0), Color(2.0, 2.0, 2.4), 8, 150.0)
-			velocity.x = -facing * 140.0
+			FX.hit_spark(body_center() + Vector2(facing * 5, 0), Vector2(facing, 0), Color(2.0, 2.0, 2.4))
+			recoil_x = -facing * 90.0
+			recoil_t = RECOIL_TIME
 			if info.amount < 1.0:
 				return DamageInfo.Result.BLOCKED
 	return -1
@@ -996,25 +1322,40 @@ func _modify_incoming(info: DamageInfo, amount: float) -> float:
 
 
 func _on_damaged(info: DamageInfo, amount: float) -> void:
-	FX.impact(body_center(), info.direction, amount, false, true, Color(2.6, 0.4, 0.4))
-	FX.flash(0.8)
+	# dano no herói (Hollow Knight): congela, treme, pisca e empurra
+	FX.hitstop(HURT_FREEZE)
+	FX.shake(0.35)
+	FX.white_flash(0.15)
+	FX.hit_spark(body_center(), info.direction, Color(2.6, 0.6, 0.6), true)
+	FX.flash(0.6)
 	Audio.play("hurt")
 	combo_count = 0
 	rhythm_stacks = 0
 	Events.combo_changed.emit(0)
 	Events.player_health_changed.emit(hp, max_hp())
 	buffs.trigger("hurt", {"info": info})
+	var now := Time.get_ticks_msec() / 1000.0
+	_recent_hits.append(now)
+	_recent_hits = _recent_hits.filter(func(t): return now - t < 6.0)
 	if dead:
 		return
 	attack.cancel()
 	heavy_charging = false
 	invuln_time = HURT_IFRAMES
+	_set_duck(false)
+	rig.set_expression("closed", 0.35)
+	if _recent_hits.size() >= 3:
+		emote.show_emote("anger", 1.0)
+		_recent_hits.clear()
+	elif hp / maxf(max_hp(), 1.0) < 0.3:
+		emote.show_emote("sweat", 1.2)
 	if info.is_hazard:
 		_hazard_respawn()
 		return
 	hurt_t = HURT_TIME
 	var kb_dir := signf(info.direction.x) if info.direction.x != 0.0 else -float(facing)
-	velocity = Vector2(kb_dir * 200.0, -180.0 * g_dir)
+	velocity = Vector2(kb_dir * HURT_KNOCK_X, -HURT_KNOCK_Y * g_dir)
+	facing = -int(kb_dir) if kb_dir != 0.0 else facing
 	_set_state(State.HURT)
 
 
@@ -1024,8 +1365,8 @@ func _apply_knockback(_info: DamageInfo) -> void:
 
 func _st_hurt(d: float) -> void:
 	hurt_t -= d
-	_fall(d)
-	velocity.x = move_toward(velocity.x, 0.0, 500.0 * d)
+	_gravity_step(d)
+	velocity.x = move_toward(velocity.x, 0.0, 300.0 * d)
 	if hurt_t <= 0.0:
 		_set_state(State.NORMAL)
 
@@ -1034,13 +1375,19 @@ func _hazard_respawn() -> void:
 	_set_state(State.RESPAWN)
 	velocity = Vector2.ZERO
 	var tw := create_tween()
-	tw.tween_property(sprite, "modulate:a", 0.0, 0.15)
+	tw.tween_property(rig, "modulate:a", 0.0, 0.12)
 	tw.tween_callback(func():
-		global_position = last_safe_pos
+		global_position = last_safe_pos.round()
+		_prev_pos = global_position
+		_rem = Vector2.ZERO
 		reset_physics_interpolation()
-		refill_dash())
-	tw.tween_property(sprite, "modulate:a", 1.0, 0.15)
-	tw.tween_callback(func(): _set_state(State.NORMAL))
+		refill_dash()
+		if scarf:
+			scarf.reset_to(scarf_anchor()))
+	tw.tween_property(rig, "modulate:a", 1.0, 0.12)
+	tw.tween_callback(func():
+		_set_state(State.NORMAL)
+		emote.show_emote("dizzy", 0.8))
 
 
 func _die(info: DamageInfo) -> void:
@@ -1052,8 +1399,8 @@ func _die(info: DamageInfo) -> void:
 		hp = max_hp() * 0.35
 		invuln_time = 2.0
 		FX.slowmo(0.2, 0.8)
-		FX.flash(1.0)
-		FX.text(global_position + Vector2(0, -60), "%s te salvou!" % npc["name"], Color(2.4, 2.2, 1.2))
+		FX.white_flash(0.4)
+		emote.show_emote("heart", 1.5, true)
 		Events.toast.emit("%s (%s) chegou a tempo e te salvou." % [npc["name"], npc["title"]])
 		Events.player_health_changed.emit(hp, max_hp())
 		return
@@ -1064,25 +1411,80 @@ func _on_death(_info: DamageInfo) -> void:
 	_set_state(State.DEAD)
 	Game.profile["deaths"] = int(Game.profile.get("deaths", 0)) + 1
 	FX.slowmo(0.25, 1.0)
-	FX.shake(0.6)
+	FX.shake(0.5)
 	Audio.play("death")
+	rig.set_expression("dead")
+	rig.play("dead")
+	emote.show_emote("skull", 1.5, true)
+	FX.burst(body_center(), Color(0.95, 0.93, 0.9), 12, 90.0)
 	var tw := create_tween()
-	tw.tween_method(set_dissolve, 0.0, 1.0, 0.9)
+	tw.tween_interval(0.5)
+	tw.tween_method(set_dissolve, 0.0, 1.0, 0.6)
 	Events.player_died.emit(self)
 
 
 func revive(at: Vector2) -> void:
 	dead = false
 	hp = max_hp()
-	global_position = at
+	global_position = at.round()
+	_prev_pos = global_position
+	_rem = Vector2.ZERO
 	reset_physics_interpolation()
 	velocity = Vector2.ZERO
 	set_dissolve(0.0)
 	status.clear()
 	invuln_time = 1.0
 	refill_dash()
+	rig.set_expression("normal")
+	rig.play("idle", true)
 	_set_state(State.NORMAL)
+	if scarf:
+		scarf.reset_to(scarf_anchor())
 	Events.player_health_changed.emit(hp, max_hp())
+
+
+# ---------------------------------------------------------------------------
+# Cura (foco, estilo Hollow Knight) e descanso
+# ---------------------------------------------------------------------------
+
+func _st_heal(d: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, RUN_ACCEL * d)
+	_gravity_step(d)
+	heal_t += d
+	if fmod(heal_t, 0.12) < d:
+		FX.burst(body_center() + Vector2(randf_range(-5, 5), 4), Color(1.6, 1.8, 2.4), 1, 25.0, Vector2.UP, 20.0, 0.4)
+	if not Input.is_action_pressed("heal") or not on_ground or focus < HEAL_COST:
+		heal_hold_t = 0.0
+		_set_state(State.NORMAL)
+		return
+	if heal_t >= HEAL_TIME:
+		heal_t = 0.0
+		gain_focus(-HEAL_COST)
+		heal(HEAL_AMOUNT)
+		Events.player_health_changed.emit(hp, max_hp())
+		FX.burst(body_center(), Color(2.2, 2.4, 2.8), 10, 70.0)
+		rig.bump(Vector2(0.85, 1.2))
+		rig.set_expression("happy", 0.5)
+		Audio.play("pickup", 0.05, -6.0, 1.2)
+		if hp >= max_hp() or focus < HEAL_COST:
+			heal_hold_t = 0.0
+			_set_state(State.NORMAL)
+
+
+## Sentar no banco de descanso (checkpoint).
+func rest() -> void:
+	_set_state(State.REST)
+	velocity = Vector2.ZERO
+	rig.play("sit")
+	rig.set_expression("closed", 1.0)
+
+
+func _st_rest(d: float) -> void:
+	_gravity_step(d)
+	velocity.x = 0.0
+	if input_x != 0.0 or Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("attack"):
+		jump_buffer_t = 0.0
+		_set_state(State.NORMAL)
 
 
 # ---------------------------------------------------------------------------
@@ -1090,9 +1492,9 @@ func revive(at: Vector2) -> void:
 # ---------------------------------------------------------------------------
 
 func aim_direction() -> Vector2:
-	if _using_mouse:
-		var to := get_global_mouse_position() - body_center()
-		if to.length() > 4.0:
+	if _using_mouse and PixelView.current:
+		var to := PixelView.current.mouse_world() - body_center()
+		if to.length() > 3.0:
 			return to.normalized()
 	var v := Vector2(input_x, input_y)
 	if v == Vector2.ZERO:
@@ -1101,9 +1503,9 @@ func aim_direction() -> Vector2:
 
 
 func aim_target() -> Vector2:
-	if _using_mouse:
-		return get_global_mouse_position()
-	return body_center() + aim_direction() * 110.0
+	if _using_mouse and PixelView.current:
+		return PixelView.current.mouse_world()
+	return body_center() + aim_direction() * 55.0
 
 
 func _cast_slot(i: int) -> void:
@@ -1115,20 +1517,23 @@ func _cast_slot(i: int) -> void:
 
 func cast_spell(spell_id: String, power: float) -> bool:
 	if has_rule("no_spells"):
-		FX.text(global_position + Vector2(0, -50), "A magia não responde aqui", Color(1.6, 1.0, 1.0))
+		emote.show_emote("?", 0.8)
 		return false
-	var level := Inventory.spell_level(Game.profile, spell_id)
-	var cost := caster.cost_of(spell_id, level)
+	var lvl := Inventory.spell_level(Game.profile, spell_id)
+	var cost := caster.cost_of(spell_id, lvl)
 	if focus < cost:
-		FX.text(global_position + Vector2(0, -50), "Foco insuficiente", Color(1.6, 1.6, 2.4))
+		emote.show_emote("...", 0.6)
 		Audio.play("ui_error", 0.0, -8.0)
 		return false
 	if not caster.is_ready(spell_id):
 		return false
-	if caster.cast(spell_id, level, aim_direction(), aim_target(), power):
+	if caster.cast(spell_id, lvl, aim_direction(), aim_target(), power):
 		_spell_refund = {"id": spell_id, "cost": cost}
 		gain_focus(-cost)
 		buffs.trigger("spell_cast", {"spell": spell_id})
+		rig.play("cast", true)
+		_cast_pose_t = 0.18
+		rig.bump(Vector2(1.15, 0.9))
 		return true
 	return false
 
@@ -1136,7 +1541,7 @@ func cast_spell(spell_id: String, power: float) -> bool:
 func refund_last_spell() -> void:
 	if _spell_refund.has("cost"):
 		gain_focus(float(_spell_refund["cost"]))
-		FX.text(global_position + Vector2(0, -56), "Fluxo!", Color(1.4, 1.8, 3.0))
+		emote.show_emote("spark", 0.6)
 
 
 func _start_sigil() -> void:
@@ -1144,19 +1549,24 @@ func _start_sigil() -> void:
 		return
 	sigil_points = PackedVector2Array()
 	_set_state(State.SIGIL)
+	rig.set_expression("closed", 0.2)
 	if Settings.gameplay("sigil_slowmo"):
 		FX.slowmo(0.2, 3.0)
 
 
+func _screen_mouse() -> Vector2:
+	return get_tree().root.get_mouse_position()
+
+
 func _st_sigil(d: float, _raw: float) -> void:
-	velocity.x = move_toward(velocity.x, 0.0, RUN_DECEL * d)
-	_fall(d)
-	var p := get_viewport().get_mouse_position()
+	velocity.x = move_toward(velocity.x, 0.0, RUN_ACCEL * d)
+	_gravity_step(d)
+	var p := _screen_mouse()
 	var stick := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
 	if stick.length() > 0.4:
-		var last := sigil_points[-1] if not sigil_points.is_empty() else Vector2(240, 135)
-		p = last + stick * 6.0
-	if sigil_points.is_empty() or sigil_points[-1].distance_to(p) > 2.0:
+		var last := sigil_points[-1] if not sigil_points.is_empty() else Vector2(160, 90)
+		p = last + stick * 3.0
+	if sigil_points.is_empty() or sigil_points[-1].distance_to(p) > 1.0:
 		sigil_points.append(p)
 	if not Input.is_action_pressed("sigil"):
 		_finish_sigil()
@@ -1168,22 +1578,23 @@ func _finish_sigil() -> void:
 	var res := SigilRecognizer.recognize(sigil_points)
 	sigil_points = PackedVector2Array()
 	if res["name"] == "":
-		FX.text(global_position + Vector2(0, -50), "Sigilo falhou (%d%%)" % int(res["accuracy"] * 100), Color(1.6, 1.0, 1.0))
+		emote.show_emote("?", 0.8)
+		FX.text(body_center() + Vector2(0, -14), "%d%%" % int(res["accuracy"] * 100), Color(1.0, 0.6, 0.6))
 		return
 	for sid in Game.profile.get("sigils", {}).keys():
 		if DB.spell(sid).get("sigil", "") == res["name"]:
 			var power := SigilRecognizer.power_from_accuracy(res["accuracy"])
 			if cast_spell(sid, power):
-				FX.text(global_position + Vector2(0, -60), "%s  %d%%" % [DB.display_name(sid), int(res["accuracy"] * 100)], Color(2.4, 2.0, 3.0))
+				FX.text(body_center() + Vector2(0, -16), "%s %d%%" % [DB.display_name(sid), int(res["accuracy"] * 100)], Color(1.4, 1.2, 2.0))
 			return
-	FX.text(global_position + Vector2(0, -50), "Você não conhece esse sigilo", Color(1.6, 1.4, 1.0))
+	emote.show_emote("?", 0.8)
 
 
 func start_echo(count: int, mult: float, duration: float) -> void:
 	echo_charges = count
 	echo_mult = mult
 	echo_time = duration
-	FX.burst(body_center(), Color(0.6, 2.8, 2.6), 20, 150.0)
+	FX.burst(body_center(), Color(0.6, 2.4, 2.2), 10, 70.0)
 
 
 func _record_history(d: float) -> void:
@@ -1202,17 +1613,19 @@ func rewind(duration: float, heal_ratio: float) -> void:
 	var idx := maxi(_history.size() - steps, 0)
 	var entry: Array = _history[idx]
 	for i in range(idx, _history.size(), 4):
-		var ghost := AfterImage.from_sprite(sprite, Color(1.6, 2.6, 1.4, 0.6), 0.5)
+		var ghost := AfterImage.from_sprite(rig, Color(1.4, 2.2, 1.3, 0.6), 0.45)
 		if ghost:
 			ghost.global_position = _history[i][0]
 			get_parent().add_child(ghost)
 	global_position = entry[0]
+	_prev_pos = global_position
+	_rem = Vector2.ZERO
 	reset_physics_interpolation()
 	var lost := float(entry[1]) - hp
 	if lost > 0.0:
 		heal(lost * heal_ratio)
 	_history.clear()
-	FX.flash(0.6)
+	FX.white_flash(0.25)
 
 
 func _use_potion() -> void:
@@ -1220,14 +1633,16 @@ func _use_potion() -> void:
 		return
 	if Inventory.use_item(Game.profile, "pocao_vida"):
 		heal(float(DB.items["pocao_vida"].get("heal", 30)))
+		Events.player_health_changed.emit(hp, max_hp())
 		Audio.play("pickup")
+		rig.set_expression("happy", 0.6)
 
 
 func _interact() -> void:
 	var best: Node = null
 	var best_d := INF
 	for a in interact_area.get_overlapping_areas():
-		if a.has_method("interact"):
+		if a.has_method("interact") and (not a.has_method("can_interact") or a.can_interact()):
 			var d: float = a.global_position.distance_to(global_position)
 			if d < best_d:
 				best_d = d
@@ -1243,105 +1658,172 @@ func nearest_interactable() -> Node:
 	return null
 
 
-# ---------------------------------------------------------------------------
-# Movimento físico
-# ---------------------------------------------------------------------------
+func _ghost(tint: Color, life: float = 0.22) -> void:
+	var ai := AfterImage.from_sprite(rig, tint, life)
+	if ai:
+		get_parent().add_child(ai)
 
-func _move(d: float) -> void:
-	var own := velocity
-	var total := own + external_velocity
-	velocity = total
-	# correção de quina ao subir (Celeste)
-	if _vy() < 0.0 and state != State.CLIMB:
-		var motion := Vector2(0, velocity.y * d)
-		if test_move(global_transform, motion):
-			for off in range(1, CORNER_CORRECTION + 1):
-				var found := false
-				for sgn in [-1, 1]:
-					if not test_move(global_transform.translated(Vector2(off * sgn, 0)), motion):
-						global_position.x += off * sgn
-						found = true
-						break
-				if found:
-					break
-	# correção no dash horizontal (sobe em bordinhas)
-	if state == State.DASH and absf(dash_dir.y) < 0.1:
-		var mx := Vector2(velocity.x * d, 0)
-		if test_move(global_transform, mx):
-			for off in range(1, CORNER_CORRECTION + 1):
-				if not test_move(global_transform.translated(Vector2(0, -off * g_dir)), mx):
-					global_position.y -= off * g_dir
-					break
-	# move_and_slide usa o delta de física bruto; compensa o tempo local
-	var scale := d / maxf(get_physics_process_delta_time(), 0.00001)
-	velocity = total * scale
-	move_and_slide()
-	var post := velocity / maxf(scale, 0.00001)
-	# preserva a velocidade própria; só aplica o que a colisão cortou
-	velocity = own
-	if not is_equal_approx(post.x, total.x):
-		velocity.x = post.x - external_velocity.x if absf(post.x) > 0.01 else 0.0
-	if not is_equal_approx(post.y, total.y):
-		velocity.y = post.y - external_velocity.y if absf(post.y) > 0.01 else 0.0
 
+# ---------------------------------------------------------------------------
+# Pós-movimento: chão, parede, pouso, ponto seguro
+# ---------------------------------------------------------------------------
 
 func _after_move(d: float) -> void:
-	var on_floor := is_on_floor()
-	if on_floor:
+	on_ground = _collides(Vector2(0, g_dir)) and _vy() >= 0.0
+	if on_ground:
 		coyote_t = COYOTE
 		stamina = CLIMB_STAMINA
 		air_jumps = max_air_jumps()
-		if dash_t <= 0.0 and state != State.DASH and dashes < max_dashes():
-			dashes = max_dashes()
-			Events.player_dash_changed.emit(dashes, max_dashes())
+		if dash_refill_cd <= 0.0 and state != State.DASH and dashes < max_dashes():
+			refill_dash()
 		if not was_on_floor:
-			FX.burst(global_position, Color(0.85, 0.85, 0.95, 0.6), 6, 80.0, Vector2.UP, 80.0, 0.3, 2.0)
-			Audio.play("land", 0.1, -10.0)
-			if state == State.POUND:
-				_pound_impact()
+			_on_land()
 		_safe_t += d
-		if _safe_t > 0.15 and velocity.length() < 400.0:
+		if _safe_t > 0.15 and velocity.length() < 200.0 and not _near_hazard():
 			last_safe_pos = global_position
 	else:
 		_safe_t = 0.0
-	was_on_floor = on_floor
-	wall_dir = 0 if on_floor else _probe_wall()
-	if wall_dir != 0:
-		wall_coyote_t = WALL_COYOTE
-		last_wall_dir = wall_dir
+		if was_on_floor:
+			_fall_start_y = global_position.y
+	was_on_floor = on_ground
+	# parede: encostado E segurando na direção dela
+	wall_dir = 0
+	if not on_ground:
+		if input_x > 0 and _wall_at(1):
+			wall_dir = 1
+		elif input_x < 0 and _wall_at(-1):
+			wall_dir = -1
 
 
-func _animate() -> void:
-	if sprite == null:
+func _on_land() -> void:
+	var impact := clampf(_land_speed / MAX_FALL, 0.0, 1.5)
+	rig.bump(Vector2(1.0 + 0.35 * impact, 1.0 - 0.3 * impact))
+	if impact > 0.4:
+		FX.dust(global_position, Vector2.UP, 2 + int(impact * 3.0))
+		Audio.play("land", 0.1, -12.0)
+	if state == State.POUND:
+		_pound_impact()
+	if global_position.y - _fall_start_y > 100.0:
+		rig.set_expression("wide", 0.4)
+	_land_speed = 0.0
+
+
+func _near_hazard() -> bool:
+	# não marca como "seguro" um chão colado em espinhos
+	var space := get_world_2d().direct_space_state
+	var q := PhysicsShapeQueryParameters2D.new()
+	var r := RectangleShape2D.new()
+	r.size = Vector2(14, 14)
+	q.shape = r
+	q.transform = Transform2D(0.0, global_position + Vector2(0, -5))
+	q.collide_with_areas = true
+	q.collide_with_bodies = false
+	q.collision_mask = Layers.HITBOX
+	for hit in space.intersect_shape(q, 4):
+		if hit["collider"] is Hazard:
+			return true
+	return false
+
+
+# ---------------------------------------------------------------------------
+# Animação e expressão
+# ---------------------------------------------------------------------------
+
+func _animate(d: float) -> void:
+	if rig == null:
 		return
+	rig.facing = facing
+	var a := rig.anim
 	match state:
+		State.DEAD:
+			a = "dead"
+		State.HURT:
+			a = "hurt"
 		State.DASH, State.DODGE, State.POUND:
-			play_anim("crouch")
-		State.ATTACK:
-			if heavy_charging:
-				play_anim("crouch")
-			elif not attack.is_busy():
-				play_anim("idle")
-		State.HURT, State.DEAD:
-			play_anim("hurt")
+			a = "dash" if state != State.POUND else "slash_down"
 		State.CLIMB:
-			play_anim("fall")
+			a = "climb"
+			if _vy() == 0.0:
+				rig.anim_t = 0.0
+		State.HEAL:
+			a = "focus"
 		State.SIGIL:
-			play_anim("idle")
+			a = "cast"
+		State.REST:
+			a = "sit"
 		_:
-			if is_on_floor():
-				if absf(velocity.x) > 25.0:
-					play_anim("run")
-				elif input_y > 0:
-					play_anim("crouch")
-				else:
-					play_anim("idle")
+			if _cast_pose_t > 0.0:
+				a = "cast"
+			elif attack.is_busy() and attack.phase != AttackRunner.Phase.RECOVERY or (attack.is_busy() and attack.t < 0.05):
+				match attack_dir:
+					"up": a = "slash_up"
+					"down": a = "slash_down"
+					_: a = "slash"
+			elif heavy_charging:
+				a = "duck" if on_ground else "fall"
+			elif wall_dir != 0 and not on_ground:
+				a = "wall"
+				rig.facing = -wall_dir
+			elif not on_ground:
+				a = "jump" if _vy() < -20.0 else "fall"
+			elif ducking:
+				a = "duck"
+			elif absf(velocity.x) > 12.0 and (input_x != 0.0 or absf(velocity.x) > 60.0):
+				a = "run"
 			else:
-				play_anim("jump" if _vy() < 0.0 else "fall")
-	if state == State.HURT or (invuln_time > 0.3 and state != State.DASH and state != State.DODGE):
-		sprite.visible = fmod(Time.get_ticks_msec() / 60.0, 2.0) > 0.6
+				a = "idle"
+	rig.play(a)
+	# expressão base
+	var ratio := hp / maxf(max_hp(), 1.0)
+	var base := "normal"
+	if state == State.DEAD:
+		base = "dead"
+	elif state == State.HEAL or heavy_charging or state == State.REST:
+		base = "closed"
+	elif ratio < 0.3:
+		base = "tired"
+	elif combo_count >= 3 or _enemies_near():
+		base = "angry"
+	elif on_ground and input_y * g_dir < 0 and absf(velocity.x) < 5.0:
+		base = "look_up"
+	elif on_ground and ducking:
+		base = "look_down"
+	elif not on_ground and _vy() > MAX_FALL * 0.95:
+		base = "wide"
+	rig.set_expression(base)
+	# ficar parado: "..." e depois cochilo
+	if state == State.NORMAL and on_ground and absf(velocity.x) < 1.0 and not attack.is_busy():
+		_idle_t += d
+		if _idle_t > 6.0 and _idle_t - d <= 6.0:
+			emote.show_emote("...", 1.4)
+		if _idle_t > 12.0:
+			rig.play("sit")
+			rig.set_expression("closed")
+			if emote.kind != "zzz":
+				emote.show_emote("zzz", 999.0)
+	elif emote.kind == "zzz":
+		emote.clear()
+	# piscar durante a invencibilidade
+	if invuln_time > 0.25 and state != State.DASH and state != State.DODGE and state != State.DEAD:
+		rig.visible = fmod(Time.get_ticks_msec() / 70.0, 2.0) > 0.7
 	else:
-		sprite.visible = true
+		rig.visible = true
+
+
+func _enemies_near() -> bool:
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not e.dead and e.global_position.distance_to(global_position) < 70.0:
+			return true
+	return false
+
+
+func _update_visuals(delta: float) -> void:
+	_flash = maxf(_flash - delta * 9.0, 0.0)
+	if _mat:
+		_mat.set_shader_parameter("flash", _flash)
+		var tint := status.tint()
+		_mat.set_shader_parameter("status_color", tint)
+		_mat.set_shader_parameter("status_strength", 1.0 if tint.a > 0.0 else 0.0)
 
 
 func _on_settings_changed() -> void:

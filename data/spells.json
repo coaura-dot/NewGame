@@ -1,147 +1,580 @@
 {
   "_doc": "Magias. Mesmo pool para jogador e inimigos. cast define o comportamento (ver scripts/combat/spell_caster.gd). cost = Foco. Cada nível de upgrade aplica 'upgrade' (multiplicadores por nível). power_budget é verificado nos testes para ninguém ter magia desproporcional.",
   "chama": {
-    "name": "Chama", "school": "fire", "cast": "projectile", "tier": 1, "rarity": "common", "icon": 37,
-    "cost": 20, "cooldown": 0.6, "damage": 14, "speed": 300, "radius": 7,
-    "status": {"burn": 2}, "color": [3.2, 1.2, 0.3], "light": true,
-    "upgrade": {"damage": 0.15}
+    "name": "Chama",
+    "school": "fire",
+    "cast": "projectile",
+    "tier": 1,
+    "rarity": "common",
+    "icon": 37,
+    "cost": 20,
+    "cooldown": 0.6,
+    "damage": 14,
+    "speed": 150,
+    "radius": 4,
+    "status": {
+      "burn": 2
+    },
+    "color": [
+      3.2,
+      1.2,
+      0.3
+    ],
+    "light": true,
+    "upgrade": {
+      "damage": 0.15
+    }
   },
   "estilhaco_gelo": {
-    "name": "Estilhaços de Gelo", "school": "ice", "cast": "projectile", "tier": 1, "rarity": "common", "icon": 36,
-    "cost": 18, "cooldown": 0.5, "damage": 5, "speed": 380, "radius": 4, "count": 3, "spread": 16,
-    "status": {"chill": 1}, "color": [0.8, 1.8, 3.0], "light": true,
-    "upgrade": {"damage": 0.15}
+    "name": "Estilhaços de Gelo",
+    "school": "ice",
+    "cast": "projectile",
+    "tier": 1,
+    "rarity": "common",
+    "icon": 36,
+    "cost": 18,
+    "cooldown": 0.5,
+    "damage": 5,
+    "speed": 190,
+    "radius": 2,
+    "count": 3,
+    "spread": 16,
+    "status": {
+      "chill": 1
+    },
+    "color": [
+      0.8,
+      1.8,
+      3.0
+    ],
+    "light": true,
+    "upgrade": {
+      "damage": 0.15
+    }
   },
   "seta_arcana": {
-    "name": "Seta Arcana", "school": "arcane", "cast": "projectile", "tier": 1, "rarity": "common", "icon": 38,
-    "cost": 12, "cooldown": 0.35, "damage": 9, "speed": 260, "radius": 5, "homing": 5.0,
-    "color": [2.2, 0.8, 3.0], "light": true,
-    "upgrade": {"damage": 0.15}
+    "name": "Seta Arcana",
+    "school": "arcane",
+    "cast": "projectile",
+    "tier": 1,
+    "rarity": "common",
+    "icon": 38,
+    "cost": 12,
+    "cooldown": 0.35,
+    "damage": 9,
+    "speed": 130,
+    "radius": 2,
+    "homing": 5.0,
+    "color": [
+      2.2,
+      0.8,
+      3.0
+    ],
+    "light": true,
+    "upgrade": {
+      "damage": 0.15
+    }
   },
   "espinho_terra": {
-    "name": "Espinho de Terra", "school": "earth", "cast": "eruption", "tier": 1, "rarity": "common", "icon": 39,
-    "cost": 22, "cooldown": 0.9, "damage": 16, "range": 90, "radius": 22, "knockup": 360,
-    "color": [1.3, 0.9, 0.5],
-    "upgrade": {"damage": 0.15}
+    "name": "Espinho de Terra",
+    "school": "earth",
+    "cast": "eruption",
+    "tier": 1,
+    "rarity": "common",
+    "icon": 39,
+    "cost": 22,
+    "cooldown": 0.9,
+    "damage": 16,
+    "range": 45,
+    "radius": 11,
+    "knockup": 180,
+    "color": [
+      1.3,
+      0.9,
+      0.5
+    ],
+    "upgrade": {
+      "damage": 0.15
+    }
   },
   "onda_mare": {
-    "name": "Onda da Maré", "school": "water", "cast": "projectile", "tier": 1, "rarity": "common", "icon": 31,
-    "cost": 18, "cooldown": 0.8, "damage": 8, "speed": 220, "radius": 14, "pierce": true, "knockback": 420,
-    "status": {"wet": 1}, "color": [0.4, 1.4, 2.6],
-    "upgrade": {"damage": 0.12, "radius": 0.08}
+    "name": "Onda da Maré",
+    "school": "water",
+    "cast": "projectile",
+    "tier": 1,
+    "rarity": "common",
+    "icon": 31,
+    "cost": 18,
+    "cooldown": 0.8,
+    "damage": 8,
+    "speed": 110,
+    "radius": 7,
+    "pierce": true,
+    "knockback": 210,
+    "status": {
+      "wet": 1
+    },
+    "color": [
+      0.4,
+      1.4,
+      2.6
+    ],
+    "upgrade": {
+      "damage": 0.12,
+      "radius": 0.08
+    }
   },
   "corrente_raios": {
-    "name": "Corrente de Raios", "school": "lightning", "cast": "beam", "tier": 2, "rarity": "rare", "icon": 30,
-    "cost": 24, "cooldown": 0.9, "damage": 12, "range": 170, "chain": 3,
-    "status": {"shock": 1}, "color": [2.4, 2.6, 4.0], "light": true,
-    "upgrade": {"damage": 0.1, "chain": 0.15}
+    "name": "Corrente de Raios",
+    "school": "lightning",
+    "cast": "beam",
+    "tier": 2,
+    "rarity": "rare",
+    "icon": 30,
+    "cost": 24,
+    "cooldown": 0.9,
+    "damage": 12,
+    "range": 85,
+    "chain": 3,
+    "status": {
+      "shock": 1
+    },
+    "color": [
+      2.4,
+      2.6,
+      4.0
+    ],
+    "light": true,
+    "upgrade": {
+      "damage": 0.1,
+      "chain": 0.15
+    }
   },
   "poco_gravitacional": {
-    "name": "Poço Gravitacional", "school": "gravity", "cast": "field", "tier": 2, "rarity": "rare", "icon": 54,
-    "cost": 26, "cooldown": 3.0, "damage": 2, "range": 110, "radius": 60, "duration": 2.5, "pull": 380, "tick": 0.25,
-    "color": [1.0, 0.6, 2.0],
-    "upgrade": {"radius": 0.1, "duration": 0.1}
+    "name": "Poço Gravitacional",
+    "school": "gravity",
+    "cast": "field",
+    "tier": 2,
+    "rarity": "rare",
+    "icon": 54,
+    "cost": 26,
+    "cooldown": 3.0,
+    "damage": 2,
+    "range": 55,
+    "radius": 30,
+    "duration": 2.5,
+    "pull": 190,
+    "tick": 0.25,
+    "color": [
+      1.0,
+      0.6,
+      2.0
+    ],
+    "upgrade": {
+      "radius": 0.1,
+      "duration": 0.1
+    }
   },
   "buraco_negro": {
-    "name": "Buraco Negro", "school": "void", "cast": "field", "tier": 3, "rarity": "epic", "icon": 54,
-    "cost": 60, "cooldown": 8.0, "damage": 3, "range": 140, "radius": 96, "duration": 3.0, "pull": 700, "tick": 0.2, "implode": 30,
-    "color": [0.3, 0.1, 0.6],
-    "upgrade": {"implode": 0.15}
+    "name": "Buraco Negro",
+    "school": "void",
+    "cast": "field",
+    "tier": 3,
+    "rarity": "epic",
+    "icon": 54,
+    "cost": 60,
+    "cooldown": 8.0,
+    "damage": 3,
+    "range": 70,
+    "radius": 48,
+    "duration": 3.0,
+    "pull": 350,
+    "tick": 0.2,
+    "implode": 30,
+    "color": [
+      0.3,
+      0.1,
+      0.6
+    ],
+    "upgrade": {
+      "implode": 0.15
+    }
   },
   "clarao_cegante": {
-    "name": "Clarão Cegante", "school": "light", "cast": "nova", "tier": 1, "rarity": "common", "icon": 70,
-    "cost": 20, "cooldown": 2.0, "damage": 4, "radius": 90,
-    "status": {"blind": 1}, "color": [4.0, 3.6, 2.4], "light": true,
-    "upgrade": {"radius": 0.1}
+    "name": "Clarão Cegante",
+    "school": "light",
+    "cast": "nova",
+    "tier": 1,
+    "rarity": "common",
+    "icon": 70,
+    "cost": 20,
+    "cooldown": 2.0,
+    "damage": 4,
+    "radius": 45,
+    "status": {
+      "blind": 1
+    },
+    "color": [
+      4.0,
+      3.6,
+      2.4
+    ],
+    "light": true,
+    "upgrade": {
+      "radius": 0.1
+    }
   },
   "passo_etereo": {
-    "name": "Passo Etéreo", "school": "teleport", "cast": "blink", "tier": 1, "rarity": "common", "icon": 55,
-    "cost": 15, "cooldown": 0.8, "damage": 0, "range": 110,
-    "color": [1.4, 1.0, 3.0],
-    "upgrade": {"range": 0.1}
+    "name": "Passo Etéreo",
+    "school": "teleport",
+    "cast": "blink",
+    "tier": 1,
+    "rarity": "common",
+    "icon": 55,
+    "cost": 15,
+    "cooldown": 0.8,
+    "damage": 0,
+    "range": 55,
+    "color": [
+      1.4,
+      1.0,
+      3.0
+    ],
+    "upgrade": {
+      "range": 0.1
+    }
   },
   "lanca_radiante": {
-    "name": "Lança Radiante", "school": "light", "cast": "beam", "tier": 2, "rarity": "rare", "icon": 23,
-    "cost": 30, "cooldown": 1.2, "damage": 18, "range": 260, "pierce": true,
-    "color": [4.0, 3.4, 1.6], "light": true,
-    "upgrade": {"damage": 0.15}
+    "name": "Lança Radiante",
+    "school": "light",
+    "cast": "beam",
+    "tier": 2,
+    "rarity": "rare",
+    "icon": 23,
+    "cost": 30,
+    "cooldown": 1.2,
+    "damage": 18,
+    "range": 130,
+    "pierce": true,
+    "color": [
+      4.0,
+      3.4,
+      1.6
+    ],
+    "light": true,
+    "upgrade": {
+      "damage": 0.15
+    }
   },
   "golpe_psiquico": {
-    "name": "Golpe Psíquico", "school": "psychic", "cast": "smite", "tier": 2, "rarity": "rare", "icon": 53,
-    "cost": 25, "cooldown": 1.5, "damage": 10, "range": 180, "radius": 20,
-    "status": {"stun": 1}, "color": [3.0, 0.8, 2.4],
-    "upgrade": {"damage": 0.15}
+    "name": "Golpe Psíquico",
+    "school": "psychic",
+    "cast": "smite",
+    "tier": 2,
+    "rarity": "rare",
+    "icon": 53,
+    "cost": 25,
+    "cooldown": 1.5,
+    "damage": 10,
+    "range": 90,
+    "radius": 10,
+    "status": {
+      "stun": 1
+    },
+    "color": [
+      3.0,
+      0.8,
+      2.4
+    ],
+    "upgrade": {
+      "damage": 0.15
+    }
   },
   "parar_tempo": {
-    "name": "Parar o Tempo", "school": "time", "cast": "time_field", "tier": 3, "rarity": "legendary", "icon": 71,
-    "cost": 60, "cooldown": 12.0, "damage": 0, "radius": 170, "duration": 1.6, "time_scale": 0.0,
-    "color": [1.6, 1.6, 2.2],
-    "upgrade": {"duration": 0.08}
+    "name": "Parar o Tempo",
+    "school": "time",
+    "cast": "time_field",
+    "tier": 3,
+    "rarity": "legendary",
+    "icon": 71,
+    "cost": 60,
+    "cooldown": 12.0,
+    "damage": 0,
+    "radius": 85,
+    "duration": 1.6,
+    "time_scale": 0.0,
+    "color": [
+      1.6,
+      1.6,
+      2.2
+    ],
+    "upgrade": {
+      "duration": 0.08
+    }
   },
   "campo_lento": {
-    "name": "Campo Lento", "school": "time", "cast": "time_field", "tier": 2, "rarity": "rare", "icon": 71,
-    "cost": 28, "cooldown": 4.0, "damage": 0, "radius": 110, "duration": 3.0, "time_scale": 0.35,
-    "color": [1.2, 1.6, 2.0],
-    "upgrade": {"duration": 0.1}
+    "name": "Campo Lento",
+    "school": "time",
+    "cast": "time_field",
+    "tier": 2,
+    "rarity": "rare",
+    "icon": 71,
+    "cost": 28,
+    "cooldown": 4.0,
+    "damage": 0,
+    "radius": 55,
+    "duration": 3.0,
+    "time_scale": 0.35,
+    "color": [
+      1.2,
+      1.6,
+      2.0
+    ],
+    "upgrade": {
+      "duration": 0.1
+    }
   },
   "pulso_pressao": {
-    "name": "Pulso de Pressão", "school": "pressure", "cast": "nova", "tier": 1, "rarity": "common", "icon": 32,
-    "cost": 16, "cooldown": 1.0, "damage": 6, "radius": 70, "knockback": 520,
-    "color": [1.6, 1.8, 2.0],
-    "upgrade": {"radius": 0.1, "damage": 0.1}
+    "name": "Pulso de Pressão",
+    "school": "pressure",
+    "cast": "nova",
+    "tier": 1,
+    "rarity": "common",
+    "icon": 32,
+    "cost": 16,
+    "cooldown": 1.0,
+    "damage": 6,
+    "radius": 35,
+    "knockback": 260,
+    "color": [
+      1.6,
+      1.8,
+      2.0
+    ],
+    "upgrade": {
+      "radius": 0.1,
+      "damage": 0.1
+    }
   },
   "telecinese": {
-    "name": "Telecinese", "school": "psychic", "cast": "grab", "tier": 2, "rarity": "rare", "icon": 52,
-    "cost": 18, "cooldown": 1.2, "damage": 6, "range": 170,
-    "status": {"stun": 1}, "color": [2.4, 1.0, 3.2],
-    "upgrade": {"range": 0.1}
+    "name": "Telecinese",
+    "school": "psychic",
+    "cast": "grab",
+    "tier": 2,
+    "rarity": "rare",
+    "icon": 52,
+    "cost": 18,
+    "cooldown": 1.2,
+    "damage": 6,
+    "range": 85,
+    "status": {
+      "stun": 1
+    },
+    "color": [
+      2.4,
+      1.0,
+      3.2
+    ],
+    "upgrade": {
+      "range": 0.1
+    }
   },
   "dobra_quantica": {
-    "name": "Dobra Quântica", "school": "quantum", "cast": "echo", "tier": 2, "rarity": "epic", "icon": 42,
-    "cost": 30, "cooldown": 6.0, "damage": 0, "duration": 5.0, "echo_mult": 0.6, "count": 3,
-    "color": [0.6, 2.8, 2.6],
-    "upgrade": {"echo_mult": 0.1}
+    "name": "Dobra Quântica",
+    "school": "quantum",
+    "cast": "echo",
+    "tier": 2,
+    "rarity": "epic",
+    "icon": 42,
+    "cost": 30,
+    "cooldown": 6.0,
+    "damage": 0,
+    "duration": 5.0,
+    "echo_mult": 0.6,
+    "count": 3,
+    "color": [
+      0.6,
+      2.8,
+      2.6
+    ],
+    "upgrade": {
+      "echo_mult": 0.1
+    }
   },
   "retorno": {
-    "name": "Retorno", "school": "time", "cast": "rewind", "tier": 2, "rarity": "epic", "icon": 41,
-    "cost": 35, "cooldown": 10.0, "damage": 0, "duration": 2.0, "heal_ratio": 0.5,
-    "color": [1.8, 2.6, 1.6],
-    "upgrade": {"heal_ratio": 0.1}
+    "name": "Retorno",
+    "school": "time",
+    "cast": "rewind",
+    "tier": 2,
+    "rarity": "epic",
+    "icon": 41,
+    "cost": 35,
+    "cooldown": 10.0,
+    "damage": 0,
+    "duration": 2.0,
+    "heal_ratio": 0.5,
+    "color": [
+      1.8,
+      2.6,
+      1.6
+    ],
+    "upgrade": {
+      "heal_ratio": 0.1
+    }
   },
   "sopro_infernal": {
-    "name": "Sopro Infernal", "school": "fire", "cast": "projectile", "tier": 2, "rarity": "rare", "icon": 29,
-    "cost": 26, "cooldown": 1.4, "damage": 6, "speed": 240, "radius": 8, "count": 5, "spread": 22, "lifetime": 0.55,
-    "status": {"burn": 1}, "color": [3.6, 1.4, 0.4], "light": true,
-    "upgrade": {"damage": 0.12}
+    "name": "Sopro Infernal",
+    "school": "fire",
+    "cast": "projectile",
+    "tier": 2,
+    "rarity": "rare",
+    "icon": 29,
+    "cost": 26,
+    "cooldown": 1.4,
+    "damage": 6,
+    "speed": 120,
+    "radius": 4,
+    "count": 5,
+    "spread": 22,
+    "lifetime": 0.55,
+    "status": {
+      "burn": 1
+    },
+    "color": [
+      3.6,
+      1.4,
+      0.4
+    ],
+    "light": true,
+    "upgrade": {
+      "damage": 0.12
+    }
   },
   "lamento": {
-    "name": "Lamento Espectral", "school": "psychic", "cast": "nova", "tier": 2, "rarity": "rare", "icon": 35,
-    "cost": 24, "cooldown": 2.5, "damage": 6, "radius": 80,
-    "status": {"blind": 1, "chill": 1}, "color": [0.8, 1.6, 2.4],
-    "upgrade": {"radius": 0.1}
+    "name": "Lamento Espectral",
+    "school": "psychic",
+    "cast": "nova",
+    "tier": 2,
+    "rarity": "rare",
+    "icon": 35,
+    "cost": 24,
+    "cooldown": 2.5,
+    "damage": 6,
+    "radius": 40,
+    "status": {
+      "blind": 1,
+      "chill": 1
+    },
+    "color": [
+      0.8,
+      1.6,
+      2.4
+    ],
+    "upgrade": {
+      "radius": 0.1
+    }
   },
   "sigilo_chama": {
-    "name": "Sigilo da Chama", "school": "fire", "cast": "sigil", "sigil": "circle", "effect": "nova", "tier": 2, "rarity": "rare", "icon": 36,
-    "cost": 36, "cooldown": 2.0, "damage": 24, "radius": 84,
-    "status": {"burn": 3}, "color": [4.0, 1.6, 0.4], "light": true,
-    "upgrade": {"damage": 0.15}
+    "name": "Sigilo da Chama",
+    "school": "fire",
+    "cast": "sigil",
+    "sigil": "circle",
+    "effect": "nova",
+    "tier": 2,
+    "rarity": "rare",
+    "icon": 36,
+    "cost": 36,
+    "cooldown": 2.0,
+    "damage": 24,
+    "radius": 42,
+    "status": {
+      "burn": 3
+    },
+    "color": [
+      4.0,
+      1.6,
+      0.4
+    ],
+    "light": true,
+    "upgrade": {
+      "damage": 0.15
+    }
   },
   "sigilo_tempestade": {
-    "name": "Sigilo da Tempestade", "school": "lightning", "cast": "sigil", "sigil": "zigzag", "effect": "storm", "tier": 2, "rarity": "rare", "icon": 30,
-    "cost": 32, "cooldown": 2.5, "damage": 14, "range": 220, "count": 3,
-    "status": {"shock": 1}, "color": [2.4, 2.6, 4.0], "light": true,
-    "upgrade": {"count": 0.34}
+    "name": "Sigilo da Tempestade",
+    "school": "lightning",
+    "cast": "sigil",
+    "sigil": "zigzag",
+    "effect": "storm",
+    "tier": 2,
+    "rarity": "rare",
+    "icon": 30,
+    "cost": 32,
+    "cooldown": 2.5,
+    "damage": 14,
+    "range": 110,
+    "count": 3,
+    "status": {
+      "shock": 1
+    },
+    "color": [
+      2.4,
+      2.6,
+      4.0
+    ],
+    "light": true,
+    "upgrade": {
+      "count": 0.34
+    }
   },
   "sigilo_vazio": {
-    "name": "Sigilo do Vazio", "school": "void", "cast": "sigil", "sigil": "spiral", "effect": "field", "tier": 3, "rarity": "epic", "icon": 54,
-    "cost": 45, "cooldown": 6.0, "damage": 2, "range": 200, "radius": 80, "duration": 2.5, "pull": 560, "tick": 0.2, "implode": 24,
-    "color": [0.4, 0.1, 0.8],
-    "upgrade": {"implode": 0.15}
+    "name": "Sigilo do Vazio",
+    "school": "void",
+    "cast": "sigil",
+    "sigil": "spiral",
+    "effect": "field",
+    "tier": 3,
+    "rarity": "epic",
+    "icon": 54,
+    "cost": 45,
+    "cooldown": 6.0,
+    "damage": 2,
+    "range": 100,
+    "radius": 40,
+    "duration": 2.5,
+    "pull": 280,
+    "tick": 0.2,
+    "implode": 24,
+    "color": [
+      0.4,
+      0.1,
+      0.8
+    ],
+    "upgrade": {
+      "implode": 0.15
+    }
   },
   "sigilo_egide": {
-    "name": "Sigilo da Égide", "school": "light", "cast": "sigil", "sigil": "triangle", "effect": "ward", "tier": 2, "rarity": "rare", "icon": 27,
-    "cost": 28, "cooldown": 8.0, "damage": 0, "count": 3, "duration": 10.0,
-    "color": [3.0, 2.8, 1.6],
-    "upgrade": {"count": 0.34}
+    "name": "Sigilo da Égide",
+    "school": "light",
+    "cast": "sigil",
+    "sigil": "triangle",
+    "effect": "ward",
+    "tier": 2,
+    "rarity": "rare",
+    "icon": 27,
+    "cost": 28,
+    "cooldown": 8.0,
+    "damage": 0,
+    "count": 3,
+    "duration": 10.0,
+    "color": [
+      3.0,
+      2.8,
+      1.6
+    ],
+    "upgrade": {
+      "count": 0.34
+    }
   }
 }

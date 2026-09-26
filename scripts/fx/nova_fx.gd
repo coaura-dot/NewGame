@@ -12,7 +12,7 @@ func _ready() -> void:
 	z_index = 30
 	material = CanvasItemMaterial.new()
 	(material as CanvasItemMaterial).blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	var l := LightUtil.make_light(Color(color.r, color.g, color.b).clamp(), 1.4, radius / 70.0)
+	var l := LightUtil.make_light(Color(color.r, color.g, color.b).clamp(), 1.4, radius / 40.0)
 	if l:
 		add_child(l)
 		var tw := create_tween()
@@ -31,4 +31,4 @@ func _draw() -> void:
 	var r := radius * ease(p, 0.35)
 	var a := 1.0 - p
 	draw_circle(Vector2.ZERO, r, Color(color.r, color.g, color.b, 0.12 * a))
-	draw_arc(Vector2.ZERO, r, 0.0, TAU, 48, Color(color.r, color.g, color.b, a), 3.0 * a + 1.0)
+	draw_arc(Vector2.ZERO, r, 0.0, TAU, 32, Color(color.r, color.g, color.b, a), 1.0 + (1.0 if a > 0.5 else 0.0))

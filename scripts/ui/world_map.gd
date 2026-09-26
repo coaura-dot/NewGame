@@ -2,7 +2,7 @@ extends Control
 ## Mapa-múndi (camada MACRO) em pseudo-3D: ilhas de região em três camadas
 ## (céu / superfície / subterrâneo), rotas coloridas por tipo de gate,
 ## névoa de guerra, viagem rápida para regiões limpas e o Cerco final.
-## Renderizado num SubViewport de 480x270 => visual pixelado.
+## Renderizado num SubViewport de baixa resolução => visual pixelado.
 
 const LAYER_COLOR := {"sky": Color(0.75, 0.85, 1.0), "surface": Color(0.55, 0.7, 0.45), "underground": Color(0.45, 0.38, 0.5)}
 const EDGE_COLOR := {"road": Color(0.9, 0.8, 0.6), "sky_bridge": Color(0.7, 0.9, 1.2), "tunnel": Color(0.55, 0.45, 0.4), "rift": Color(1.2, 0.5, 2.0)}
@@ -26,7 +26,7 @@ var _dragging: bool = false
 
 func _ready() -> void:
 	theme = UIKit.theme()
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	UIKit.fit(self)
 	FX.clear_time_effects()
 	if not Game.has_game:
 		Game.new_game()
@@ -36,7 +36,7 @@ func _ready() -> void:
 	svc.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(svc)
 	_vp = SubViewport.new()
-	_vp.size = Vector2i(480, 270)
+	_vp.size = Vector2i(320, 180)
 	_vp.own_world_3d = true
 	_vp.use_hdr_2d = true
 	svc.add_child(_vp)
@@ -280,7 +280,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _pick(screen_pos: Vector2) -> void:
-	var local := screen_pos / size * Vector2(480, 270)
+	var local := screen_pos / Vector2(320, 180) * Vector2(_vp.size)
 	var best := ""
 	var best_d := 26.0
 	for id in _nodes.keys():

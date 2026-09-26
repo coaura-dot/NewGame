@@ -6,9 +6,9 @@ extends Node2D
 var kind: String = "pull" ## pull | time
 var team: int = Layers.Team.PLAYER
 var source: Node = null
-var radius: float = 60.0
+var radius: float = 30.0
 var duration: float = 2.5
-var pull: float = 380.0
+var pull: float = 190.0
 var tick: float = 0.25
 var damage: float = 2.0
 var implode: float = 0.0
@@ -23,7 +23,7 @@ var _tick_t: float = 0.0
 
 func _ready() -> void:
 	z_index = 5
-	var l := LightUtil.make_light(Color(color.r, color.g, color.b).clamp(), 0.8, radius / 90.0)
+	var l := LightUtil.make_light(Color(color.r, color.g, color.b).clamp(), 0.6, radius / 40.0)
 	if l:
 		add_child(l)
 
@@ -58,8 +58,8 @@ func _physics_process(delta: float) -> void:
 			for a in get_tree().get_nodes_in_group("actors"):
 				if a.team != team and not a.dead and a.body_center().distance_to(global_position) <= radius * 0.8:
 					_hit(a, implode, true)
-			FX.burst(global_position, color * 1.6, 30, 260.0)
-			FX.shake(0.4)
+			FX.burst(global_position, color * 1.6, 16, 130.0)
+			FX.shake(0.35)
 			Audio.play("explosion")
 		queue_free()
 
@@ -89,13 +89,13 @@ func _draw() -> void:
 		draw_circle(Vector2.ZERO, radius * 0.18, Color(0.02, 0.0, 0.05, 0.95 * fade))
 		for i in 4:
 			var r := fmod(radius * (1.0 - fmod(_t * 0.8 + i * 0.25, 1.0)), radius)
-			draw_arc(Vector2.ZERO, r, 0.0, TAU, 48, Color(color.r, color.g, color.b, 0.5 * fade * (r / radius)), 1.5)
+			draw_arc(Vector2.ZERO, r, 0.0, TAU, 32, Color(color.r, color.g, color.b, 0.5 * fade * (r / radius)), 1.0)
 		for i in 6:
 			var a := _t * 4.0 + i * TAU / 6.0
-			draw_arc(Vector2.ZERO, radius * 0.3, a, a + 1.2, 12, Color(color.r * 1.5, color.g * 1.5, color.b * 1.5, 0.8 * fade), 2.0)
+			draw_arc(Vector2.ZERO, radius * 0.3, a, a + 1.2, 8, Color(color.r * 1.5, color.g * 1.5, color.b * 1.5, 0.8 * fade), 1.0)
 	else:
 		draw_circle(Vector2.ZERO, radius, Color(color.r * 0.2, color.g * 0.2, color.b * 0.3, 0.12 * fade))
-		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 64, Color(color.r, color.g, color.b, 0.6 * fade), 1.5)
+		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 48, Color(color.r, color.g, color.b, 0.6 * fade), 1.0)
 		var hand := _t * (0.5 if time_scale > 0.0 else 0.05) * TAU
-		draw_line(Vector2.ZERO, Vector2.from_angle(hand - PI * 0.5) * radius * 0.6, Color(color.r, color.g, color.b, 0.7 * fade), 1.5)
-		draw_line(Vector2.ZERO, Vector2.from_angle(hand * 0.08 - PI * 0.5) * radius * 0.4, Color(color.r, color.g, color.b, 0.7 * fade), 2.0)
+		draw_line(Vector2.ZERO, Vector2.from_angle(hand - PI * 0.5) * radius * 0.6, Color(color.r, color.g, color.b, 0.7 * fade), 1.0)
+		draw_line(Vector2.ZERO, Vector2.from_angle(hand * 0.08 - PI * 0.5) * radius * 0.4, Color(color.r, color.g, color.b, 0.7 * fade), 1.0)

@@ -2,21 +2,20 @@ class_name Chest
 extends Interactable
 ## Baú com item do pool compartilhado. Abre com animação e solta o item.
 
-const IDLE := preload("res://assets/art/props/chest_idle.png")
-const OPEN := preload("res://assets/art/props/chest_open.png")
+const TEX := preload("res://assets/art/props/chest.png")
 
 var loot: String = ""
 var opened: bool = false
-var _frame: float = 0.0
+var _t: float = 0.0
 
 
 func _ready() -> void:
 	prompt = "Abrir"
-	size = Vector2(28, 24)
+	size = Vector2(14, 12)
 	super._ready()
-	var l := LightUtil.make_light(Color(1.0, 0.8, 0.4), 0.5, 0.35)
+	var l := LightUtil.make_light(Color(1.0, 0.85, 0.5), 0.4, 0.5)
 	if l:
-		l.position = Vector2(0, -12)
+		l.position = Vector2(0, -6)
 		add_child(l)
 
 
@@ -28,22 +27,24 @@ func interact(player: Node) -> void:
 	if opened:
 		return
 	opened = true
+	_t = 0.0
 	Audio.play("chest")
-	FX.burst(global_position + Vector2(0, -16), Color(2.6, 2.0, 0.8), 16, 160.0, Vector2.UP, 60.0)
+	FX.burst(global_position + Vector2(0, -8), Color(2.2, 1.8, 0.8), 8, 70.0, Vector2.UP, 50.0)
+	if player.has_node("Rig"):
+		player.emote.show_emote("!", 0.6)
 	if level and loot != "":
-		level.spawn_pickup(loot, global_position + Vector2(0, -24), Vector2(player.facing * -40.0, -160.0))
+		level.spawn_pickup(loot, global_position + Vector2(0, -10), Vector2(player.facing * -20.0, -100.0))
 	if level:
-		level.spawn_currency(randi_range(8, 20), global_position + Vector2(0, -20))
+		level.spawn_currency(randi_range(8, 20), global_position + Vector2(0, -8))
 
 
 func _process(delta: float) -> void:
 	super._process(delta)
-	if opened and _frame < 7.0:
-		_frame = minf(_frame + delta * 16.0, 7.0)
+	_t += delta
 
 
 func _draw_body() -> void:
+	var frame := 0
 	if opened:
-		draw_texture_rect_region(OPEN, Rect2(-16, -32, 32, 32), Rect2(int(_frame) * 32, 0, 32, 32))
-	else:
-		draw_texture(IDLE, Vector2(-16, -32))
+		frame = 1 if _t < 0.06 else 2
+	draw_texture_rect_region(TEX, Rect2(-6, -10, 12, 10), Rect2(frame * 12, 0, 12, 10))

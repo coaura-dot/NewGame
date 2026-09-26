@@ -1,0 +1,23 @@
+{
+ "size": [
+  26,
+  18
+ ],
+ "feet": [
+  13,
+  18
+ ],
+ "cols": 6,
+ "anims": {
+  "idle": {
+   "start": 0,
+   "count": 2,
+   "fps": 3
+  },
+  "gallop": {
+   "start": 2,
+   "count": 4,
+   "fps": 12
+  }
+ }
+}

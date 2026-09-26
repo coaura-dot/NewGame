@@ -11,7 +11,7 @@ func _ready() -> void:
 	layer = 20
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_root = Control.new()
-	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	UIKit.fit(_root)
 	_root.theme = UIKit.theme()
 	_root.visible = false
 	add_child(_root)

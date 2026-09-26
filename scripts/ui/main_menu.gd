@@ -1,42 +1,44 @@
 extends Node2D
 ## Menu principal: continuar, novo jogo (com seed), treino, opções, créditos.
+## Fundo: a tela interna 320x180 com o parallax da floresta e o herói
+## cochilando num banco.
+
+class PanCam:
+	extends Node
+	var x := 0.0
+	func render_center() -> Vector2:
+		return Vector2(x, 90)
 
 var _ui: Control
 var _panel: Control
-var _cam: Camera2D
+var _cam: PanCam
 var _t: float = 0.0
+var _pv: PixelView
 
 
 func _ready() -> void:
 	FX.clear_time_effects()
 	get_tree().paused = false
-	_cam = Camera2D.new()
-	_cam.position = Vector2(240, 135)
+	_pv = PixelView.new()
+	add_child(_pv)
+	_cam = PanCam.new()
 	add_child(_cam)
-	_cam.make_current()
+	_pv.camera = _cam
 	var bg := BackgroundLayer.new()
 	bg.camera = _cam
-	bg.build("town", Color(0.8, 0.8, 1.0))
-	add_child(bg)
-	var env := Environment.new()
-	env.background_mode = Environment.BG_CANVAS
-	env.glow_enabled = bool(Settings.video("bloom"))
-	env.glow_intensity = 0.9
-	var we := WorldEnvironment.new()
-	we.environment = env
-	add_child(we)
-	var amb := AmbientParticles.new()
-	amb.setup("embers", _cam)
-	add_child(amb)
+	bg.level_height = 180.0
+	bg.build("floresta")
+	_pv.world.add_child(bg)
+	_pv.set_grade({}, true)
 	var layer := CanvasLayer.new()
 	layer.layer = 10
 	add_child(layer)
 	_ui = Control.new()
-	_ui.set_anchors_preset(Control.PRESET_FULL_RECT)
+	UIKit.fit(_ui)
 	_ui.theme = UIKit.theme()
 	layer.add_child(_ui)
 	var shade := ColorRect.new()
-	shade.color = Color(0.02, 0.0, 0.06, 0.35)
+	shade.color = Color(0.02, 0.0, 0.06, 0.25)
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_ui.add_child(shade)
 	_show_main()
@@ -44,7 +46,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	_cam.position.x += delta * 14.0
+	_cam.x += delta * 12.0
 
 
 func _set_panel(c: Control) -> void:
@@ -58,9 +60,9 @@ func _set_panel(c: Control) -> void:
 func _show_main() -> void:
 	var v := UIKit.vbox(5)
 	var t := UIKit.title("NEWGAME", 48)
-	t.add_theme_color_override("font_color", Color(1.8, 1.3, 0.7))
+	t.add_theme_color_override("font_color", Color(1.0, 0.92, 0.75))
 	v.add_child(t)
-	v.add_child(UIKit.label("arcade de stages procedural — protótipo", 11, UIKit.DIM, HORIZONTAL_ALIGNMENT_CENTER))
+	v.add_child(UIKit.label("arcade de stages procedural — protótipo", 11, UIKit.INK, HORIZONTAL_ALIGNMENT_CENTER))
 	var sp := Control.new()
 	sp.custom_minimum_size = Vector2(0, 8)
 	v.add_child(sp)
@@ -123,12 +125,9 @@ func _show_credits() -> void:
 	p.add_child(v)
 	v.add_child(UIKit.title("Créditos", 22))
 	for line in [
-		"Arte placeholder (CC0): Luis Zuno @ansimuz — Gothicvania",
-		"Pixel Frog — Pixel Adventure, Treasure Hunters",
-		"Foozle / Baldur — Lucifer Effects",
-		"Alex's Assets — 16x16 RPG Item Pack",
-		"Kenney — fontes e efeitos sonoros",
-		"Tudo será substituído pela arte final.",
+		"Arte: gerada por código (tools/pixel_art.py) — herói, criaturas, tiles e fundos",
+		"Ícones de itens: Alex's Assets — 16x16 RPG Item Pack (CC0)",
+		"Kenney — fontes e efeitos sonoros (CC0)",
 	]:
 		v.add_child(UIKit.label(line, 11))
 	v.add_child(UIKit.button("Voltar", _show_main, 80))

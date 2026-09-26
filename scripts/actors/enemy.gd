@@ -38,6 +38,9 @@ var contact_hitbox: Hitbox
 var _weak_points: Array = [] ## [Hurtbox, Vector2 base]
 var _bob: float = 0.0
 var _wander_dir: int = 1
+var recoil_t: float = 0.0 ## empurrado por um golpe (a IA espera)
+var emote: EmoteBubble
+var _aware: bool = false
 
 
 func setup(id: String, enemy_tier: int, dimension_id: String = "prima") -> void:
@@ -75,7 +78,7 @@ func _ready() -> void:
 	if lo.get("weapon", "") != "":
 		moveset = DB.moveset(lo["weapon"])
 	spells = lo.get("spells", [])
-	var body: Array = data.get("body", [18, 36])
+	var body: Array = data.get("body", [8, 12])
 	var cs := CollisionShape2D.new()
 	var rect := RectangleShape2D.new()
 	rect.size = Vector2(body[0], body[1])
@@ -85,7 +88,7 @@ func _ready() -> void:
 	if flying:
 		collision_mask = Layers.WORLD
 	setup_sprite(data.get("sprite", "skeleton"), float(data.get("scale", 1.0)))
-	var hb := Hurtbox.make(self, Vector2(body[0], body[1]) * 1.1, cs.position)
+	var hb := Hurtbox.make(self, Vector2(body[0], body[1]) + Vector2(2, 2), cs.position)
 	add_child(hb)
 	for wp in data.get("weak_points", []):
 		var box: Array = wp["box"]
@@ -112,8 +115,11 @@ func _ready() -> void:
 		var c: Array = ld.get("color", [1, 1, 1])
 		var l := LightUtil.make_light(Color(c[0], c[1], c[2]).clamp(), float(ld.get("energy", 1.0)), float(ld.get("scale", 1.0)))
 		if l:
-			l.position = Vector2(0, 0 if flying else -20)
+			l.position = Vector2(0, 0 if flying else -float(body[1]) * 0.5)
 			add_child(l)
+	emote = EmoteBubble.new()
+	emote.height = float(body[1]) * (0.5 if flying else 1.0) + 3.0
+	add_child(emote)
 	home = global_position
 	facing = -1
 	_wander_dir = -1
@@ -130,7 +136,7 @@ func _ready() -> void:
 func body_center() -> Vector2:
 	if flying:
 		return global_position
-	return global_position + Vector2(0, -float(data.get("body", [18, 36])[1]) * 0.5)
+	return global_position + Vector2(0, -float(data.get("body", [8, 12])[1]) * 0.5)
 
 
 func _anim(key: String) -> void:
@@ -146,15 +152,18 @@ func _actor_physics(d: float, raw: float) -> void:
 		target = get_tree().get_first_node_in_group("player")
 	for wp in _weak_points:
 		wp[0].position = Vector2(wp[1].x * facing, wp[1].y)
-	if status.disabled() or stagger_time > 0.0:
-		attack.cancel()
-		velocity.x = move_toward(velocity.x, 0.0, 400.0 * d)
+	recoil_t -= d
+	if status.disabled() or stagger_time > 0.0 or recoil_t > 0.0:
+		if recoil_t <= 0.0:
+			attack.cancel()
+		velocity.x = move_toward(velocity.x, 0.0, 300.0 * d)
 		if flying:
-			velocity.y = move_toward(velocity.y, 0.0, 400.0 * d)
+			velocity.y = move_toward(velocity.y, 0.0, 300.0 * d)
 		_gravity(d)
 		_move(d, raw)
 		_anim("idle")
 		return
+	_update_awareness()
 	if boss:
 		_check_phase()
 	match ai:
@@ -172,7 +181,7 @@ func _actor_physics(d: float, raw: float) -> void:
 func _gravity(d: float) -> void:
 	if flying:
 		return
-	velocity.y = move_toward(velocity.y, 420.0, 1800.0 * gravity_mult * d)
+	velocity.y = move_toward(velocity.y, 200.0, 900.0 * gravity_mult * d)
 
 
 func _move(d: float, raw: float) -> void:
@@ -202,7 +211,7 @@ func _target_valid() -> bool:
 	var range_mult := 1.3 if aggressive else 1.0
 	if dist > aggro * range_mult:
 		return false
-	if not flying and absf(target.global_position.y - global_position.y) > 140.0:
+	if not flying and absf(target.global_position.y - global_position.y) > 70.0:
 		return false
 	return _line_of_sight()
 
@@ -223,12 +232,13 @@ func _face_target() -> void:
 
 
 func _ledge_ahead() -> bool:
-	var tr := global_transform.translated(Vector2(facing * 14, 0))
-	return not test_move(tr, Vector2(0, 10))
+	var w: float = float(data.get("body", [8, 12])[0]) * 0.5 + 2.0
+	var tr := global_transform.translated(Vector2(facing * w, 0))
+	return not test_move(tr, Vector2(0, 5))
 
 
 func _wall_ahead() -> bool:
-	return test_move(global_transform, Vector2(facing * 4, 0))
+	return test_move(global_transform, Vector2(facing * 2, 0))
 
 
 func _windup_time() -> float:
@@ -251,10 +261,23 @@ func _telegraph(unblockable: bool = false) -> void:
 # ---------------------------------------------------------------------------
 
 func _patrol(d: float) -> void:
-	if _wall_ahead() or _ledge_ahead() or absf(global_position.x - home.x) > 90.0 and signf(global_position.x - home.x) == facing:
+	if _wall_ahead() or _ledge_ahead() or absf(global_position.x - home.x) > 45.0 and signf(global_position.x - home.x) == facing:
 		facing = -facing
-	velocity.x = move_toward(velocity.x, facing * speed * 0.5, 600.0 * d)
+	velocity.x = move_toward(velocity.x, facing * speed * 0.5, 400.0 * d)
 	_anim("move")
+
+
+## "!" quando vê o jogador, "?" quando o perde de vista.
+func _update_awareness() -> void:
+	if ai == "boss_demon" or target == null or not is_instance_valid(target):
+		return
+	var sees := _target_valid()
+	if sees and not _aware:
+		_aware = true
+		emote.show_emote("!", 0.7)
+	elif not sees and _aware and ai_state in ["patrol", "idle"]:
+		_aware = false
+		emote.show_emote("?", 0.8)
 
 
 func _melee_attack(kind: String = "light") -> void:
@@ -297,13 +320,14 @@ func _ai_melee(d: float) -> void:
 				velocity.x = 0.0
 				_telegraph()
 			elif _ledge_ahead():
-				velocity.x = move_toward(velocity.x, 0.0, 800.0 * d)
+				velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
 				_anim("idle")
 			else:
-				velocity.x = move_toward(velocity.x, facing * speed, 700.0 * d)
+				velocity.x = move_toward(velocity.x, facing * speed, 500.0 * d)
 				_anim("move")
 		"windup":
-			velocity.x = move_toward(velocity.x, 0.0, 800.0 * d)
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+			_anim("windup")
 			if ai_t <= 0.0:
 				_melee_attack()
 				ai_state = "attack"
@@ -312,7 +336,7 @@ func _ai_melee(d: float) -> void:
 			if attack.is_busy() and attack.phase != AttackRunner.Phase.RECOVERY:
 				velocity.x = facing * float(step.get("lunge", 0.0)) * 0.6
 			else:
-				velocity.x = move_toward(velocity.x, 0.0, 800.0 * d)
+				velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
 			if not attack.is_busy():
 				if combo_left > 0:
 					combo_left -= 1
@@ -321,7 +345,7 @@ func _ai_melee(d: float) -> void:
 					ai_state = "recover"
 					ai_t = rng.randf_range(0.45, 0.9) * (0.7 if aggressive else 1.0)
 		"recover":
-			velocity.x = move_toward(velocity.x, 0.0, 800.0 * d)
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
 			_anim("idle")
 			if ai_t <= 0.0:
 				ai_state = "chase"
@@ -340,32 +364,34 @@ func _ai_lunger(d: float) -> void:
 				return
 			_face_target()
 			var dist := absf(_dx())
-			if dist <= attack_range and dist > 24.0 and is_on_floor():
+			if dist <= attack_range and dist > 12.0 and is_on_floor():
 				ai_state = "windup"
 				ai_t = _windup_time() * 0.8
-				velocity.x = -facing * 40.0
+				velocity.x = -facing * 20.0
 				_telegraph()
-				_anim("idle")
+				_anim("windup")
 			else:
-				velocity.x = move_toward(velocity.x, facing * speed, 900.0 * d)
+				velocity.x = move_toward(velocity.x, facing * speed, 600.0 * d)
 				_anim("move")
 		"windup":
-			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+			velocity.x = move_toward(velocity.x, 0.0, 400.0 * d)
+			_anim("windup")
 			if ai_t <= 0.0:
-				velocity = Vector2(facing * speed * 2.0, -260.0)
+				velocity = Vector2(facing * speed * 1.6, -150.0)
+				_anim("jump")
 				combo_step = 0
 				_melee_attack("heavy" if moveset.has("heavy") and rng.randf() < 0.4 else "light")
 				ai_state = "attack"
 				ai_t = 0.8
 		"attack":
 			if is_on_floor() and velocity.y >= 0.0 and ai_t < 0.6:
-				velocity.x = move_toward(velocity.x, 0.0, 1200.0 * d)
+				velocity.x = move_toward(velocity.x, 0.0, 800.0 * d)
 			if ai_t <= 0.0 or (not attack.is_busy() and is_on_floor()):
 				attack.cancel()
 				ai_state = "recover"
 				ai_t = rng.randf_range(0.5, 1.0)
 		"recover":
-			velocity.x = move_toward(velocity.x, 0.0, 900.0 * d)
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
 			_anim("idle")
 			if ai_t <= 0.0:
 				ai_state = "chase"
@@ -374,18 +400,18 @@ func _ai_lunger(d: float) -> void:
 func _ai_caster(d: float) -> void:
 	_bob += d * 2.2
 	var valid := _target_valid()
-	var desired := home + Vector2(sin(_bob * 0.5) * 30.0, sin(_bob) * 8.0)
+	var desired := home + Vector2(sin(_bob * 0.5) * 15.0, sin(_bob) * 4.0)
 	if valid:
 		var away: Vector2 = body_center() - target.body_center()
 		var want_dist := attack_range * 0.75
-		desired = target.body_center() + away.normalized() * want_dist + Vector2(0, -30 + sin(_bob) * 10.0)
+		desired = target.body_center() + away.normalized() * want_dist + Vector2(0, -16 + sin(_bob) * 5.0)
 		_face_target()
 	elif status.has("blind"):
-		desired = global_position + Vector2(_wander_dir * 40.0, sin(_bob) * 20.0)
+		desired = global_position + Vector2(_wander_dir * 20.0, sin(_bob) * 10.0)
 		if rng.randf() < 0.02:
 			_wander_dir = -_wander_dir
 	var to := desired - global_position
-	velocity = velocity.move_toward(to.limit_length(1.0) * speed * minf(to.length() / 40.0, 1.0), 300.0 * d)
+	velocity = velocity.move_toward(to.limit_length(1.0) * speed * minf(to.length() / 20.0, 1.0), 200.0 * d)
 	match ai_state:
 		"spawn":
 			if ai_t <= 0.0:
@@ -397,7 +423,7 @@ func _ai_caster(d: float) -> void:
 				ai_t = _windup_time() + 0.1
 				_telegraph()
 				_anim("cast")
-			elif valid and not moveset.is_empty() and body_center().distance_to(target.body_center()) < 40.0 and ai_t <= 0.0:
+			elif valid and not moveset.is_empty() and body_center().distance_to(target.body_center()) < 20.0 and ai_t <= 0.0:
 				_melee_attack()
 				ai_t = 1.2
 		"windup":
@@ -460,36 +486,37 @@ func _ai_charger(d: float) -> void:
 				ai_state = "windup"
 				ai_t = _windup_time() + 0.25
 				_telegraph(true)
-				velocity.x = -facing * 60.0
+				velocity.x = -facing * 30.0
 				_anim("idle")
+				emote.show_emote("anger", 0.6)
 			else:
-				velocity.x = move_toward(velocity.x, facing * speed, 600.0 * d)
+				velocity.x = move_toward(velocity.x, facing * speed, 400.0 * d)
 				_anim("move")
 		"windup":
-			velocity.x = move_toward(velocity.x, 0.0, 300.0 * d)
+			velocity.x = move_toward(velocity.x, 0.0, 200.0 * d)
 			if ai_t <= 0.0:
 				ai_state = "charge"
 				charge_dist = 0.0
 				attack.start(moveset.get("heavy", {}), "heavy", facing)
 				FX.shake(0.2)
 		"charge":
-			velocity.x = facing * 380.0
-			charge_dist += 380.0 * d
+			velocity.x = facing * 190.0
+			charge_dist += 190.0 * d
 			_anim("attack")
 			if attack.phase == AttackRunner.Phase.RECOVERY:
 				attack.t = 0.0 # mantém o golpe ativo durante a investida
 				attack.phase = AttackRunner.Phase.ACTIVE
 				attack.hitbox.activate()
-			if _wall_ahead() or charge_dist > 300.0:
+			if _wall_ahead() or charge_dist > 150.0:
 				attack.cancel()
 				if _wall_ahead():
-					FX.shake(0.4)
+					FX.shake(0.35)
 					stagger_time = 0.9
-					FX.text(global_position + Vector2(0, -60), "ATORDOADO", Color(2.4, 2.2, 0.6))
+					emote.show_emote("dizzy", 0.9, true)
 				ai_state = "recover"
 				ai_t = 0.8
 		"recover":
-			velocity.x = move_toward(velocity.x, 0.0, 900.0 * d)
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
 			_anim("idle")
 			if ai_t <= 0.0:
 				ai_state = "chase"
@@ -505,9 +532,10 @@ func _check_phase() -> void:
 	if idx != phase_idx:
 		phase_idx = idx
 		phase_changed.emit(idx)
-		FX.shake(0.6)
+		FX.shake(0.5)
 		FX.flash(1.0)
-		FX.text(global_position + Vector2(0, -80), "FASE %d" % (idx + 1), Color(3.0, 1.2, 0.6))
+		FX.white_flash(0.3)
+		emote.show_emote("anger", 1.2, true)
 		speed *= 1.15
 		invuln_time = 0.8
 
@@ -517,11 +545,11 @@ func _ai_boss(d: float) -> void:
 	if target == null or not is_instance_valid(target):
 		return
 	_face_target()
-	var hover: Vector2 = target.body_center() + Vector2(-facing * 110.0, -70.0 + sin(_bob) * 16.0)
+	var hover: Vector2 = target.body_center() + Vector2(-facing * 60.0, -40.0 + sin(_bob) * 8.0)
 	match ai_state:
 		"spawn", "idle", "patrol", "chase":
 			var to: Vector2 = hover - global_position
-			velocity = velocity.move_toward(to.limit_length(1.0) * speed * minf(to.length() / 50.0, 1.0), 260.0 * d)
+			velocity = velocity.move_toward(to.limit_length(1.0) * speed * minf(to.length() / 25.0, 1.0), 180.0 * d)
 			_anim("idle")
 			if ai_t <= 0.0:
 				var roll := rng.randf()
@@ -539,7 +567,7 @@ func _ai_boss(d: float) -> void:
 			if ai_t <= 0.0:
 				ai_state = "swoop"
 				ai_t = 0.55
-				velocity = (target.body_center() - global_position).normalized() * 420.0
+				velocity = (target.body_center() - global_position).normalized() * 210.0
 				var chain: Array = moveset.get("light", [])
 				if not chain.is_empty():
 					attack.start(chain[mini(phase_idx, chain.size() - 1)], "light", facing)
@@ -584,7 +612,7 @@ func build_attack_info(step: Dictionary, kind: String, charge: float, _target: N
 	info.team = team
 	info.is_heavy = kind == "heavy"
 	info.direction = Vector2(facing, 0)
-	info.knockback = Vector2(facing * float(step.get("kb", 150.0)), -120.0)
+	info.knockback = Vector2(facing * float(step.get("kb", 80.0)), -60.0)
 	info.stagger = float(step.get("stagger", 1.0))
 	var st: Dictionary = moveset.get("weapon_status", {}).duplicate()
 	for s in step.get("status", {}).keys():
@@ -605,7 +633,7 @@ func _contact_info(_t: Node) -> DamageInfo:
 	info.source = self
 	info.team = team
 	info.direction = Vector2(signf(_t.global_position.x - global_position.x), 0)
-	info.knockback = info.direction * 160.0 + Vector2(0, -120)
+	info.knockback = info.direction * 90.0 + Vector2(0, -70)
 	info.parryable = true
 	return info
 
@@ -616,7 +644,9 @@ func on_parried(_by: Node, perfect: bool) -> void:
 	stagger_time = 1.5 if perfect else 0.8
 	if boss:
 		stagger_time *= 0.5
-	velocity = Vector2(-facing * 160.0, -60.0 if not flying else 0.0)
+	velocity = Vector2(-facing * 90.0, -40.0 if not flying else 0.0)
+	recoil_t = 0.15
+	emote.show_emote("dizzy", stagger_time, true)
 	if perfect:
 		status.add("mark", 1)
 	ai_state = "recover"
@@ -628,27 +658,36 @@ func _has_super_armor() -> bool:
 
 
 func _apply_knockback(info: DamageInfo) -> void:
-	var k := 0.25 if boss or data.get("elite", false) else 1.0
-	if info.knockback != Vector2.ZERO:
+	var k := 0.25 if boss or data.get("elite", false) else float(data.get("knockback_mult", 1.0))
+	if info.knockback != Vector2.ZERO and k > 0.0:
 		velocity = info.knockback * k
+		if flying:
+			velocity.y = info.knockback.y * k * 0.5
+		# recuo curto (Hollow Knight): a IA "sente" o golpe
+		recoil_t = maxf(recoil_t, 0.12 * k)
 
 
 func _on_damaged(info: DamageInfo, amount: float) -> void:
 	var heavy := info.is_heavy or info.weak_point_mult > 1.0
-	FX.impact(body_center(), info.direction, amount, info.is_crit or info.weak_point_mult > 1.0, heavy)
+	var at: Vector2 = info.hit_position if info.hit_position != Vector2.ZERO else body_center()
+	FX.impact(at.lerp(body_center(), 0.5), info.direction, amount, info.is_crit or info.weak_point_mult > 1.0, heavy)
 	if info.weak_point_mult > 1.0:
-		FX.text(body_center() + Vector2(0, -34), "PONTO FRACO", Color(3.0, 2.4, 0.8))
-	FX.burst(body_center(), Color(1.6, 0.3, 0.35), 6, 140.0, info.direction, 50.0, 0.4, 2.0)
+		FX.text(body_center() + Vector2(0, -12), "PONTO FRACO", Color(1.0, 0.85, 0.3))
+	var blood: Array = data.get("blood", [0.95, 0.9, 0.85])
+	FX.burst(body_center(), Color(blood[0], blood[1], blood[2]), 3, 70.0, info.direction, 40.0, 0.3)
 	if ai_state in ["idle", "patrol"]:
 		ai_state = "chase"
 		_face_target()
+		if not _aware:
+			_aware = true
+			emote.show_emote("!", 0.6)
 
 
 func _on_staggered(_info: DamageInfo) -> void:
 	attack.cancel()
 	ai_state = "recover"
 	ai_t = 0.5
-	FX.text(global_position + Vector2(0, -50), "QUEBRA!", Color(2.6, 2.2, 1.0))
+	emote.show_emote("dizzy", 0.6, true)
 
 
 func _on_death(info: DamageInfo) -> void:
@@ -660,9 +699,13 @@ func _on_death(info: DamageInfo) -> void:
 		if c is Hurtbox:
 			c.queue_free()
 	remove_from_group("actors")
-	FX.hitstop(0.1)
-	FX.shake(0.3 if not boss else 0.9)
-	FX.burst(body_center(), Color(2.8, 1.4, 0.6), 24 if not boss else 60, 220.0)
+	FX.hitstop(0.08 if not boss else 0.2)
+	FX.shake(0.25 if not boss else 0.8)
+	var blood: Array = data.get("blood", [0.95, 0.9, 0.85])
+	FX.burst(body_center(), Color(blood[0], blood[1], blood[2]), 8 if not boss else 30, 100.0)
+	FX.burst(body_center(), Color(2.2, 1.8, 1.2), 4 if not boss else 16, 60.0)
+	if emote:
+		emote.clear()
 	Audio.play("enemy_death", 0.1, -4.0)
 	Events.enemy_killed.emit(self, info)
 	if level and level.has_method("on_enemy_killed"):

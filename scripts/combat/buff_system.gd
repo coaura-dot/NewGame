@@ -93,7 +93,7 @@ func _check(cond: Dictionary, ctx: Dictionary, counter_key: String) -> bool:
 					if target.status.stacks(s) < int(v[s]):
 						return false
 			"airborne":
-				if actor.is_on_floor() == bool(v):
+				if actor.grounded() == bool(v):
 					return false
 			"speed_min":
 				if actor.velocity.length() < float(v):
@@ -141,7 +141,7 @@ func _apply(eff: Dictionary, ctx: Dictionary, buff_id: String) -> void:
 					if v.has("consume"):
 						target.status.remove(str(v["consume"]))
 					for a in actor.get_tree().get_nodes_in_group("actors"):
-						if a.team != actor.team and not a.dead and a.body_center().distance_to(center) <= float(v.get("radius", 48)):
+						if a.team != actor.team and not a.dead and a.body_center().distance_to(center) <= float(v.get("radius", 24)):
 							_direct_damage(a, float(v.get("damage", 10)), "fire")
 					var ring := NovaFX.new()
 					ring.radius = float(v.get("radius", 48))
@@ -154,7 +154,7 @@ func _apply(eff: Dictionary, ctx: Dictionary, buff_id: String) -> void:
 					var st: String = v.get("status", "bleed")
 					var stacks: int = maxi(target.status.stacks(st), 1)
 					for a in actor.get_tree().get_nodes_in_group("actors"):
-						if a != target and a.team != actor.team and not a.dead and a.body_center().distance_to(target.body_center()) <= float(v.get("radius", 80)):
+						if a != target and a.team != actor.team and not a.dead and a.body_center().distance_to(target.body_center()) <= float(v.get("radius", 40)):
 							a.status.add(st, stacks, actor.stats)
 							LightningFX.spawn(actor.get_parent(), target.body_center(), a.body_center(), StatusController.DEFS[st]["color"], 1.0)
 			"spawn_spell":
