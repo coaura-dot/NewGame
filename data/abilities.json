@@ -1,0 +1,13 @@
+{
+  "_doc": "Habilidades de movimento/magias que funcionam como GATES no mapa-mundi (metroidvania). implemented=false => ainda não usada pelo gerador de mundo. start=true => o jogador começa com ela.",
+  "dash": {"name": "Dash", "desc": "Impulso em 8 direções. Recarrega no chão, ao quicar ou ao matar.", "start": true, "implemented": true, "icon": 48},
+  "wall_jump": {"name": "Salto na Parede", "desc": "Deslize e salte entre paredes.", "start": true, "implemented": true, "icon": 60},
+  "double_jump": {"name": "Asas de Cinza", "desc": "Um segundo salto no ar.", "start": false, "implemented": true, "icon": 33, "gate_label": "precipício alto"},
+  "wall_climb": {"name": "Garras", "desc": "Escale paredes segurando para cima.", "start": false, "implemented": true, "icon": 61, "gate_label": "paredão"},
+  "dash_2": {"name": "Coração do Vendaval", "desc": "Uma segunda carga de dash no ar.", "start": false, "implemented": true, "icon": 43, "gate_label": "abismo largo"},
+  "ground_pound": {"name": "Queda Esmagadora", "desc": "Baixo + Pesado no ar: despenca e quebra pisos rachados.", "start": false, "implemented": true, "icon": 15, "gate_label": "piso rachado"},
+  "blink": {"name": "Passo Etéreo", "desc": "Magia de teleporte curto; atravessa barreiras etéreas.", "start": false, "implemented": true, "icon": 55, "spell": "passo_etereo", "gate_label": "barreira etérea"},
+  "dimension_shift": {"name": "Chave Dimensional", "desc": "Abre fendas para mundos paralelos.", "start": false, "implemented": true, "icon": 54, "gate_label": "fenda dimensional"},
+  "grapple": {"name": "Gancho", "desc": "Prenda-se a argolas e balance.", "start": false, "implemented": false, "icon": 9},
+  "swim": {"name": "Guelras", "desc": "Nade em águas profundas.", "start": false, "implemented": false, "icon": 31}
+}

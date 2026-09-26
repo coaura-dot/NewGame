@@ -1,0 +1,30 @@
+{
+  "_doc": "Modelos de missão. band: faixa de reputação em que aparecem (-100..100). giver: serviço do NPC que oferece. objective: tipo de objetivo que o gerador de fase entende. rep: variação de reputação ao completar. affinity: variação de afinidade com quem pediu. Missões sujas pagam mais e custam reputação; oficiais exigem fama.",
+  "templates": {
+    "assassinato": {"band": [-100, -5], "giver": "quests_shady", "objective": "kill_target", "reward": 120, "rep": -12, "affinity": 8,
+      "title": "Um Nome na Lista", "text": "{npc} quer {target} morto em {region}. Sem perguntas, sem testemunhas."},
+    "contrabando": {"band": [-100, 10], "giver": "quests_shady", "objective": "deliver", "reward": 80, "rep": -6, "affinity": 6,
+      "title": "Carga Sem Selo", "text": "Leve a caixa até {region} sem abrir. {npc} paga bem pelo silêncio."},
+    "mercenario": {"band": [-60, 30], "giver": "quests_shady", "objective": "clear_rooms", "reward": 90, "rep": -2, "affinity": 5,
+      "title": "Espada de Aluguel", "text": "Um senhor de terras paga para limpar {region}. Não importa quem mora lá."},
+    "sabotagem": {"band": [-100, -20], "giver": "quests_shady", "objective": "destroy_objects", "reward": 110, "rep": -10, "affinity": 7,
+      "title": "Faíscas no Paiol", "text": "Destrua os suprimentos da guarda em {region}. {npc} tem contas a acertar."},
+    "caca_real": {"band": [20, 100], "giver": "quests_official", "objective": "kill_boss", "reward": 160, "rep": 15, "affinity": 10,
+      "title": "Decreto Real: Caçada", "text": "Por ordem do rei, derrote o horror que domina {region}."},
+    "limpeza": {"band": [0, 100], "giver": "quests_official", "objective": "clear_rooms", "reward": 100, "rep": 8, "affinity": 6,
+      "title": "Infestação", "text": "{region} foi tomada por criaturas. {npc} pede que você a purifique."},
+    "enigma_templo": {"band": [10, 100], "giver": "lore", "objective": "solve_puzzles", "reward": 110, "rep": 6, "affinity": 12,
+      "title": "O Selo do Templo", "text": "{npc} acredita que o templo de {region} guarda um segredo. Resolva seus enigmas."},
+    "escolta": {"band": [15, 100], "giver": "quests_official", "objective": "reach_exit", "reward": 90, "rep": 7, "affinity": 8,
+      "title": "Estrada Segura", "text": "Abra caminho por {region} até a saída antes do anoitecer."},
+    "favor": {"band": [-100, 100], "giver": "any", "objective": "fetch_item", "reward": 40, "rep": 3, "affinity": 12,
+      "title": "Um Pequeno Favor", "text": "{npc} perdeu algo precioso em {region}. Pode procurar?"}
+  },
+  "reputation_bands": [
+    {"min": -100, "name": "Infame"},
+    {"min": -50, "name": "Suspeito"},
+    {"min": -10, "name": "Neutro"},
+    {"min": 10, "name": "Respeitado"},
+    {"min": 50, "name": "Herói do Reino"}
+  ]
+}

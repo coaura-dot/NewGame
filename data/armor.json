@@ -1,0 +1,87 @@
+{
+  "_doc": "Conjuntos de armadura. Cada conjunto gera uma peça por slot (id = <set>_<slot>). Bônus de conjunto por número de peças equipadas (2/4/6). Peças dropadas rolam afixos (affixes) com a seed e podem ser melhoradas (+nível).",
+  "slots": {
+    "head": {"name": "Elmo", "icon": 45, "weight": 1.0},
+    "chest": {"name": "Peitoral", "icon": 59, "weight": 1.6},
+    "legs": {"name": "Grevas", "icon": 49, "weight": 1.2},
+    "hands": {"name": "Luvas", "icon": 62, "weight": 0.8},
+    "feet": {"name": "Botas", "icon": 48, "weight": 0.8},
+    "cloak": {"name": "Manto", "icon": 55, "weight": 0.6}
+  },
+  "affixes": {
+    "vigor": {"name": "de Vigor", "stat": "max_hp", "min": 4, "max": 12},
+    "ferocidade": {"name": "Feroz", "stat": "attack", "min": 0.04, "max": 0.1},
+    "precisao": {"name": "Preciso", "stat": "crit_chance", "min": 0.02, "max": 0.06},
+    "arcano": {"name": "Arcano", "stat": "spell_power", "min": 0.05, "max": 0.12},
+    "ligeiro": {"name": "Ligeiro", "stat": "move_speed", "min": 0.02, "max": 0.06},
+    "foco": {"name": "Focado", "stat": "focus_gain", "min": 0.05, "max": 0.15},
+    "sangria": {"name": "Sangrento", "stat": "bleed_power", "min": 0.1, "max": 0.25},
+    "brasa": {"name": "Abrasador", "stat": "burn_power", "min": 0.1, "max": 0.25},
+    "ampulheta": {"name": "Veloz", "stat": "cooldown", "min": -0.08, "max": -0.03},
+    "baluarte": {"name": "Robusto", "stat": "defense", "min": 1, "max": 3}
+  },
+  "sets": {
+    "vigia_noturno": {
+      "name": "Vigia Noturno", "tier": 1, "theme": "equilíbrio / aparar",
+      "base": {"defense": 2, "max_hp": 4},
+      "bonuses": {
+        "2": {"desc": "+15 Vida máxima", "stats": {"max_hp": 15}},
+        "4": {"desc": "Aparar perfeito cura 4", "buff": "vigia_cura_aparar"},
+        "6": {"desc": "+25% dano por 3s após aparar perfeito", "buff": "vigia_furia_aparar"}
+      }
+    },
+    "sombra_andarilha": {
+      "name": "Sombra Andarilha", "tier": 1, "theme": "mobilidade / dash",
+      "base": {"defense": 1, "move_speed": 0.02},
+      "bonuses": {
+        "2": {"desc": "+8% velocidade", "stats": {"move_speed": 0.08}},
+        "4": {"desc": "Dash deixa uma sombra cortante", "buff": "sombra_rastro"},
+        "6": {"desc": "+1 carga de dash", "stats": {"dash_count": 1}}
+      }
+    },
+    "arcanista": {
+      "name": "Arcanista", "tier": 2, "theme": "magia",
+      "base": {"defense": 1, "spell_power": 0.04},
+      "bonuses": {
+        "2": {"desc": "+15% poder mágico", "stats": {"spell_power": 0.15}},
+        "4": {"desc": "Magias custam 15% menos Foco", "stats": {"spell_cost": -0.15}},
+        "6": {"desc": "Toda 3ª magia é gratuita", "buff": "arcanista_terceira_gratis"}
+      }
+    },
+    "carrasco": {
+      "name": "Carrasco", "tier": 2, "theme": "sangramento",
+      "base": {"defense": 1, "bleed_power": 0.05},
+      "bonuses": {
+        "2": {"desc": "+30% dano de sangramento", "stats": {"bleed_power": 0.3}},
+        "4": {"desc": "Hemorragia com 8 acúmulos (em vez de 10)", "stats": {"hemorrhage_threshold": -2}},
+        "6": {"desc": "Matar sangrando espalha os acúmulos", "buff": "carrasco_contagio"}
+      }
+    },
+    "brasa_viva": {
+      "name": "Brasa Viva", "tier": 2, "theme": "fogo",
+      "base": {"defense": 2, "burn_power": 0.05},
+      "bonuses": {
+        "2": {"desc": "+30% dano de queimadura", "stats": {"burn_power": 0.3}},
+        "4": {"desc": "Imune a queimadura", "stats": {"burn_immune": 1}},
+        "6": {"desc": "Dash deixa rastro de fogo", "buff": "brasa_rastro"}
+      }
+    },
+    "cronomante": {
+      "name": "Cronomante", "tier": 3, "theme": "tempo",
+      "base": {"defense": 1, "cooldown": -0.02},
+      "bonuses": {
+        "2": {"desc": "-10% recarga", "stats": {"cooldown": -0.1}},
+        "4": {"desc": "Esquiva perfeita dura +50%", "stats": {"perfect_dodge_time": 0.5}},
+        "6": {"desc": "Magias de tempo custam 30% menos", "buff": "cronomante_desconto"}
+      }
+    }
+  },
+  "trinkets": {
+    "anel_vigor": {"name": "Anel do Vigor", "icon": 40, "tier": 1, "rarity": "common", "stats": {"max_hp": 10}},
+    "anel_foco": {"name": "Anel do Foco", "icon": 41, "tier": 1, "rarity": "common", "stats": {"focus_max": 20}},
+    "amuleto_lua": {"name": "Amuleto da Lua", "icon": 32, "tier": 2, "rarity": "rare", "stats": {"spell_power": 0.12, "crit_chance": 0.04}},
+    "amuleto_estrela": {"name": "Amuleto Estelar", "icon": 33, "tier": 2, "rarity": "rare", "stats": {"attack": 0.1}},
+    "colar_osso": {"name": "Colar de Osso", "icon": 35, "tier": 1, "rarity": "common", "stats": {"bleed_power": 0.2}},
+    "anel_compromisso": {"name": "Anel de Compromisso", "icon": 42, "tier": 1, "rarity": "rare", "stats": {}, "tags": ["marriage"], "desc": "Entregue a alguém especial."}
+  }
+}

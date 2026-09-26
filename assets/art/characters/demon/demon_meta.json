@@ -1,0 +1,29 @@
+{
+  "name": "demon",
+  "cell": [
+    230,
+    178
+  ],
+  "faces": "left",
+  "flying": true,
+  "sprite_offset": [
+    0,
+    0
+  ],
+  "animations": [
+    {
+      "name": "idle",
+      "row": 0,
+      "count": 6,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "name": "attack",
+      "row": 1,
+      "count": 11,
+      "fps": 10,
+      "loop": false
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "hound",
+  "cell": [
+    56,
+    51
+  ],
+  "faces": "left",
+  "flying": false,
+  "sprite_offset": [
+    0,
+    -21.5
+  ],
+  "animations": [
+    {
+      "name": "idle",
+      "row": 0,
+      "count": 6,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "name": "walk",
+      "row": 1,
+      "count": 12,
+      "fps": 12,
+      "loop": true
+    },
+    {
+      "name": "run",
+      "row": 2,
+      "count": 5,
+      "fps": 12,
+      "loop": true
+    },
+    {
+      "name": "jump",
+      "row": 3,
+      "count": 6,
+      "fps": 10,
+      "loop": false
+    }
+  ]
+}

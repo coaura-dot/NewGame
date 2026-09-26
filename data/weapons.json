@@ -1,0 +1,74 @@
+{
+  "_doc": "Armas concretas. Jogador e inimigos usam o MESMO pool. class -> moveset em weapon_classes.json. damage = dano base. status = status aplicado em todo acerto. stats = modificadores enquanto equipada. exclusive_to = só dropa desse inimigo/boss.",
+  "katana_andarilho": {
+    "name": "Katana do Andarilho", "class": "katana", "damage": 10, "tier": 1, "rarity": "common", "icon": 3,
+    "desc": "Leve e confiável. O ataque em dash corta tudo pelo caminho."
+  },
+  "katana_rubra": {
+    "name": "Katana Rubra", "class": "katana", "damage": 11, "tier": 2, "rarity": "rare", "icon": 4,
+    "status": {"bleed": 1},
+    "desc": "Cada corte abre uma ferida. Sangramento acumula até 10."
+  },
+  "katanas_eco": {
+    "name": "Katanas do Eco", "class": "dual_katana", "damage": 9, "tier": 2, "rarity": "rare", "icon": 5,
+    "desc": "Golpes no ritmo acumulam Compasso (+dano). Errar o tempo zera."
+  },
+  "odachi_luar": {
+    "name": "Odachi do Luar", "class": "heavy_katana", "damage": 14, "tier": 2, "rarity": "rare", "icon": 7,
+    "desc": "Iai carregado atravessa a tela."
+  },
+  "espada_enferrujada": {
+    "name": "Espada Enferrujada", "class": "longsword", "damage": 9, "tier": 1, "rarity": "common", "icon": 0,
+    "desc": "Arrancada de um esqueleto. Ainda corta."
+  },
+  "espada_cavaleiro": {
+    "name": "Espada do Cavaleiro", "class": "longsword", "damage": 12, "tier": 2, "rarity": "rare", "icon": 1,
+    "stats": {"defense": 2}
+  },
+  "estoque_duelista": {
+    "name": "Estoque do Duelista", "class": "fine_sword", "damage": 10, "tier": 1, "rarity": "common", "icon": 2,
+    "stats": {"crit_chance": 0.08},
+    "desc": "Estocadas precisas. Bônus enorme em pontos fracos."
+  },
+  "montante_ferro": {
+    "name": "Montante de Ferro", "class": "greatsword", "damage": 15, "tier": 1, "rarity": "common", "icon": 6,
+    "desc": "Lento, mas ignora interrupções (super armor)."
+  },
+  "presas_infernais": {
+    "name": "Presas Infernais", "class": "daggers", "damage": 7, "tier": 1, "rarity": "common", "icon": 11,
+    "status": {"bleed": 1},
+    "desc": "Dentes do cão infernal, afiados como adagas."
+  },
+  "garra_felina": {
+    "name": "Garra Felina", "class": "knife", "damage": 8, "tier": 1, "rarity": "common", "icon": 9,
+    "stats": {"move_speed": 0.08},
+    "desc": "Rápida. O golpe pesado arremessa a lâmina."
+  },
+  "bastao_carvalho": {
+    "name": "Bastão de Carvalho", "class": "staff", "damage": 9, "tier": 1, "rarity": "common", "icon": 20,
+    "stats": {"spell_power": 0.15}
+  },
+  "cajado_espectral": {
+    "name": "Cajado Espectral", "class": "staff", "damage": 8, "tier": 2, "rarity": "rare", "icon": 21,
+    "stats": {"spell_power": 0.35, "focus_gain": 0.2},
+    "desc": "Canaliza o lamento dos fantasmas."
+  },
+  "serrilhada": {
+    "name": "Serrilhada", "class": "bleed_blade", "damage": 9, "tier": 1, "rarity": "common", "icon": 10
+  },
+  "guarda_cidadela": {
+    "name": "Guarda da Cidadela", "class": "sword_shield", "damage": 10, "tier": 1, "rarity": "common", "icon": 25,
+    "stats": {"defense": 3},
+    "desc": "Segure Aparar para bloquear. Pesado = investida de escudo."
+  },
+  "manoplas_pesadelo": {
+    "name": "Manoplas do Pesadelo", "class": "gauntlets", "damage": 11, "tier": 2, "rarity": "rare", "icon": 61,
+    "desc": "A investida do corcel espectral, agora nos seus punhos."
+  },
+  "cutelo_arquidemonio": {
+    "name": "Cutelo do Arquidemônio", "class": "greatsword", "damage": 21, "tier": 3, "rarity": "legendary", "icon": 13,
+    "status": {"burn": 1},
+    "exclusive_to": "archdemon",
+    "desc": "Só o Arquidemônio o empunha. Queima tudo que toca."
+  }
+}

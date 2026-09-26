@@ -1,0 +1,22 @@
+{
+  "name": "hellcat",
+  "cell": [
+    94,
+    44
+  ],
+  "faces": "left",
+  "flying": false,
+  "sprite_offset": [
+    0,
+    -18.0
+  ],
+  "animations": [
+    {
+      "name": "run",
+      "row": 0,
+      "count": 4,
+      "fps": 10,
+      "loop": true
+    }
+  ]
+}

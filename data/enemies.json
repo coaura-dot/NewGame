@@ -1,0 +1,94 @@
+{
+  "_doc": "Inimigos. loadout usa o MESMO pool de armas/magias/armaduras do jogador e define os drops. weakness: multiplicadores por tipo de dano/escola de magia; class_weakness: por classe de arma. weak_points: caixas de ponto fraco (dano extra). exclusive_drops: itens que só esse inimigo dropa.",
+  "skeleton": {
+    "name": "Esqueleto Errante", "sprite": "skeleton", "tier": 1, "hp": 30, "speed": 55, "ai": "melee",
+    "body": [18, 40], "contact_damage": 0, "aggro": 170, "attack_range": 44,
+    "loadout": {"weapon": "espada_enferrujada", "spells": [], "armor": ["vigia_noturno_head"]},
+    "anim": {"idle": "walk", "move": "walk", "attack": "walk", "spawn": "rise"},
+    "weakness": {"blunt": 1.6, "pierce": 0.6, "light": 1.5},
+    "class_weakness": {"greatsword": 1.3, "staff": 1.3},
+    "drops": [{"id": "espada_enferrujada", "chance": 0.06}, {"id": "vigia_noturno_head", "chance": 0.03}],
+    "currency": [4, 9]
+  },
+  "hound": {
+    "name": "Cão Infernal", "sprite": "hound", "tier": 1, "hp": 22, "speed": 150, "ai": "lunger",
+    "body": [34, 22], "contact_damage": 0, "aggro": 220, "attack_range": 90,
+    "loadout": {"weapon": "presas_infernais", "spells": []},
+    "anim": {"idle": "idle", "move": "run", "attack": "jump"},
+    "weakness": {"ice": 1.6, "water": 1.4, "fire": 0.4, "slash": 1.2},
+    "drops": [{"id": "presas_infernais", "chance": 0.07}],
+    "currency": [3, 7]
+  },
+  "hellcat": {
+    "name": "Gato do Abismo", "sprite": "hellcat", "tier": 1, "hp": 18, "speed": 175, "ai": "lunger",
+    "body": [34, 22], "contact_damage": 0, "aggro": 220, "attack_range": 80,
+    "loadout": {"weapon": "garra_felina", "spells": []},
+    "anim": {"idle": "run", "move": "run", "attack": "run"},
+    "weakness": {"blunt": 1.3, "light": 1.3},
+    "drops": [{"id": "garra_felina", "chance": 0.07}, {"id": "sombra_andarilha_feet", "chance": 0.03}],
+    "currency": [3, 7]
+  },
+  "ghost": {
+    "name": "Espectro Encapuzado", "sprite": "ghost", "tier": 2, "hp": 24, "speed": 70, "ai": "caster", "flying": true,
+    "body": [22, 36], "contact_damage": 0, "aggro": 240, "attack_range": 150,
+    "loadout": {"weapon": "cajado_espectral", "spells": ["lamento", "golpe_psiquico"]},
+    "anim": {"idle": "idle", "move": "idle", "cast": "shriek", "spawn": "appear", "death": "vanish"},
+    "weakness": {"light": 2.0, "arcane": 1.5, "slash": 0.5, "pierce": 0.5, "blunt": 0.5},
+    "drops": [{"id": "cajado_espectral", "chance": 0.05}, {"id": "lamento", "chance": 0.04}, {"id": "arcanista_cloak", "chance": 0.03}],
+    "currency": [6, 12]
+  },
+  "wraith": {
+    "name": "Lampadário", "sprite": "wraith", "tier": 1, "hp": 20, "speed": 60, "ai": "caster", "flying": true,
+    "body": [20, 36], "contact_damage": 0, "aggro": 220, "attack_range": 170,
+    "loadout": {"weapon": "bastao_carvalho", "spells": ["seta_arcana"]},
+    "anim": {"idle": "idle", "move": "idle", "cast": "idle"},
+    "light": {"color": [0.4, 0.8, 1.6], "energy": 1.2, "scale": 1.0},
+    "weakness": {"light": 1.8, "water": 1.3, "pierce": 0.7},
+    "drops": [{"id": "seta_arcana", "chance": 0.06}, {"id": "anel_foco", "chance": 0.03}],
+    "currency": [4, 9]
+  },
+  "fire_skull": {
+    "name": "Crânio Flamejante", "sprite": "fire_skull", "tier": 1, "hp": 16, "speed": 80, "ai": "caster", "flying": true, "scale": 0.6,
+    "body": [22, 22], "contact_damage": 6, "aggro": 230, "attack_range": 160,
+    "loadout": {"weapon": "", "spells": ["chama"]},
+    "anim": {"idle": "idle", "move": "idle", "cast": "idle"},
+    "light": {"color": [2.0, 0.9, 0.3], "energy": 1.4, "scale": 1.2},
+    "weakness": {"ice": 2.0, "water": 2.0, "fire": 0.0},
+    "drops": [{"id": "chama", "chance": 0.06}, {"id": "brasa_viva_head", "chance": 0.03}],
+    "currency": [4, 8]
+  },
+  "hell_beast": {
+    "name": "Besta do Inferno", "sprite": "hell_beast", "tier": 2, "hp": 40, "speed": 0, "ai": "turret",
+    "body": [26, 44], "contact_damage": 0, "aggro": 260, "attack_range": 220,
+    "loadout": {"weapon": "", "spells": ["sopro_infernal"]},
+    "anim": {"idle": "idle", "move": "idle", "cast": "breath"},
+    "light": {"color": [1.8, 0.7, 0.3], "energy": 0.8, "scale": 0.8},
+    "weakness": {"ice": 1.6, "fire": 0.3, "pierce": 1.2},
+    "drops": [{"id": "sopro_infernal", "chance": 0.06}, {"id": "brasa_viva_chest", "chance": 0.03}],
+    "currency": [8, 14]
+  },
+  "nightmare": {
+    "name": "Corcel do Pesadelo", "sprite": "nightmare", "tier": 2, "hp": 110, "speed": 90, "ai": "charger", "elite": true,
+    "body": [60, 44], "contact_damage": 8, "aggro": 300, "attack_range": 200, "poise": 12,
+    "loadout": {"weapon": "manoplas_pesadelo", "spells": ["campo_lento"]},
+    "anim": {"idle": "idle", "move": "gallop", "attack": "gallop", "cast": "idle"},
+    "light": {"color": [0.3, 1.2, 2.0], "energy": 1.0, "scale": 1.4},
+    "weakness": {"light": 1.5, "blunt": 1.2, "time": 0.5},
+    "drops": [{"id": "manoplas_pesadelo", "chance": 0.25}, {"id": "cronomante_legs", "chance": 0.1}],
+    "currency": [30, 50]
+  },
+  "archdemon": {
+    "name": "Arquidemônio de Cinzas", "sprite": "demon", "tier": 3, "hp": 520, "speed": 70, "ai": "boss_demon", "flying": true, "boss": true,
+    "body": [60, 90], "contact_damage": 10, "aggro": 600, "attack_range": 120, "poise": 30,
+    "loadout": {"weapon": "cutelo_arquidemonio", "spells": ["sopro_infernal", "chama", "poco_gravitacional"]},
+    "anim": {"idle": "idle", "move": "idle", "attack": "attack", "cast": "attack"},
+    "light": {"color": [0.4, 1.4, 2.4], "energy": 1.6, "scale": 2.4},
+    "weak_points": [{"box": [-16, -60, 32, 26], "mult": 1.75, "name": "crânio"}],
+    "weakness": {"ice": 1.4, "light": 1.3, "fire": 0.2},
+    "drops": [{"id": "cutelo_arquidemonio", "chance": 0.35}, {"id": "buraco_negro", "chance": 0.2}],
+    "exclusive_drops": ["cutelo_arquidemonio"],
+    "refight": {"requires_item": "selo_das_cinzas", "desc": "Queime o Selo das Cinzas no altar da arena para reconjurar o Arquidemônio."},
+    "phases": [1.0, 0.66, 0.33],
+    "currency": [200, 260]
+  }
+}
