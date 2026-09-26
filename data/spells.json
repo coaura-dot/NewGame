@@ -34,7 +34,7 @@
     "name": "Corrente de Raios", "school": "lightning", "cast": "beam", "tier": 2, "rarity": "rare", "icon": 30,
     "cost": 24, "cooldown": 0.9, "damage": 12, "range": 170, "chain": 3,
     "status": {"shock": 1}, "color": [2.4, 2.6, 4.0], "light": true,
-    "upgrade": {"damage": 0.15, "chain": 0.34}
+    "upgrade": {"damage": 0.1, "chain": 0.15}
   },
   "poco_gravitacional": {
     "name": "Poço Gravitacional", "school": "gravity", "cast": "field", "tier": 2, "rarity": "rare", "icon": 54,
@@ -74,7 +74,7 @@
   },
   "parar_tempo": {
     "name": "Parar o Tempo", "school": "time", "cast": "time_field", "tier": 3, "rarity": "legendary", "icon": 71,
-    "cost": 70, "cooldown": 12.0, "damage": 0, "radius": 170, "duration": 1.6, "time_scale": 0.0,
+    "cost": 60, "cooldown": 12.0, "damage": 0, "radius": 170, "duration": 1.6, "time_scale": 0.0,
     "color": [1.6, 1.6, 2.2],
     "upgrade": {"duration": 0.08}
   },
@@ -122,7 +122,7 @@
   },
   "sigilo_chama": {
     "name": "Sigilo da Chama", "school": "fire", "cast": "sigil", "sigil": "circle", "effect": "nova", "tier": 2, "rarity": "rare", "icon": 36,
-    "cost": 30, "cooldown": 2.0, "damage": 26, "radius": 84,
+    "cost": 36, "cooldown": 2.0, "damage": 24, "radius": 84,
     "status": {"burn": 3}, "color": [4.0, 1.6, 0.4], "light": true,
     "upgrade": {"damage": 0.15}
   },

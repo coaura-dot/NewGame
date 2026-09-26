@@ -1,4 +1,4 @@
-extends TestCase
+extends "res://tests/test_case.gd"
 ## Inventário, conjuntos de armadura, NPCs, reputação, casamento e o Cerco.
 
 

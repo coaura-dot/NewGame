@@ -1,4 +1,4 @@
-extends TestCase
+extends "res://tests/test_case.gd"
 ## Dados: validação cruzada e orçamento de poder (balanceamento).
 
 

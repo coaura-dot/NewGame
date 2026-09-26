@@ -1,4 +1,4 @@
-extends TestCase
+extends "res://tests/test_case.gd"
 ## Fumaça: carrega a fase de treino e joga com entradas simuladas.
 
 

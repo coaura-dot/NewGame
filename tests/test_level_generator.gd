@@ -1,4 +1,4 @@
-extends TestCase
+extends "res://tests/test_case.gd"
 ## Fases: templates válidos, layout consistente, spawn/saída conectados.
 
 var lib := ChunkLibrary.new()

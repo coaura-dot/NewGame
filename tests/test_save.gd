@@ -1,4 +1,4 @@
-extends TestCase
+extends "res://tests/test_case.gd"
 ## Save/load preserva o mundo (fixo por seed) e o perfil.
 
 

@@ -1,4 +1,4 @@
-class_name TestCase
+
 extends RefCounted
 ## Base dos testes. Métodos que começam com test_ são executados pelo runner.
 
@@ -12,7 +12,7 @@ func check(cond: bool, msg: String = "") -> bool:
 
 
 func eq(a: Variant, b: Variant, msg: String = "") -> bool:
-	var ok := a == b
+	var ok: bool = a == b
 	runner.report(ok, "%s (esperado %s, veio %s)" % [msg, str(b), str(a)])
 	return ok
 
