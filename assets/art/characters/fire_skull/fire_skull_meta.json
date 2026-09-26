@@ -1,0 +1,22 @@
+{
+  "name": "fire_skull",
+  "cell": [
+    98,
+    107
+  ],
+  "faces": "left",
+  "flying": true,
+  "sprite_offset": [
+    0,
+    0
+  ],
+  "animations": [
+    {
+      "name": "idle",
+      "row": 0,
+      "count": 8,
+      "fps": 10,
+      "loop": true
+    }
+  ]
+}

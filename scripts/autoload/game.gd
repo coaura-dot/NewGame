@@ -1,0 +1,196 @@
+extends Node
+## Estado da partida: seed, mundo (grafo macro fixo por save), perfil do
+## jogador, estado social e navegação entre cenas.
+
+const SCENE_MENU := "res://scenes/main_menu.tscn"
+const SCENE_MAP := "res://scenes/world_map.tscn"
+const SCENE_LEVEL := "res://scenes/level.tscn"
+
+const START_PROFILE := {
+	"max_hp": 100.0,
+	"currency": 0,
+	"abilities": ["dash", "wall_jump"],
+	"weapons": ["katana_andarilho", "montante_ferro", "presas_infernais"],
+	"weapon": "katana_andarilho",
+	"weapon_alt": "montante_ferro",
+	"spells": {"chama": 0, "passo_etereo": 0, "seta_arcana": 0},
+	"spell_slots": ["chama", "passo_etereo"],
+	"sigils": {"sigilo_chama": 0, "sigilo_tempestade": 0},
+	"armor": [], ## [{uid, id, level, affixes}]
+	"equipped_armor": {}, ## slot -> uid (berloques: trinket_1, trinket_2)
+	"buffs": [],
+	"items": {"pocao_vida": 2},
+	"upgrade_levels": {}, ## weapon_id -> nível
+	"dimension": "prima",
+	"region": "",
+	"deaths": 0,
+	"kills": 0,
+	"bosses_defeated": [],
+	"flags": {},
+	"next_uid": 1,
+}
+
+var seed_value: int = 0
+var world: Dictionary = {}
+var profile: Dictionary = {}
+var social: Dictionary = {}
+var slot: int = 0
+var has_game: bool = false
+
+## Parâmetros para a próxima cena (ex.: qual região gerar).
+var pending: Dictionary = {}
+## Modo treino: perfil temporário com tudo liberado, nunca salvo.
+var training: bool = false
+var _stash: Dictionary = {}
+var _stash_had_game: bool = false
+
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	profile = START_PROFILE.duplicate(true)
+
+
+# ---------------------------------------------------------------------------
+# Ciclo da partida
+# ---------------------------------------------------------------------------
+
+func new_game(seed_in: int = -1, save_slot: int = 0) -> void:
+	seed_value = seed_in if seed_in >= 0 else int(Time.get_unix_time_from_system()) % 1000000
+	slot = save_slot
+	world = WorldGenerator.generate(seed_value, DB)
+	profile = START_PROFILE.duplicate(true)
+	profile["region"] = world["start"]
+	social = SocialSystem.create(world, seed_value, DB)
+	world["regions"][world["start"]]["visited"] = true
+	has_game = true
+	save()
+
+
+## Partida de treino: fase fixa para testar movimento/combate com tudo liberado.
+func start_training() -> void:
+	pending = {"training": true}
+	goto(SCENE_LEVEL)
+
+
+func setup_training_profile() -> void:
+	if training:
+		return
+	training = true
+	_stash_had_game = has_game
+	_stash = to_dict() if has_game else {}
+	seed_value = 20260926
+	world = WorldGenerator.generate(seed_value, DB)
+	social = SocialSystem.create(world, seed_value, DB)
+	profile = START_PROFILE.duplicate(true)
+	for ab in DB.abilities.keys():
+		if DB.abilities[ab].get("implemented", false) and not profile["abilities"].has(ab):
+			profile["abilities"].append(ab)
+	for w in DB.weapons.keys():
+		if DB.weapons[w].get("exclusive_to", "") == "" and not profile["weapons"].has(w):
+			profile["weapons"].append(w)
+	for sp in ["chama", "passo_etereo", "corrente_raios", "poco_gravitacional", "campo_lento", "retorno", "dobra_quantica", "telecinese"]:
+		profile["spells"][sp] = 0
+	for sg in ["sigilo_chama", "sigilo_tempestade", "sigilo_vazio", "sigilo_egide"]:
+		profile["sigils"][sg] = 0
+	profile["buffs"] = ["centelha", "acrobata", "mestre_riposta"]
+	profile["items"] = {"pocao_vida": 5, "chave_ferro": 1}
+	profile["currency"] = 500
+	has_game = true
+
+
+func end_training() -> void:
+	if not training:
+		return
+	training = false
+	if _stash_had_game and not _stash.is_empty():
+		from_dict(_stash)
+		has_game = true
+	else:
+		has_game = false
+		profile = START_PROFILE.duplicate(true)
+		world = {}
+		social = {}
+	_stash = {}
+
+
+func save() -> void:
+	if has_game and not training:
+		SaveSystem.save_game(slot, to_dict())
+
+
+func load_game(save_slot: int = 0) -> bool:
+	var d := SaveSystem.load_game(save_slot)
+	if d.is_empty():
+		return false
+	from_dict(d)
+	slot = save_slot
+	has_game = true
+	return true
+
+
+func to_dict() -> Dictionary:
+	return {"version": SaveSystem.VERSION, "seed": seed_value, "world": world, "profile": profile, "social": social}
+
+
+func from_dict(d: Dictionary) -> void:
+	seed_value = int(d.get("seed", 0))
+	world = d.get("world", {})
+	profile = START_PROFILE.duplicate(true)
+	profile.merge(d.get("profile", {}), true)
+	social = d.get("social", {})
+
+
+func goto(scene_path: String) -> void:
+	FX.clear_time_effects()
+	get_tree().paused = false
+	get_tree().call_deferred("change_scene_to_file", scene_path)
+
+
+func enter_region(region_id: String) -> void:
+	profile["region"] = region_id
+	var r: Dictionary = world["regions"][region_id]
+	r["visited"] = true
+	profile["dimension"] = r.get("dimension", "prima")
+	pending = {"region": region_id}
+	save()
+	goto(SCENE_LEVEL)
+
+
+func current_region() -> Dictionary:
+	return world.get("regions", {}).get(profile.get("region", ""), {})
+
+
+func complete_region(region_id: String) -> void:
+	var r: Dictionary = world["regions"].get(region_id, {})
+	if r.is_empty():
+		return
+	r["cleared"] = true
+	var gained: Array = r.get("rewards", []).duplicate()
+	if r.get("grants", "") != "":
+		gained.append(r["grants"])
+	for ab in gained:
+		unlock_ability(ab)
+	if r.get("boss", "") != "" and not profile["bosses_defeated"].has(r["boss"] + ":" + region_id):
+		profile["bosses_defeated"].append(r["boss"] + ":" + region_id)
+	SocialSystem.on_region_cleared(social, region_id)
+	Events.level_completed.emit(region_id)
+	save()
+
+
+func unlock_ability(ability_id: String) -> void:
+	if not profile["abilities"].has(ability_id):
+		profile["abilities"].append(ability_id)
+		Events.player_ability_unlocked.emit(ability_id)
+		Events.toast.emit("Habilidade: " + str(DB.abilities.get(ability_id, {}).get("name", ability_id)))
+		var sp: String = DB.abilities.get(ability_id, {}).get("spell", "")
+		if sp != "":
+			Inventory.add(profile, sp)
+
+
+func has_ability(ability_id: String) -> bool:
+	return profile.get("abilities", []).has(ability_id)
+
+
+func is_siege_ready() -> bool:
+	## O Cerco começa quando o jogador derrota chefes suficientes.
+	return profile.get("bosses_defeated", []).size() >= maxi(2, world.get("abilities_order", []).size())

@@ -1,0 +1,22 @@
+{
+  "name": "wraith",
+  "cell": [
+    44,
+    66
+  ],
+  "faces": "right",
+  "flying": true,
+  "sprite_offset": [
+    0,
+    0
+  ],
+  "animations": [
+    {
+      "name": "idle",
+      "row": 0,
+      "count": 4,
+      "fps": 6,
+      "loop": true
+    }
+  ]
+}

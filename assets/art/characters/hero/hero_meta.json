@@ -1,0 +1,64 @@
+{
+  "name": "hero",
+  "cell": [
+    102,
+    58
+  ],
+  "faces": "right",
+  "flying": false,
+  "sprite_offset": [
+    0,
+    -25.0
+  ],
+  "animations": [
+    {
+      "name": "idle",
+      "row": 0,
+      "count": 4,
+      "fps": 6,
+      "loop": true
+    },
+    {
+      "name": "run",
+      "row": 1,
+      "count": 6,
+      "fps": 12,
+      "loop": true
+    },
+    {
+      "name": "jump",
+      "row": 2,
+      "count": 2,
+      "fps": 10,
+      "loop": false
+    },
+    {
+      "name": "fall",
+      "row": 3,
+      "count": 2,
+      "fps": 10,
+      "loop": true
+    },
+    {
+      "name": "attack",
+      "row": 4,
+      "count": 5,
+      "fps": 20,
+      "loop": false
+    },
+    {
+      "name": "crouch",
+      "row": 5,
+      "count": 1,
+      "fps": 1,
+      "loop": false
+    },
+    {
+      "name": "hurt",
+      "row": 6,
+      "count": 1,
+      "fps": 1,
+      "loop": false
+    }
+  ]
+}

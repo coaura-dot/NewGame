@@ -1,0 +1,41 @@
+{
+  "_doc": "Dimensões / mundos paralelos. Cada uma altera física e regras. physics: multiplicadores lidos pelo PlayerMotor e pela IA. rules: regras especiais. grade = gradação de cor (post-process). creatures = inimigos exclusivos/variantes ponderados (substituem o pool do bioma quando presentes).",
+  "prima": {
+    "name": "Plano Primordial", "desc": "O mundo como você o conhece.",
+    "physics": {"gravity": 1.0, "gravity_dir": 1, "jump": 1.0, "speed": 1.0, "friction": 1.0, "air_control": 1.0, "enemy_time": 1.0, "dash_bonus": 0},
+    "rules": [],
+    "grade": {"tint": [1, 1, 1], "saturation": 1.0, "contrast": 1.0, "hue_shift": 0.0}
+  },
+  "umbra": {
+    "name": "Umbra", "desc": "Plano das sombras: gravidade pesada, luz escassa, inimigos mais agressivos.",
+    "physics": {"gravity": 1.25, "gravity_dir": 1, "jump": 1.08, "speed": 1.0, "friction": 1.0, "air_control": 0.9, "enemy_time": 1.15, "dash_bonus": 0},
+    "rules": ["low_light", "enemies_aggressive"],
+    "grade": {"tint": [0.75, 0.7, 1.0], "saturation": 0.45, "contrast": 1.25, "hue_shift": 0.0},
+    "creatures": {"ghost": 4, "wraith": 3, "hound": 2}
+  },
+  "eter": {
+    "name": "Éter", "desc": "Gravidade baixa e ar denso: saltos longos, flutuação, controle aéreo total.",
+    "physics": {"gravity": 0.55, "gravity_dir": 1, "jump": 0.8, "speed": 0.95, "friction": 0.6, "air_control": 1.3, "enemy_time": 1.0, "dash_bonus": 1},
+    "rules": ["floaty"],
+    "grade": {"tint": [0.9, 1.05, 1.2], "saturation": 1.1, "contrast": 0.95, "hue_shift": 0.05},
+    "creatures": {"wraith": 3, "fire_skull": 3, "ghost": 2}
+  },
+  "cronos": {
+    "name": "Cronos", "desc": "O tempo flui diferente: inimigos lentos, você ganha um dash extra, magias de tempo custam metade.",
+    "physics": {"gravity": 1.0, "gravity_dir": 1, "jump": 1.0, "speed": 1.05, "friction": 1.0, "air_control": 1.0, "enemy_time": 0.7, "dash_bonus": 1},
+    "rules": ["cheap_time_spells"],
+    "grade": {"tint": [1.1, 1.0, 0.8], "saturation": 0.7, "contrast": 1.05, "hue_shift": -0.03}
+  },
+  "espelho": {
+    "name": "Reino Espelhado", "desc": "Gravidade invertida. O teto é o chão.",
+    "physics": {"gravity": 1.0, "gravity_dir": -1, "jump": 1.0, "speed": 1.0, "friction": 1.0, "air_control": 1.0, "enemy_time": 1.0, "dash_bonus": 0},
+    "rules": ["inverted_gravity"],
+    "grade": {"tint": [1.0, 0.9, 1.1], "saturation": 1.0, "contrast": 1.0, "hue_shift": 0.5}
+  },
+  "abismo": {
+    "name": "Abismo", "desc": "Sem magia. Tudo morre em um golpe — inclusive você.",
+    "physics": {"gravity": 1.1, "gravity_dir": 1, "jump": 1.0, "speed": 1.1, "friction": 1.0, "air_control": 1.0, "enemy_time": 1.0, "dash_bonus": 0},
+    "rules": ["no_spells", "one_hit"],
+    "grade": {"tint": [1.1, 0.8, 0.8], "saturation": 0.2, "contrast": 1.4, "hue_shift": 0.0}
+  }
+}

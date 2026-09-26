@@ -1,0 +1,203 @@
+{
+  "_doc": "Movesets por classe de arma. Caixas [x, y, w, h] relativas aos pés do ator olhando para a direita. Tempos em segundos. dmg = multiplicador do dano base da arma. lunge = impulso para frente (px/s). hits = multi-hit dentro da janela ativa. chain_at = fração da recuperação a partir da qual o próximo golpe pode ser encadeado. beat = janela rítmica (s) para golpe 'no tempo'.",
+  "longsword": {
+    "name": "Espada Longa",
+    "damage_type": "slash",
+    "range_class": "medium",
+    "focus_gain": 6,
+    "light": [
+      {"dmg": 1.0, "startup": 0.06, "active": 0.08, "recovery": 0.16, "box": [2, -42, 46, 38], "lunge": 110, "kb": 150, "stagger": 1.0, "chain_at": 0.3, "arc": [150, 40]},
+      {"dmg": 1.0, "startup": 0.05, "active": 0.08, "recovery": 0.16, "box": [2, -42, 46, 38], "lunge": 120, "kb": 150, "stagger": 1.0, "chain_at": 0.3, "arc": [-150, 40]},
+      {"dmg": 1.5, "startup": 0.09, "active": 0.1, "recovery": 0.26, "box": [0, -48, 54, 46], "lunge": 170, "kb": 280, "stagger": 2.0, "chain_at": 1.0, "arc": [200, 46]}
+    ],
+    "heavy": {"dmg": 2.4, "startup": 0.22, "active": 0.1, "recovery": 0.3, "box": [0, -60, 58, 60], "lunge": 90, "kb": 360, "stagger": 4.0, "charge": 0.45, "charged_mult": 1.7, "arc": [220, 54]},
+    "dash": {"dmg": 1.4, "startup": 0.02, "active": 0.12, "recovery": 0.12, "box": [-10, -40, 56, 34], "lunge": 0, "kb": 200, "stagger": 1.5, "arc": [90, 44]},
+    "air": {"dmg": 1.0, "startup": 0.05, "active": 0.09, "recovery": 0.14, "box": [0, -46, 48, 42], "lunge": 0, "kb": 140, "stagger": 1.0, "arc": [180, 42]},
+    "down_air": {"dmg": 1.0, "startup": 0.04, "active": 0.14, "recovery": 0.1, "box": [-16, -8, 32, 34], "lunge": 0, "kb": 120, "stagger": 1.0, "pogo": true, "arc": [90, 34]},
+    "up_air": {"dmg": 1.0, "startup": 0.05, "active": 0.1, "recovery": 0.14, "box": [-20, -80, 40, 42], "lunge": 0, "kb": 160, "stagger": 1.0, "arc": [180, 38]}
+  },
+  "fine_sword": {
+    "name": "Espada Fina",
+    "damage_type": "pierce",
+    "range_class": "long",
+    "focus_gain": 5,
+    "weak_point_bonus": 0.6,
+    "light": [
+      {"dmg": 0.7, "startup": 0.04, "active": 0.06, "recovery": 0.1, "box": [6, -32, 58, 12], "lunge": 140, "kb": 90, "stagger": 0.6, "chain_at": 0.2, "thrust": true},
+      {"dmg": 0.7, "startup": 0.04, "active": 0.06, "recovery": 0.1, "box": [6, -32, 58, 12], "lunge": 140, "kb": 90, "stagger": 0.6, "chain_at": 0.2, "thrust": true},
+      {"dmg": 1.2, "startup": 0.07, "active": 0.08, "recovery": 0.2, "box": [6, -34, 70, 16], "lunge": 260, "kb": 200, "stagger": 1.5, "chain_at": 1.0, "thrust": true}
+    ],
+    "heavy": {"dmg": 2.2, "startup": 0.2, "active": 0.1, "recovery": 0.24, "box": [6, -34, 86, 18], "lunge": 420, "kb": 260, "stagger": 3.0, "charge": 0.4, "charged_mult": 1.8, "thrust": true},
+    "dash": {"dmg": 1.6, "startup": 0.02, "active": 0.12, "recovery": 0.1, "box": [0, -34, 64, 16], "lunge": 0, "kb": 160, "stagger": 1.0, "thrust": true},
+    "air": {"dmg": 0.9, "startup": 0.04, "active": 0.08, "recovery": 0.12, "box": [6, -34, 56, 14], "lunge": 0, "kb": 100, "stagger": 0.6, "thrust": true},
+    "down_air": {"dmg": 0.9, "startup": 0.03, "active": 0.14, "recovery": 0.1, "box": [-8, -4, 16, 40], "lunge": 0, "kb": 100, "stagger": 0.6, "pogo": true, "thrust": true},
+    "up_air": {"dmg": 0.9, "startup": 0.04, "active": 0.08, "recovery": 0.12, "box": [-8, -96, 16, 56], "lunge": 0, "kb": 120, "stagger": 0.6, "thrust": true}
+  },
+  "greatsword": {
+    "name": "Espada Pesada",
+    "damage_type": "blunt",
+    "range_class": "medium",
+    "focus_gain": 9,
+    "super_armor": true,
+    "light": [
+      {"dmg": 1.0, "startup": 0.16, "active": 0.12, "recovery": 0.28, "box": [-6, -62, 66, 62], "lunge": 80, "kb": 320, "stagger": 3.0, "chain_at": 0.4, "arc": [200, 58]},
+      {"dmg": 1.3, "startup": 0.18, "active": 0.12, "recovery": 0.36, "box": [-6, -62, 70, 62], "lunge": 90, "kb": 420, "stagger": 4.0, "chain_at": 1.0, "arc": [-200, 60]}
+    ],
+    "heavy": {"dmg": 2.6, "startup": 0.34, "active": 0.14, "recovery": 0.4, "box": [-20, -70, 96, 72], "lunge": 40, "kb": 520, "stagger": 7.0, "charge": 0.6, "charged_mult": 1.6, "shockwave": true, "arc": [260, 70]},
+    "dash": {"dmg": 1.5, "startup": 0.04, "active": 0.14, "recovery": 0.18, "box": [-12, -52, 70, 50], "lunge": 0, "kb": 360, "stagger": 3.0, "arc": [120, 56]},
+    "air": {"dmg": 1.1, "startup": 0.1, "active": 0.12, "recovery": 0.2, "box": [-6, -60, 64, 60], "lunge": 0, "kb": 300, "stagger": 2.5, "arc": [220, 56]},
+    "down_air": {"dmg": 1.2, "startup": 0.06, "active": 0.18, "recovery": 0.14, "box": [-22, -8, 44, 36], "lunge": 0, "kb": 240, "stagger": 2.0, "pogo": true, "arc": [120, 40]},
+    "up_air": {"dmg": 1.1, "startup": 0.1, "active": 0.12, "recovery": 0.2, "box": [-26, -90, 52, 50], "lunge": 0, "kb": 300, "stagger": 2.5, "arc": [200, 48]}
+  },
+  "katana": {
+    "name": "Katana",
+    "damage_type": "slash",
+    "range_class": "medium",
+    "focus_gain": 6,
+    "parry_bonus": 0.04,
+    "light": [
+      {"dmg": 0.9, "startup": 0.04, "active": 0.07, "recovery": 0.12, "box": [2, -42, 48, 36], "lunge": 130, "kb": 120, "stagger": 0.8, "chain_at": 0.25, "arc": [160, 44]},
+      {"dmg": 0.9, "startup": 0.04, "active": 0.07, "recovery": 0.12, "box": [2, -42, 48, 36], "lunge": 130, "kb": 120, "stagger": 0.8, "chain_at": 0.25, "arc": [-160, 44]},
+      {"dmg": 1.4, "startup": 0.06, "active": 0.09, "recovery": 0.22, "box": [0, -46, 56, 44], "lunge": 220, "kb": 260, "stagger": 2.0, "chain_at": 1.0, "arc": [220, 50]}
+    ],
+    "heavy": {"dmg": 2.3, "startup": 0.14, "active": 0.08, "recovery": 0.26, "box": [-60, -40, 120, 30], "lunge": 640, "kb": 220, "stagger": 3.0, "charge": 0.35, "charged_mult": 1.8, "iai": true, "arc": [30, 70]},
+    "dash": {"dmg": 1.8, "startup": 0.01, "active": 0.13, "recovery": 0.08, "box": [-14, -40, 60, 34], "lunge": 0, "kb": 180, "stagger": 1.5, "arc": [60, 50]},
+    "air": {"dmg": 1.0, "startup": 0.04, "active": 0.08, "recovery": 0.12, "box": [0, -46, 50, 42], "lunge": 0, "kb": 120, "stagger": 0.8, "arc": [180, 44]},
+    "down_air": {"dmg": 1.0, "startup": 0.03, "active": 0.14, "recovery": 0.08, "box": [-16, -8, 32, 34], "lunge": 0, "kb": 110, "stagger": 0.8, "pogo": true, "arc": [90, 34]},
+    "up_air": {"dmg": 1.0, "startup": 0.04, "active": 0.08, "recovery": 0.12, "box": [-20, -80, 40, 42], "lunge": 0, "kb": 130, "stagger": 0.8, "arc": [180, 38]}
+  },
+  "daggers": {
+    "name": "Adagas",
+    "damage_type": "pierce",
+    "range_class": "short",
+    "focus_gain": 3,
+    "backstab_bonus": 1.0,
+    "light": [
+      {"dmg": 0.5, "startup": 0.03, "active": 0.05, "recovery": 0.07, "box": [4, -34, 32, 22], "lunge": 90, "kb": 50, "stagger": 0.3, "chain_at": 0.1, "arc": [120, 26]},
+      {"dmg": 0.5, "startup": 0.03, "active": 0.05, "recovery": 0.07, "box": [4, -34, 32, 22], "lunge": 90, "kb": 50, "stagger": 0.3, "chain_at": 0.1, "arc": [-120, 26]},
+      {"dmg": 0.5, "startup": 0.03, "active": 0.05, "recovery": 0.07, "box": [4, -34, 32, 22], "lunge": 90, "kb": 50, "stagger": 0.3, "chain_at": 0.1, "arc": [120, 26]},
+      {"dmg": 0.5, "startup": 0.03, "active": 0.05, "recovery": 0.07, "box": [4, -34, 32, 22], "lunge": 90, "kb": 50, "stagger": 0.3, "chain_at": 0.1, "arc": [-120, 26]},
+      {"dmg": 0.5, "startup": 0.05, "active": 0.12, "recovery": 0.2, "box": [0, -38, 40, 30], "lunge": 180, "kb": 180, "stagger": 1.2, "hits": 3, "chain_at": 1.0, "arc": [300, 30]}
+    ],
+    "heavy": {"dmg": 1.8, "startup": 0.1, "active": 0.06, "recovery": 0.2, "box": [4, -34, 34, 24], "lunge": -220, "kb": 100, "stagger": 1.0, "charge": 0.3, "charged_mult": 1.5, "projectile": "thrown_dagger"},
+    "dash": {"dmg": 1.2, "startup": 0.01, "active": 0.12, "recovery": 0.06, "box": [-12, -36, 44, 26], "lunge": 0, "kb": 100, "stagger": 0.8, "hits": 2, "arc": [60, 30]},
+    "air": {"dmg": 0.6, "startup": 0.03, "active": 0.06, "recovery": 0.08, "box": [2, -38, 34, 28], "lunge": 0, "kb": 60, "stagger": 0.3, "hits": 2, "arc": [160, 28]},
+    "down_air": {"dmg": 0.6, "startup": 0.02, "active": 0.14, "recovery": 0.06, "box": [-12, -6, 24, 30], "lunge": 0, "kb": 80, "stagger": 0.3, "pogo": true, "arc": [90, 26]},
+    "up_air": {"dmg": 0.6, "startup": 0.03, "active": 0.06, "recovery": 0.08, "box": [-16, -74, 32, 36], "lunge": 0, "kb": 80, "stagger": 0.3, "hits": 2, "arc": [160, 28]}
+  },
+  "dual_katana": {
+    "name": "Katanas Duplas",
+    "damage_type": "slash",
+    "range_class": "medium",
+    "focus_gain": 4,
+    "rhythm": true,
+    "light": [
+      {"dmg": 0.4, "startup": 0.04, "active": 0.08, "recovery": 0.12, "box": [0, -42, 48, 36], "lunge": 110, "kb": 80, "stagger": 0.5, "hits": 2, "chain_at": 0.2, "beat": 0.07, "arc": [180, 40]},
+      {"dmg": 0.4, "startup": 0.04, "active": 0.08, "recovery": 0.12, "box": [0, -42, 48, 36], "lunge": 110, "kb": 80, "stagger": 0.5, "hits": 2, "chain_at": 0.2, "beat": 0.07, "arc": [-180, 40]},
+      {"dmg": 0.4, "startup": 0.04, "active": 0.08, "recovery": 0.12, "box": [0, -42, 48, 36], "lunge": 110, "kb": 80, "stagger": 0.5, "hits": 2, "chain_at": 0.2, "beat": 0.07, "arc": [180, 40]},
+      {"dmg": 0.45, "startup": 0.06, "active": 0.16, "recovery": 0.24, "box": [-20, -50, 76, 48], "lunge": 180, "kb": 240, "stagger": 2.0, "hits": 4, "chain_at": 1.0, "beat": 0.08, "arc": [340, 44]}
+    ],
+    "heavy": {"dmg": 0.5, "startup": 0.16, "active": 0.2, "recovery": 0.28, "box": [-40, -54, 80, 54], "lunge": 60, "kb": 280, "stagger": 2.5, "hits": 5, "charge": 0.4, "charged_mult": 1.5, "arc": [360, 46]},
+    "dash": {"dmg": 1.3, "startup": 0.01, "active": 0.13, "recovery": 0.08, "box": [-14, -40, 60, 34], "lunge": 0, "kb": 140, "stagger": 1.0, "hits": 2, "arc": [60, 44]},
+    "air": {"dmg": 0.6, "startup": 0.04, "active": 0.1, "recovery": 0.12, "box": [-8, -48, 56, 46], "lunge": 0, "kb": 90, "stagger": 0.5, "hits": 2, "arc": [300, 40]},
+    "down_air": {"dmg": 0.7, "startup": 0.03, "active": 0.14, "recovery": 0.08, "box": [-16, -8, 32, 34], "lunge": 0, "kb": 100, "stagger": 0.5, "pogo": true, "arc": [90, 34]},
+    "up_air": {"dmg": 0.6, "startup": 0.04, "active": 0.1, "recovery": 0.12, "box": [-20, -80, 40, 42], "lunge": 0, "kb": 100, "stagger": 0.5, "hits": 2, "arc": [180, 38]}
+  },
+  "heavy_katana": {
+    "name": "Katana Pesada (Odachi)",
+    "damage_type": "slash",
+    "range_class": "long",
+    "focus_gain": 8,
+    "light": [
+      {"dmg": 1.1, "startup": 0.12, "active": 0.1, "recovery": 0.24, "box": [0, -50, 70, 46], "lunge": 120, "kb": 240, "stagger": 2.0, "chain_at": 0.35, "arc": [180, 62]},
+      {"dmg": 1.5, "startup": 0.14, "active": 0.12, "recovery": 0.32, "box": [-10, -56, 80, 56], "lunge": 160, "kb": 340, "stagger": 3.0, "chain_at": 1.0, "arc": [-220, 66]}
+    ],
+    "heavy": {"dmg": 3.0, "startup": 0.3, "active": 0.1, "recovery": 0.4, "box": [-90, -44, 180, 34], "lunge": 720, "kb": 300, "stagger": 5.0, "charge": 0.7, "charged_mult": 1.8, "iai": true, "arc": [30, 96]},
+    "dash": {"dmg": 1.6, "startup": 0.02, "active": 0.14, "recovery": 0.14, "box": [-14, -46, 74, 40], "lunge": 0, "kb": 240, "stagger": 2.0, "arc": [70, 60]},
+    "air": {"dmg": 1.1, "startup": 0.08, "active": 0.1, "recovery": 0.18, "box": [-4, -54, 66, 50], "lunge": 0, "kb": 220, "stagger": 2.0, "arc": [200, 58]},
+    "down_air": {"dmg": 1.1, "startup": 0.05, "active": 0.16, "recovery": 0.12, "box": [-18, -8, 36, 40], "lunge": 0, "kb": 180, "stagger": 1.5, "pogo": true, "arc": [100, 40]},
+    "up_air": {"dmg": 1.1, "startup": 0.08, "active": 0.1, "recovery": 0.18, "box": [-24, -92, 48, 52], "lunge": 0, "kb": 220, "stagger": 2.0, "arc": [200, 48]}
+  },
+  "knife": {
+    "name": "Faca",
+    "damage_type": "pierce",
+    "range_class": "short",
+    "focus_gain": 3,
+    "backstab_bonus": 1.5,
+    "light": [
+      {"dmg": 0.7, "startup": 0.02, "active": 0.05, "recovery": 0.06, "box": [4, -32, 24, 18], "lunge": 110, "kb": 40, "stagger": 0.3, "chain_at": 0.1, "arc": [100, 22]},
+      {"dmg": 0.9, "startup": 0.02, "active": 0.05, "recovery": 0.12, "box": [4, -32, 26, 18], "lunge": 150, "kb": 80, "stagger": 0.5, "chain_at": 1.0, "arc": [-100, 22]}
+    ],
+    "heavy": {"dmg": 1.6, "startup": 0.08, "active": 0.05, "recovery": 0.14, "box": [4, -32, 26, 18], "lunge": 0, "kb": 60, "stagger": 0.8, "charge": 0.25, "charged_mult": 1.6, "projectile": "thrown_knife"},
+    "dash": {"dmg": 1.4, "startup": 0.01, "active": 0.1, "recovery": 0.05, "box": [-10, -34, 36, 22], "lunge": 0, "kb": 60, "stagger": 0.6, "arc": [60, 26]},
+    "air": {"dmg": 0.7, "startup": 0.02, "active": 0.06, "recovery": 0.08, "box": [2, -36, 28, 24], "lunge": 0, "kb": 50, "stagger": 0.3, "arc": [140, 24]},
+    "down_air": {"dmg": 0.7, "startup": 0.02, "active": 0.12, "recovery": 0.06, "box": [-10, -6, 20, 28], "lunge": 0, "kb": 60, "stagger": 0.3, "pogo": true, "arc": [90, 22]},
+    "up_air": {"dmg": 0.7, "startup": 0.02, "active": 0.06, "recovery": 0.08, "box": [-14, -70, 28, 32], "lunge": 0, "kb": 60, "stagger": 0.3, "arc": [140, 24]}
+  },
+  "staff": {
+    "name": "Bastão",
+    "damage_type": "blunt",
+    "range_class": "long",
+    "focus_gain": 8,
+    "spell_power_bonus": 0.25,
+    "light": [
+      {"dmg": 0.9, "startup": 0.07, "active": 0.09, "recovery": 0.16, "box": [0, -40, 64, 26], "lunge": 80, "kb": 200, "stagger": 1.5, "chain_at": 0.3, "arc": [120, 60]},
+      {"dmg": 0.9, "startup": 0.07, "active": 0.09, "recovery": 0.16, "box": [0, -40, 64, 26], "lunge": 80, "kb": 200, "stagger": 1.5, "chain_at": 0.3, "arc": [-120, 60]},
+      {"dmg": 0.7, "startup": 0.08, "active": 0.24, "recovery": 0.24, "box": [-50, -52, 100, 52], "lunge": 60, "kb": 260, "stagger": 2.5, "hits": 3, "chain_at": 1.0, "arc": [360, 52]}
+    ],
+    "heavy": {"dmg": 2.0, "startup": 0.2, "active": 0.12, "recovery": 0.28, "box": [0, -24, 76, 26], "lunge": 60, "kb": 420, "stagger": 4.0, "charge": 0.5, "charged_mult": 1.6, "arc": [60, 72]},
+    "dash": {"dmg": 1.2, "startup": 0.02, "active": 0.12, "recovery": 0.12, "box": [-12, -38, 72, 26], "lunge": 0, "kb": 260, "stagger": 2.0, "arc": [40, 64]},
+    "air": {"dmg": 1.0, "startup": 0.06, "active": 0.14, "recovery": 0.14, "box": [-44, -54, 88, 54], "lunge": 0, "kb": 200, "stagger": 1.5, "hits": 2, "arc": [360, 46]},
+    "down_air": {"dmg": 1.0, "startup": 0.04, "active": 0.14, "recovery": 0.1, "box": [-8, -4, 16, 44], "lunge": 0, "kb": 160, "stagger": 1.2, "pogo": true, "thrust": true},
+    "up_air": {"dmg": 1.0, "startup": 0.06, "active": 0.1, "recovery": 0.14, "box": [-8, -104, 16, 64], "lunge": 0, "kb": 180, "stagger": 1.2, "thrust": true}
+  },
+  "bleed_blade": {
+    "name": "Lâmina Serrilhada",
+    "damage_type": "slash",
+    "range_class": "medium",
+    "focus_gain": 5,
+    "light": [
+      {"dmg": 0.8, "startup": 0.05, "active": 0.08, "recovery": 0.14, "box": [2, -42, 44, 36], "lunge": 110, "kb": 100, "stagger": 0.7, "chain_at": 0.3, "arc": [150, 40], "status": {"bleed": 1}},
+      {"dmg": 0.8, "startup": 0.05, "active": 0.08, "recovery": 0.14, "box": [2, -42, 44, 36], "lunge": 110, "kb": 100, "stagger": 0.7, "chain_at": 0.3, "arc": [-150, 40], "status": {"bleed": 1}},
+      {"dmg": 0.8, "startup": 0.07, "active": 0.14, "recovery": 0.22, "box": [0, -46, 52, 42], "lunge": 150, "kb": 200, "stagger": 1.5, "hits": 2, "chain_at": 1.0, "arc": [260, 44], "status": {"bleed": 2}}
+    ],
+    "heavy": {"dmg": 1.8, "startup": 0.2, "active": 0.1, "recovery": 0.28, "box": [0, -50, 56, 50], "lunge": 90, "kb": 260, "stagger": 2.5, "charge": 0.45, "charged_mult": 1.5, "arc": [220, 50], "status": {"bleed": 3}},
+    "dash": {"dmg": 1.3, "startup": 0.02, "active": 0.12, "recovery": 0.1, "box": [-10, -40, 54, 34], "lunge": 0, "kb": 160, "stagger": 1.0, "arc": [80, 44], "status": {"bleed": 2}},
+    "air": {"dmg": 0.9, "startup": 0.05, "active": 0.09, "recovery": 0.14, "box": [0, -46, 46, 42], "lunge": 0, "kb": 120, "stagger": 0.8, "arc": [180, 42], "status": {"bleed": 1}},
+    "down_air": {"dmg": 0.9, "startup": 0.04, "active": 0.14, "recovery": 0.1, "box": [-16, -8, 32, 34], "lunge": 0, "kb": 110, "stagger": 0.8, "pogo": true, "arc": [90, 34], "status": {"bleed": 1}},
+    "up_air": {"dmg": 0.9, "startup": 0.05, "active": 0.1, "recovery": 0.14, "box": [-20, -80, 40, 42], "lunge": 0, "kb": 140, "stagger": 0.8, "arc": [180, 38], "status": {"bleed": 1}}
+  },
+  "sword_shield": {
+    "name": "Espada e Escudo",
+    "damage_type": "slash",
+    "range_class": "short",
+    "focus_gain": 6,
+    "block": 0.8,
+    "light": [
+      {"dmg": 0.9, "startup": 0.06, "active": 0.08, "recovery": 0.15, "box": [2, -40, 40, 34], "lunge": 90, "kb": 130, "stagger": 1.0, "chain_at": 0.3, "arc": [140, 38]},
+      {"dmg": 0.9, "startup": 0.06, "active": 0.08, "recovery": 0.15, "box": [2, -40, 40, 34], "lunge": 90, "kb": 130, "stagger": 1.0, "chain_at": 0.3, "arc": [-140, 38]},
+      {"dmg": 1.3, "startup": 0.08, "active": 0.1, "recovery": 0.24, "box": [0, -44, 46, 40], "lunge": 140, "kb": 240, "stagger": 2.0, "chain_at": 1.0, "arc": [200, 42]}
+    ],
+    "heavy": {"dmg": 1.4, "startup": 0.12, "active": 0.1, "recovery": 0.22, "box": [4, -44, 30, 42], "lunge": 360, "kb": 480, "stagger": 6.0, "charge": 0.4, "charged_mult": 1.5, "bash": true},
+    "dash": {"dmg": 1.2, "startup": 0.02, "active": 0.12, "recovery": 0.1, "box": [-6, -44, 46, 42], "lunge": 0, "kb": 320, "stagger": 3.0, "bash": true},
+    "air": {"dmg": 0.9, "startup": 0.05, "active": 0.09, "recovery": 0.14, "box": [0, -44, 42, 40], "lunge": 0, "kb": 130, "stagger": 1.0, "arc": [180, 40]},
+    "down_air": {"dmg": 0.9, "startup": 0.04, "active": 0.14, "recovery": 0.1, "box": [-16, -8, 32, 34], "lunge": 0, "kb": 120, "stagger": 1.0, "pogo": true, "arc": [90, 34]},
+    "up_air": {"dmg": 0.9, "startup": 0.05, "active": 0.1, "recovery": 0.14, "box": [-20, -80, 40, 42], "lunge": 0, "kb": 140, "stagger": 1.0, "arc": [180, 38]}
+  },
+  "gauntlets": {
+    "name": "Manoplas",
+    "damage_type": "blunt",
+    "range_class": "short",
+    "focus_gain": 4,
+    "light": [
+      {"dmg": 0.7, "startup": 0.03, "active": 0.06, "recovery": 0.08, "box": [2, -36, 30, 24], "lunge": 90, "kb": 90, "stagger": 0.8, "chain_at": 0.2},
+      {"dmg": 0.7, "startup": 0.03, "active": 0.06, "recovery": 0.08, "box": [2, -36, 30, 24], "lunge": 90, "kb": 90, "stagger": 0.8, "chain_at": 0.2},
+      {"dmg": 1.2, "startup": 0.06, "active": 0.1, "recovery": 0.2, "box": [0, -40, 36, 32], "lunge": 220, "kb": 300, "stagger": 2.5, "chain_at": 1.0}
+    ],
+    "heavy": {"dmg": 1.6, "startup": 0.2, "active": 0.16, "recovery": 0.3, "box": [0, -34, 44, 34], "lunge": 420, "kb": 260, "stagger": 2.0, "charge": 0.0, "charged_mult": 1.0},
+    "dash": {"dmg": 1.0, "startup": 0.02, "active": 0.12, "recovery": 0.1, "box": [-10, -34, 44, 30], "lunge": 0, "kb": 150, "stagger": 1.0},
+    "air": {"dmg": 1.0, "startup": 0.05, "active": 0.1, "recovery": 0.14, "box": [0, -34, 36, 34], "lunge": 0, "kb": 120, "stagger": 1.0},
+    "down_air": {"dmg": 1.0, "startup": 0.04, "active": 0.14, "recovery": 0.1, "box": [-14, -8, 28, 30], "lunge": 0, "kb": 110, "stagger": 1.0, "pogo": true},
+    "up_air": {"dmg": 1.0, "startup": 0.05, "active": 0.1, "recovery": 0.14, "box": [-16, -70, 32, 36], "lunge": 0, "kb": 120, "stagger": 1.0}
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "_doc": "Consumíveis, chaves, itens de missão e presentes para NPCs.",
+  "pocao_vida": {"name": "Poção de Vida", "kind": "consumable", "icon": 29, "heal": 30, "desc": "Recupera 30 de vida."},
+  "pocao_foco": {"name": "Poção de Foco", "kind": "consumable", "icon": 30, "focus": 50, "desc": "Recupera 50 de Foco."},
+  "chave_ferro": {"name": "Chave de Ferro", "kind": "key", "icon": 69, "desc": "Abre portas trancadas desta região."},
+  "chave_ouro": {"name": "Chave Dourada", "kind": "key", "icon": 68, "desc": "Abre baús selados."},
+  "selo_das_cinzas": {"name": "Selo das Cinzas", "kind": "key", "icon": 39, "desc": "Reconjura o Arquidemônio na arena de cinzas."},
+  "fragmento_runico": {"name": "Fragmento Rúnico", "kind": "upgrade", "icon": 39, "desc": "Material para melhorar armas, magias e armaduras."},
+  "maca": {"name": "Maçã Dourada", "kind": "gift", "icon": 64, "desc": "Presente simples, quase todos gostam."},
+  "queijo": {"name": "Queijo Curado", "kind": "gift", "icon": 65},
+  "ovo": {"name": "Ovo Frito", "kind": "gift", "icon": 66},
+  "torta": {"name": "Torta de Frutas", "kind": "gift", "icon": 67},
+  "vela": {"name": "Vela Votiva", "kind": "gift", "icon": 70},
+  "calice": {"name": "Cálice Antigo", "kind": "gift", "icon": 71},
+  "pergaminho": {"name": "Pergaminho Antigo", "kind": "gift", "icon": 38}
+}
