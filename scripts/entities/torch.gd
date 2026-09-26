@@ -11,7 +11,7 @@ var _flames: Array = []
 func _ready() -> void:
 	z_index = -5
 	_t = randf() * 10.0
-	_light = LightUtil.make_light(Color(color.r, color.g, color.b).clamp(), 1.1, 1.1, true)
+	_light = LightUtil.make_light(Color(color.r, color.g, color.b).clamp(), 0.9, 1.0, true)
 	if _light:
 		add_child(_light)
 	material = CanvasItemMaterial.new()
@@ -22,8 +22,7 @@ func _process(delta: float) -> void:
 	_t += delta
 	if _light:
 		_light.energy = 1.0 + 0.12 * sin(_t * 11.0) + 0.08 * sin(_t * 23.0)
-	if randf() < delta * 14.0:
-		_flames.append([Vector2(randf_range(-2, 2), 0), randf_range(0.35, 0.6), 0.0])
+
 	for f in _flames:
 		f[2] += delta
 		f[0].y -= 22.0 * delta
@@ -33,9 +32,7 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(-2, 0, 4, 8), Color(0.25, 0.18, 0.12))
-	draw_circle(Vector2(0, -2), 4.0 + sin(_t * 12.0) * 0.6, Color(color.r, color.g * 0.9, color.b, 0.9))
-	draw_circle(Vector2(0, -2), 2.0, Color(3.0, 2.6, 1.6))
-	for f in _flames:
-		var k: float = 1.0 - f[2] / f[1]
-		draw_circle(f[0] + Vector2(0, -4), 2.2 * k, Color(color.r, color.g * k, color.b * k, k))
+	draw_rect(Rect2(-1, 0, 2, 3), Color(0.35, 0.25, 0.18))
+	var h := 2.0 + (1.0 if fmod(_t * 9.0, 2.0) > 1.0 else 0.0)
+	draw_rect(Rect2(-1, -h, 2, h), Color(color.r, color.g, color.b))
+	draw_rect(Rect2(0, -h - 1, 1, 1), Color(3.0, 2.6, 1.6))

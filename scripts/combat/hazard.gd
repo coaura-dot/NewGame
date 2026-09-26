@@ -50,6 +50,6 @@ func _physics_process(_delta: float) -> void:
 		info.parryable = false
 		info.unblockable = true
 		info.direction = (a.global_position - global_position).normalized()
-		info.knockback = Vector2(0, -220)
+		info.knockback = Vector2(0, -110)
 		info.hit_position = a.global_position
 		a.receive(info)

@@ -22,6 +22,14 @@ mundo gerado por seed (estilo Dead Cells), metroidvania, NPCs com afinidade/casa
 
 Técnicas: baixo+ataque no ar = **pogo** (recarrega dash); pulo durante dash no chão = **super/hyper**; aparo perfeito = câmera lenta + crítico; baixo+pesado no ar = **Queda Esmagadora**.
 
+## Sessão 2 — novo visual e feel
+![treino](docs/screenshot_treino.png)
+- **Resolução interna 320×180** (igual Celeste): o mundo é renderizado num SubViewport pixel-perfeito e escalado para a janela; HUD e menus ficam nítidos por cima.
+- **Tiles de 8 px** limpos e chapados (`tools/build_tiles.py`), fundo procedural simples, pouca partícula, sem granulação/vinheta/aberração por padrão.
+- **Personagem ~12 px**: criaturinha minimalista desenhada em código (`scripts/fx/creature_sprite.gd`) — pisca, olha para onde vai, estica/amassa ao pular/cair, capa balança e mostra emoções sobre a cabeça: `!` (perigo/aparo perfeito), `?` (segredo perto), `…` (parado), gota (pouca vida), `♥` (NPC querido), `♪` (ritmo), `zZ` (descansando). Inimigos e NPCs usam o mesmo estilo (aparência em `data/enemies.json` → `look`).
+- **Física de Celeste** com os números nativos (corrida 90, pulo 115, dash 240/0.15s...).
+- **Combate estilo Hollow Knight**: golpes curtos e rápidos (lado/cima/baixo com pogo), recuo ao acertar; escalas em `AttackRunner` (BOX/LUNGE/KB/tempos).
+
 ## O que já existe (relatório da sessão 1)
 - **Movimento** (`scripts/actors/player.gd`): aceleração/inércia, coyote time, buffer de pulo, pulo variável, meia gravidade no ápice, correção de quina, dash 8-dir com super/hyper, deslizar/saltar/escalar parede, pulo duplo, queda esmagadora, plataformas one-way, gravidade invertida (dimensão Espelho).
 - **Combate** (compartilhado por jogador e inimigos): 11 classes de arma com frame data em `data/weapon_classes.json` (espada fina, longa, pesada, katana, adagas, katanas duplas, odachi, faca, bastão, lâmina de sangramento, espada+escudo, manoplas); combos, pesado carregado, ataque em dash, ataques aéreos, multi-hit, ritmo (Compasso), costas, ponto fraco, aparar (rebate projéteis), bloqueio, esquiva perfeita, hitstop, tremor, status (queimar, sangrar→hemorragia, frio→congelar, choque, molhado, cegueira, atordoar, marca).
@@ -33,7 +41,7 @@ Técnicas: baixo+ataque no ar = **pogo** (recarrega dash); pulo durante dash no 
 - **Fases micro** (`scripts/level/`): salas de templates ASCII (`data/rooms/core.txt`, editáveis à mão) + sintetizador procedural para qualquer combinação de saídas; combate, plataforma, desafio "caminho da dor", puzzle com alavanca, tesouro, segredo atrás de parede quebrável, salas seladas por chave/habilidade, hub, arena de chefe.
 - **Social** (`scripts/social/social_system.gd`): NPCs por hub (culturas, papéis, gostos), afinidade/corações, presentes, casamento, resgate em combate, reputação baixa (mercenário/assassino) x alta (missões do rei), e **o Cerco**: escolher uma região e perder todas as outras.
 - **Visual**: luzes 2D com sombras, bloom HDR, raios de luz (janelas + screen-space), motion blur, aberração cromática, gradação por dimensão, rastros, partículas de clima — tudo desligável em Opções > Vídeo. Modo assistência (velocidade, dash infinito, invencível).
-- **Assets**: placeholders CC0 (Gothicvania/ansimuz, Pixel Frog, Foozle, Kenney). Ver `assets/CREDITS.md`; regerar com `tools/build_assets.py`.
+- **Assets**: personagens/tiles agora procedurais; ícones, fontes e sons são placeholders CC0 (ver `assets/CREDITS.md`).
 
 ## Testes
 `godot --headless --path . res://tests/test_runner.tscn` — 4400+ verificações (dados, balanceamento, mundo, fases, combate, sigilos, inventário, social, save, e um teste que joga a fase de treino com entradas simuladas).
@@ -41,4 +49,4 @@ Técnicas: baixo+ataque no ar = **pogo** (recarrega dash); pulo durante dash no 
 ## Pendências conhecidas (próxima sessão)
 - Não foi possível testar com janela/controle real nesta sessão: ajustar o *feel* (números no topo de `player.gd`) jogando.
 - No teste automático, o dash e a magia disparados por entrada simulada não foram detectados (provável questão de timing do teste — verificar jogando).
-- Faltam: música, mais templates de sala por bioma, chefes de horda/puzzle/parkour, IA de mais inimigos, loja/forja (upgrade de itens), arte final (o herói placeholder é humano; trocar pelo "bonequinho").
+- Faltam: música, mais templates de sala por bioma, chefes de horda/puzzle/parkour, loja/forja, arte final desenhada à mão (o visual atual é procedural e fácil de trocar).

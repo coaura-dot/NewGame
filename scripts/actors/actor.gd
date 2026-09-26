@@ -8,8 +8,6 @@ signal died(info: DamageInfo)
 signal damaged(info: DamageInfo, amount: float)
 signal health_changed(current: float, maximum: float)
 
-const SPRITE_FX := preload("res://shaders/sprite_fx.gdshader")
-const CHAR_DIR := "res://assets/art/characters/%s/%s_%s"
 
 var team: int = Layers.Team.ENEMY
 var stats: StatBlock = StatBlock.new()
@@ -27,16 +25,14 @@ var stagger_time: float = 0.0
 var invuln_time: float = 0.0
 var ward_charges: int = 0
 var ward_time: float = 0.0
-var sprite: AnimatedSprite2D
-var sprite_meta: Dictionary = {}
-var sprite_faces: int = 1 ## 1 = arte olha para a direita
+var sprite: CreatureSprite
+var sprite_faces: int = 1
 var attack: AttackRunner
 var caster: SpellCaster
 var rng := RandomNumberGenerator.new()
 
 var _time_fields: Dictionary = {}
 var _flash: float = 0.0
-var _mat: ShaderMaterial
 
 
 func _ready() -> void:
@@ -48,34 +44,22 @@ func _ready() -> void:
 	safe_margin = 0.05
 
 
-## Carrega SpriteFrames + metadados gerados por tools/build_assets.py.
-func setup_sprite(char_name: String, sprite_scale: float = 1.0) -> void:
-	sprite = AnimatedSprite2D.new()
+## Cria o visual procedural (criaturinha minimalista) a partir de um spec.
+func setup_creature(look: Dictionary) -> void:
+	sprite = CreatureSprite.new()
 	sprite.name = "Sprite"
-	var frames_path := CHAR_DIR % [char_name, char_name, "frames.tres"]
-	if ResourceLoader.exists(frames_path):
-		sprite.sprite_frames = load(frames_path)
-	var meta_path := CHAR_DIR % [char_name, char_name, "meta.json"]
-	var f := FileAccess.open(meta_path, FileAccess.READ)
-	if f:
-		sprite_meta = JSON.parse_string(f.get_as_text())
-		var off: Array = sprite_meta.get("sprite_offset", [0, 0])
-		sprite.offset = Vector2(off[0], off[1])
-		sprite_faces = 1 if sprite_meta.get("faces", "right") == "right" else -1
-	sprite.scale = Vector2(sprite_scale, sprite_scale)
-	_mat = ShaderMaterial.new()
-	_mat.shader = SPRITE_FX
-	sprite.material = _mat
+	sprite.spec = look
 	add_child(sprite)
 
 
-func play_anim(anim: String, restart: bool = false) -> void:
-	if sprite == null or sprite.sprite_frames == null:
-		return
-	if not sprite.sprite_frames.has_animation(anim):
-		return
-	if restart or sprite.animation != anim:
+func play_anim(anim: String, _restart: bool = false) -> void:
+	if sprite:
 		sprite.play(anim)
+
+
+func emote(kind: String, duration: float = 1.2) -> void:
+	if sprite:
+		sprite.emote(kind, duration)
 
 
 func max_hp() -> float:
@@ -126,19 +110,17 @@ func apply_pull(v: Vector2) -> void:
 
 func _update_visuals(delta: float) -> void:
 	_flash = maxf(_flash - delta * 7.0, 0.0)
-	if _mat:
-		_mat.set_shader_parameter("flash", _flash)
-		var tint := status.tint()
-		_mat.set_shader_parameter("status_color", tint)
-		_mat.set_shader_parameter("status_strength", 1.0 if tint.a > 0.0 else 0.0)
 	if sprite:
-		sprite.flip_h = (facing * sprite_faces) < 0
+		sprite.flash = maxf(sprite.flash, _flash)
+		sprite.status_color = status.tint()
+		sprite.flip_h = facing < 0
 		sprite.speed_scale = local_time
+		sprite.velocity_hint = velocity
 
 
 func set_dissolve(v: float) -> void:
-	if _mat:
-		_mat.set_shader_parameter("dissolve", v)
+	if sprite:
+		sprite.dissolve = v
 
 
 func is_invulnerable() -> bool:
@@ -161,7 +143,7 @@ func take_hit(info: DamageInfo) -> int:
 		return DamageInfo.Result.INVULNERABLE
 	if ward_charges > 0 and not info.is_hazard:
 		ward_charges -= 1
-		FX.burst(global_position + Vector2(0, -20), Color(3.0, 2.8, 1.6), 12, 160.0)
+		FX.burst(body_center(), Color(3.0, 2.8, 1.6), 8, 80.0)
 		Audio.play("block")
 		invuln_time = 0.2
 		return DamageInfo.Result.BLOCKED
@@ -225,7 +207,7 @@ func take_status_damage(amount: float, id: String) -> void:
 		return
 	hp -= amount
 	var c: Color = StatusController.DEFS.get(id, {}).get("color", Color.WHITE)
-	FX.damage_number(global_position + Vector2(0, -30), amount, false, Color(c.r * 0.6, c.g * 0.6, c.b * 0.6))
+	FX.damage_number(global_position + Vector2(0, -12), amount, false, Color(c.r * 0.6, c.g * 0.6, c.b * 0.6))
 	health_changed.emit(hp, max_hp())
 	if hp <= 0.0:
 		hp = 0.0
@@ -236,8 +218,8 @@ func take_status_damage(amount: float, id: String) -> void:
 
 func on_hemorrhage(power: float) -> void:
 	var dmg := (max_hp() * 0.1 + 8.0) * power
-	FX.burst(global_position + Vector2(0, -20), Color(2.6, 0.2, 0.3), 22, 240.0)
-	FX.text(global_position + Vector2(0, -44), "HEMORRAGIA", Color(2.4, 0.4, 0.5))
+	FX.burst(body_center(), Color(2.6, 0.2, 0.3), 12, 110.0)
+	FX.text(global_position + Vector2(0, -18), "HEMORRAGIA", Color(2.4, 0.4, 0.5))
 	FX.shake(0.25)
 	take_status_damage(dmg, "bleed")
 
@@ -258,7 +240,7 @@ func _shock_chain(info: DamageInfo) -> void:
 	var space := get_world_2d().direct_space_state
 	var q := PhysicsShapeQueryParameters2D.new()
 	var c := CircleShape2D.new()
-	c.radius = 90.0
+	c.radius = 40.0
 	q.shape = c
 	q.transform = Transform2D(0.0, global_position)
 	q.collide_with_areas = true
@@ -275,7 +257,7 @@ func _shock_chain(info: DamageInfo) -> void:
 			chain.team = info.team
 			chain.source = info.source
 			chain.is_spell = true
-			LightningFX.spawn(get_parent(), global_position + Vector2(0, -20), hb.global_position)
+			LightningFX.spawn(get_parent(), body_center(), hb.global_position)
 			hb.receive(chain)
 
 
@@ -283,7 +265,7 @@ func heal(amount: float) -> void:
 	if dead:
 		return
 	hp = minf(hp + amount, max_hp())
-	FX.text(global_position + Vector2(0, -44), "+%d" % int(amount), Color(0.6, 2.4, 0.8))
+	FX.text(global_position + Vector2(0, -16), "+%d" % int(amount), Color(0.6, 2.4, 0.8))
 	health_changed.emit(hp, max_hp())
 
 
@@ -301,4 +283,4 @@ func _on_death(_info: DamageInfo) -> void:
 
 ## Centro aproximado do corpo (para mirar, efeitos, etc).
 func body_center() -> Vector2:
-	return global_position + Vector2(0, -20)
+	return global_position + Vector2(0, -6)

@@ -22,6 +22,7 @@ var _siege_mode: bool = false
 var _marker: MeshInstance3D
 var _t: float = 0.0
 var _dragging: bool = false
+var _ui_root: Control
 
 
 func _ready() -> void:
@@ -36,11 +37,16 @@ func _ready() -> void:
 	svc.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(svc)
 	_vp = SubViewport.new()
-	_vp.size = Vector2i(480, 270)
+	_vp.size = Vector2i(320, 180)
 	_vp.own_world_3d = true
-	_vp.use_hdr_2d = true
+	_vp.use_hdr_2d = false
 	svc.add_child(_vp)
 	_build_3d()
+	_ui_root = Control.new()
+	_ui_root.size = Vector2(480, 270)
+	_ui_root.scale = Vector2(2.0 / 3.0, 2.0 / 3.0)
+	_ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_ui_root)
 	_build_ui()
 	_selected = Game.profile.get("region", Game.world["start"])
 	_refresh_info()
@@ -280,9 +286,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _pick(screen_pos: Vector2) -> void:
-	var local := screen_pos / size * Vector2(480, 270)
+	var local := screen_pos / size * Vector2(320, 180)
 	var best := ""
-	var best_d := 26.0
+	var best_d := 18.0
 	for id in _nodes.keys():
 		var p := _cam.unproject_position(_nodes[id].global_position)
 		var d := p.distance_to(local)
@@ -355,20 +361,20 @@ func _try_enter(id: String) -> void:
 func _build_ui() -> void:
 	var p := UIKit.panel(Vector2(170, 0))
 	p.position = Vector2(302, 8)
-	add_child(p)
+	_ui_root.add_child(p)
 	_info = UIKit.vbox(2)
 	p.add_child(_info)
 	var help := UIKit.label("Clique/W-S: escolher  •  Espaço/Enter: viajar  •  A-D/botão dir.: girar  •  roda: zoom  •  Esc: menu", 9, UIKit.DIM)
 	help.position = Vector2(8, 256)
-	add_child(help)
+	_ui_root.add_child(help)
 	var top := UIKit.hbox(6)
 	top.position = Vector2(8, 8)
-	add_child(top)
+	_ui_root.add_child(top)
 	top.add_child(UIKit.label("Seed %d" % Game.seed_value, 10, UIKit.DIM))
 	top.add_child(UIKit.label("Reputação %d (%s)" % [SocialSystem.reputation(Game.social), SocialSystem.reputation_band(SocialSystem.reputation(Game.social), DB)], 10, UIKit.GOLD))
 	var btns := UIKit.vbox(3)
 	btns.position = Vector2(8, 24)
-	add_child(btns)
+	_ui_root.add_child(btns)
 	if Game.is_siege_ready() and not Game.social.get("siege", {}).get("started", false):
 		btns.add_child(UIKit.button("⚠ O CERCO COMEÇOU", _start_siege_choice, 130))
 	if OS.is_debug_build():
@@ -458,7 +464,7 @@ func _start_siege_choice() -> void:
 	v.add_child(UIKit.button("Cancelar", _close_panel, 80))
 	_ui_panel = p
 	p.position = Vector2(8, 150)
-	add_child(p)
+	_ui_root.add_child(p)
 
 
 func _confirm_siege(id: String) -> void:
@@ -495,5 +501,5 @@ func _confirm_siege(id: String) -> void:
 	v.add_child(row)
 	_ui_panel = p
 	p.position = Vector2(80, 60)
-	add_child(p)
+	_ui_root.add_child(p)
 	UIKit.focus_first(p)

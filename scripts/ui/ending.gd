@@ -4,10 +4,11 @@ extends Control
 
 func _ready() -> void:
 	theme = UIKit.theme()
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	size = Vector2(480, 270)
+	scale = Vector2(2.0 / 3.0, 2.0 / 3.0)
 	var bg := ColorRect.new()
 	bg.color = Color(0.02, 0.01, 0.04)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.size = Vector2(480, 270)
 	add_child(bg)
 	var summary: Dictionary = Game.social.get("siege", {}).get("summary", {})
 	var v := UIKit.vbox(5)

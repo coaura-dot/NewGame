@@ -76,7 +76,7 @@ func _physics_process(delta: float) -> void:
 			var hi := info.duplicate_info()
 			hi.direction = velocity.normalized()
 			if hi.knockback == Vector2.ZERO:
-				hi.knockback = velocity.normalized() * 120.0 + Vector2(0, -60)
+				hi.knockback = velocity.normalized() * 60.0 + Vector2(0, -30)
 			hi.hit_position = global_position
 			a.receive(hi)
 			if not pierce:
@@ -87,7 +87,7 @@ func _physics_process(delta: float) -> void:
 
 func _nearest_enemy() -> Node:
 	var best: Node = null
-	var best_d := 260.0
+	var best_d := 120.0
 	for a in get_tree().get_nodes_in_group("actors"):
 		if a.team == team or a.dead:
 			continue
@@ -107,7 +107,7 @@ func _explode(impact: bool) -> void:
 		return
 	_dead = true
 	if impact:
-		FX.burst(global_position, color, 10, 150.0)
+		FX.burst(global_position, color, 6, 150.0)
 	queue_free()
 
 
@@ -121,12 +121,12 @@ func reflect(new_owner: Node) -> void:
 	var aim := Vector2(new_owner.facing, 0)
 	if new_owner.has_method("aim_direction"):
 		aim = new_owner.aim_direction()
-	velocity = aim.normalized() * maxf(velocity.length() * 1.35, 260.0)
+	velocity = aim.normalized() * maxf(velocity.length() * 1.35, 130.0)
 	lifetime = maxf(lifetime, 1.2)
 	_hit.clear()
 	color = Color(color.b, color.g, color.r) * 1.2
 	FX.hitstop(0.06)
-	FX.burst(global_position, Color(3, 3, 3), 12, 200.0)
+	FX.burst(global_position, Color(3, 3, 3), 8, 200.0)
 	Audio.play("parry")
 
 

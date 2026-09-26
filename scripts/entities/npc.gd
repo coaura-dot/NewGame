@@ -1,52 +1,47 @@
 class_name NPCEntity
 extends Interactable
-## NPC de hub. Visual placeholder: o herói recolorido pela cultura/papel.
+## NPC de hub: criaturinha minimalista colorida pelo papel/cultura.
 
-const FRAMES := preload("res://assets/art/characters/hero/hero_frames.tres")
-const ROLE_TINT := {
-	"ferreira": Color(1.3, 0.8, 0.6), "mercador": Color(1.2, 1.1, 0.6), "curandeira": Color(0.8, 1.3, 0.9),
-	"sabio": Color(0.8, 0.8, 1.4), "capita": Color(1.1, 1.1, 1.2), "receptador": Color(0.6, 0.6, 0.7),
-	"bardo": Color(1.3, 0.8, 1.2), "anciao": Color(1.0, 1.0, 0.9), "crianca": Color(1.2, 1.2, 1.0),
+const ROLE_LOOK := {
+	"ferreira": {"color": [0.55, 0.3, 0.2], "shell": [0.85, 0.6, 0.45], "horns": true},
+	"mercador": {"color": [0.6, 0.5, 0.2], "shell": [0.95, 0.85, 0.6], "ears": true},
+	"curandeira": {"color": [0.3, 0.55, 0.4], "shell": [0.9, 0.95, 0.85]},
+	"sabio": {"color": [0.3, 0.3, 0.6], "shell": [0.85, 0.85, 1.0], "horns": true},
+	"capita": {"color": [0.5, 0.5, 0.58], "shell": [0.9, 0.9, 0.95]},
+	"receptador": {"color": [0.2, 0.2, 0.25], "shell": [0.55, 0.55, 0.6], "ears": true},
+	"bardo": {"color": [0.6, 0.3, 0.55], "shell": [0.95, 0.8, 0.9]},
+	"anciao": {"color": [0.45, 0.42, 0.38], "shell": [0.8, 0.78, 0.72], "horns": true},
+	"crianca": {"color": [0.7, 0.55, 0.3], "shell": [1.0, 0.95, 0.8]},
 }
 
 var npc_id: String = ""
 var npc: Dictionary = {}
-var _spr: AnimatedSprite2D
+var _spr: CreatureSprite
 
 
 func _ready() -> void:
-	size = Vector2(26, 40)
+	size = Vector2(10, 12)
 	npc = Game.social.get("npcs", {}).get(npc_id, {})
 	prompt = "Conversar" if not npc.is_empty() else ""
 	super._ready()
-	_spr = AnimatedSprite2D.new()
-	_spr.sprite_frames = FRAMES
-	_spr.play("idle")
-	_spr.offset = Vector2(0, -25)
-	_spr.modulate = ROLE_TINT.get(npc.get("role", ""), Color.WHITE)
+	var look := {"body": [5, 4], "head": [6, 5], "eyes": "hollow", "legs": 2}
+	look.merge(ROLE_LOOK.get(npc.get("role", ""), {}), true)
+	_spr = CreatureSprite.new()
+	_spr.spec = look
 	_spr.flip_h = randf() < 0.5
-	_spr.speed_scale = 0.6
 	add_child(_spr)
+
+
+func _on_player_near(_player: Node) -> void:
+	if _spr and not npc.is_empty():
+		_spr.emote("heart" if int(npc.get("affinity", 0)) >= 60 else "...", 1.2)
 
 
 func can_interact() -> bool:
 	return not npc.is_empty() and npc.get("alive", true)
 
 
-func interact(_player: Node) -> void:
+func interact(player: Node) -> void:
+	if _spr:
+		_spr.flip_h = player.global_position.x < global_position.x
 	Events.dialogue_requested.emit(npc_id)
-
-
-func _draw() -> void:
-	super._draw()
-	if npc.is_empty():
-		return
-	var label := "%s — %s" % [npc.get("name", "?"), npc.get("title", "")]
-	var w := FONT.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
-	var a := 0.4 + 0.6 * _prompt_a
-	draw_string_outline(FONT, Vector2(-w * 0.5, -46), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, 3, Color(0, 0, 0, a))
-	draw_string(FONT, Vector2(-w * 0.5, -46), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(1.0, 0.9, 0.7, a))
-	var hearts := SocialSystem.hearts(int(npc.get("affinity", 0)))
-	for i in 10:
-		var c := Color(2.4, 0.5, 0.7, a) if i < hearts else Color(0.3, 0.25, 0.3, a * 0.7)
-		draw_rect(Rect2(-20 + i * 4, -42, 3, 3), c)

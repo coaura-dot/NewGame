@@ -11,6 +11,31 @@ signal landed(target: Node, info: DamageInfo, result: int)
 
 enum Phase { IDLE, STARTUP, ACTIVE, RECOVERY }
 
+## Os movesets em data/ foram escritos para um herói grande; aqui eles são
+## convertidos para o mundo 320x180 (herói ~12 px) e para golpes rápidos
+## estilo Hollow Knight.
+const BOX_SCALE := 0.33
+const LUNGE_SCALE := 0.35
+const KB_SCALE := 0.5
+const STARTUP_SCALE := 0.6
+const ACTIVE_SCALE := 0.9
+const RECOVERY_SCALE := 0.8
+
+
+static func scaled(step: Dictionary) -> Dictionary:
+	if step.get("_scaled", false):
+		return step
+	var s := step.duplicate(true)
+	var box: Array = step.get("box", [0, -30, 40, 30])
+	s["box"] = [float(box[0]) * BOX_SCALE, float(box[1]) * BOX_SCALE, float(box[2]) * BOX_SCALE, float(box[3]) * BOX_SCALE]
+	s["lunge"] = float(step.get("lunge", 0.0)) * LUNGE_SCALE
+	s["kb"] = float(step.get("kb", 150.0)) * KB_SCALE
+	s["startup"] = float(step.get("startup", 0.05)) * STARTUP_SCALE
+	s["active"] = float(step.get("active", 0.08)) * ACTIVE_SCALE
+	s["recovery"] = float(step.get("recovery", 0.15)) * RECOVERY_SCALE
+	s["_scaled"] = true
+	return s
+
 var actor: Node = null
 var hitbox: Hitbox
 var phase: int = Phase.IDLE
@@ -46,7 +71,7 @@ func is_active() -> bool:
 
 
 func start(new_step: Dictionary, new_kind: String, facing: int, charge: float = 1.0) -> void:
-	step = new_step
+	step = scaled(new_step)
 	kind = new_kind
 	charge_mult = charge
 	_facing = facing

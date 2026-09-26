@@ -28,10 +28,10 @@ SaveSystem="*res://scripts/autoload/save_system.gd"
 
 [display]
 
-window/size/viewport_width=480
-window/size/viewport_height=270
-window/size/window_width_override=1440
-window/size/window_height_override=810
+window/size/viewport_width=320
+window/size/viewport_height=180
+window/size/window_width_override=1280
+window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
 
@@ -52,14 +52,14 @@ theme/default_font_antialiasing=0
 
 [physics]
 
-common/physics_ticks_per_second=120
-common/max_physics_steps_per_frame=12
+common/physics_ticks_per_second=60
+common/max_physics_steps_per_frame=8
 common/physics_interpolation=true
 
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="forward_plus"
-viewport/hdr_2d=true
+viewport/hdr_2d=false
 environment/defaults/default_clear_color=Color(0.02, 0.02, 0.04, 1)
 2d/shadow_atlas/size=4096

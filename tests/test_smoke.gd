@@ -37,8 +37,13 @@ func test_treino() -> void:
 	Input.action_release("jump")
 	await _frames(90)
 	check(p.is_on_floor(), "aterrissa")
-	await _tap("dash")
-	check(p.state == Player.State.DASH or p.dash_cd > 0.0, "dash")
+	Input.action_press("dash")
+	var dashed := false
+	for i in 4:
+		await _frames(1)
+		dashed = dashed or p.state == Player.State.DASH or p.dash_cd > 0.0
+	Input.action_release("dash")
+	check(dashed, "dash")
 	await _frames(60)
 	# combate: esqueleto logo à frente
 	p.facing = 1

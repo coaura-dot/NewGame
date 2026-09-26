@@ -9,15 +9,16 @@ var _content: Control = null
 
 func _ready() -> void:
 	layer = 20
+	scale = Vector2(2.0 / 3.0, 2.0 / 3.0)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_root = Control.new()
-	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root.size = Vector2(480, 270)
 	_root.theme = UIKit.theme()
 	_root.visible = false
 	add_child(_root)
 	var dim := ColorRect.new()
 	dim.color = Color(0.02, 0.01, 0.05, 0.7)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.size = Vector2(480, 270)
 	_root.add_child(dim)
 
 

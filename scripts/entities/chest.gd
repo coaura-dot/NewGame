@@ -1,23 +1,16 @@
 class_name Chest
 extends Interactable
-## Baú com item do pool compartilhado. Abre com animação e solta o item.
-
-const IDLE := preload("res://assets/art/props/chest_idle.png")
-const OPEN := preload("res://assets/art/props/chest_open.png")
+## Baú com item do pool compartilhado.
 
 var loot: String = ""
 var opened: bool = false
-var _frame: float = 0.0
+var _open_t: float = 0.0
 
 
 func _ready() -> void:
 	prompt = "Abrir"
-	size = Vector2(28, 24)
+	size = Vector2(12, 8)
 	super._ready()
-	var l := LightUtil.make_light(Color(1.0, 0.8, 0.4), 0.5, 0.35)
-	if l:
-		l.position = Vector2(0, -12)
-		add_child(l)
 
 
 func can_interact() -> bool:
@@ -29,21 +22,28 @@ func interact(player: Node) -> void:
 		return
 	opened = true
 	Audio.play("chest")
-	FX.burst(global_position + Vector2(0, -16), Color(2.6, 2.0, 0.8), 16, 160.0, Vector2.UP, 60.0)
+	FX.burst(global_position + Vector2(0, -6), Color(2.6, 2.0, 0.8), 10, 160.0, Vector2.UP, 60.0)
+	if player.has_method("emote"):
+		player.emote("!", 0.8)
 	if level and loot != "":
-		level.spawn_pickup(loot, global_position + Vector2(0, -24), Vector2(player.facing * -40.0, -160.0))
+		level.spawn_pickup(loot, global_position + Vector2(0, -8), Vector2(player.facing * -20.0, -80.0))
 	if level:
-		level.spawn_currency(randi_range(8, 20), global_position + Vector2(0, -20))
+		level.spawn_currency(randi_range(8, 20), global_position + Vector2(0, -6))
 
 
 func _process(delta: float) -> void:
 	super._process(delta)
-	if opened and _frame < 7.0:
-		_frame = minf(_frame + delta * 16.0, 7.0)
+	if opened:
+		_open_t = minf(_open_t + delta * 8.0, 1.0)
 
 
 func _draw_body() -> void:
-	if opened:
-		draw_texture_rect_region(OPEN, Rect2(-16, -32, 32, 32), Rect2(int(_frame) * 32, 0, 32, 32))
-	else:
-		draw_texture(IDLE, Vector2(-16, -32))
+	var o := Color(0.09, 0.07, 0.12)
+	draw_rect(Rect2(-5, -6, 10, 6), o)
+	draw_rect(Rect2(-4, -5, 8, 5), Color(0.62, 0.38, 0.2))
+	draw_rect(Rect2(-4, -3, 8, 1), Color(0.95, 0.75, 0.3))
+	var lid := -8.0 - _open_t * 3.0
+	draw_rect(Rect2(-5, lid, 10, 3), o)
+	draw_rect(Rect2(-4, lid + 1, 8, 1), Color(0.75, 0.48, 0.26))
+	if not opened:
+		draw_rect(Rect2(-1, -4, 2, 2), Color(1.8, 1.5, 0.6))

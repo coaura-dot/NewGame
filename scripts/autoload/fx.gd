@@ -49,7 +49,7 @@ func _process(_delta: float) -> void:
 	# tremor por trauma (quadrático)
 	trauma = maxf(trauma - real_dt * 1.6, 0.0)
 	var amt: float = trauma * trauma * float(Settings.video("screen_shake"))
-	shake_offset = Vector2(_noise.get_noise_2d(_t * 60.0, 0.0), _noise.get_noise_2d(0.0, _t * 60.0)) * 14.0 * amt
+	shake_offset = Vector2(_noise.get_noise_2d(_t * 60.0, 0.0), _noise.get_noise_2d(0.0, _t * 60.0)) * 4.0 * amt
 	flash_amount = maxf(flash_amount - real_dt * 4.0, 0.0)
 
 
@@ -104,7 +104,7 @@ func damage_number(pos: Vector2, amount: float, crit: bool = false, color: Color
 	t.text = str(int(round(amount)))
 	t.color = Color(2.2, 1.6, 0.4) if crit else color
 	t.big = crit
-	t.global_position = pos + Vector2(randf_range(-6, 6), -10)
+	t.global_position = pos + Vector2(randf_range(-3, 3), -6)
 	_root().add_child(t)
 
 
@@ -134,6 +134,9 @@ func burst(pos: Vector2, color: Color, amount: int = 10, speed: float = 160.0, d
 		amount = int(amount * 0.35)
 	elif q == 1:
 		amount = int(amount * 0.65)
+	amount = int(ceil(amount * 0.6))
+	speed *= 0.5
+	size = maxf(1.0, size * 0.5)
 	if amount <= 0:
 		return
 	var b := Burst.new()
@@ -144,9 +147,9 @@ func burst(pos: Vector2, color: Color, amount: int = 10, speed: float = 160.0, d
 
 ## Pacote padrão de impacto: hitstop + tremor + faíscas + número.
 func impact(pos: Vector2, dir: Vector2, amount: float, crit: bool, heavy: bool, color: Color = Color(2.0, 1.8, 1.4)) -> void:
-	hitstop(0.09 if crit or heavy else 0.05)
-	shake(0.35 if heavy else (0.25 if crit else 0.14))
-	burst(pos, color, 14 if crit else 9, 220.0, dir, 70.0, 0.28, 2.0)
+	hitstop(0.08 if crit or heavy else 0.05)
+	shake(0.3 if heavy else (0.22 if crit else 0.12))
+	burst(pos, color, 10 if crit else 6, 220.0, dir, 70.0, 0.22, 2.0)
 	damage_number(pos, amount, crit)
 	if crit or heavy:
 		flash(0.6)

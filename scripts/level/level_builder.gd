@@ -13,7 +13,7 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 	var tint := Color(tint_a[0], tint_a[1], tint_a[2])
 	var indoor: bool = layout.get("indoor", false)
 
-	var bg := _layer("BackWall", ts, -20, tint * Color(0.75, 0.75, 0.85))
+	var bg := _layer("BackWall", ts, -20, tint)
 	var solid := _layer("Terrain", ts, 0, tint)
 	var trim := _layer("Trim", ts, 1, tint)
 	var ceil := _layer("Ceiling", ts, 1, tint)
@@ -65,10 +65,10 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 		var alt := _spike_alt(rows, cell.x, cell.y, w, h)
 		var r := Rect2(cell.x * T, cell.y * T, T, T)
 		match alt:
-			TileSetBuilder.SPIKE_UP: r = Rect2(r.position.x + 2, r.position.y + 7, T - 4, 9)
-			TileSetBuilder.SPIKE_DOWN: r = Rect2(r.position.x + 2, r.position.y, T - 4, 9)
-			TileSetBuilder.SPIKE_LEFT: r = Rect2(r.position.x + 7, r.position.y + 2, 9, T - 4)
-			TileSetBuilder.SPIKE_RIGHT: r = Rect2(r.position.x, r.position.y + 2, 9, T - 4)
+			TileSetBuilder.SPIKE_UP: r = Rect2(r.position.x + 1, r.position.y + 4, T - 2, 4)
+			TileSetBuilder.SPIKE_DOWN: r = Rect2(r.position.x + 1, r.position.y, T - 2, 4)
+			TileSetBuilder.SPIKE_LEFT: r = Rect2(r.position.x + 4, r.position.y + 1, 4, T - 2)
+			TileSetBuilder.SPIKE_RIGHT: r = Rect2(r.position.x, r.position.y + 1, 4, T - 2)
 		hazard.add_rect(r)
 	root.add_child(hazard)
 	return {"terrain": solid, "background": bg, "hazard": hazard, "spikes": spikes}

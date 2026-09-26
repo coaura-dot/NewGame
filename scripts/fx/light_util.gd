@@ -40,8 +40,8 @@ static func make_light(color: Color, energy: float = 1.0, scale: float = 1.0, sh
 	var l := PointLight2D.new()
 	l.texture = radial()
 	l.color = color
-	l.energy = energy
-	l.texture_scale = scale
+	l.energy = energy * 0.7
+	l.texture_scale = scale * 0.4
 	l.shadow_enabled = shadows and bool(Settings.video("shadows"))
 	l.shadow_filter = Light2D.SHADOW_FILTER_PCF5
 	l.shadow_filter_smooth = 2.0

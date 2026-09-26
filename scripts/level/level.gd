@@ -35,6 +35,10 @@ var _current_room: int = -1
 var _cleared: Dictionary = {}
 var _completed: bool = false
 var rng := RandomNumberGenerator.new()
+## O mundo é renderizado aqui dentro (320x180, pixel perfeito) e escalado
+## para a janela; HUD e menus ficam fora, nítidos.
+var world_vp: SubViewport
+var world: Node2D
 
 
 func _ready() -> void:
@@ -44,6 +48,7 @@ func _ready() -> void:
 	biome = DB.biome(params["biome"])
 	dimension = DB.dimension(params.get("dimension", "prima"))
 	rng.seed = int(params.get("seed", 1)) + 99
+	_make_viewport()
 	_build_world()
 	_spawn_entities()
 	_spawn_player()
@@ -96,21 +101,45 @@ func _resolve_params() -> void:
 		params["boss"] = "archdemon"
 
 
+func _make_viewport() -> void:
+	var holder := CanvasLayer.new()
+	holder.layer = 0
+	add_child(holder)
+	var svc := SubViewportContainer.new()
+	svc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	svc.stretch = true
+	svc.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var conv := ShaderMaterial.new()
+	conv.shader = preload("res://shaders/linear_to_srgb.gdshader")
+	svc.material = conv
+	holder.add_child(svc)
+	world_vp = SubViewport.new()
+	world_vp.size = Vector2i(320, 180)
+	world_vp.use_hdr_2d = true
+	world_vp.snap_2d_transforms_to_pixel = true
+	world_vp.snap_2d_vertices_to_pixel = true
+	world_vp.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
+	world_vp.handle_input_locally = false
+	svc.add_child(world_vp)
+	world = Node2D.new()
+	world.name = "World"
+	world_vp.add_child(world)
+
+
 func _build_world() -> void:
 	var ambient_a: Array = biome.get("ambient", [0.5, 0.5, 0.6])
-	var ambient := Color(ambient_a[0], ambient_a[1], ambient_a[2])
+	# visual limpo: ambiente claro, luzes só realçam
+	var ambient := Color(ambient_a[0], ambient_a[1], ambient_a[2]).lerp(Color.WHITE, 0.7)
 	if dimension.get("rules", []).has("low_light"):
-		ambient *= 0.6
-	if not Settings.video("dynamic_lights"):
-		ambient = ambient.lerp(Color.WHITE, 0.45)
+		ambient *= 0.75
 	var cm := CanvasModulate.new()
 	cm.color = ambient
-	add_child(cm)
-	var built := LevelBuilder.build(self, layout, biome)
+	world.add_child(cm)
+	var built := LevelBuilder.build(world, layout, biome)
 	entities = Node2D.new()
 	entities.name = "Entities"
 	entities.z_index = 5
-	add_child(entities)
+	world.add_child(entities)
 	FX.effects_root = entities
 	for r in layout["rooms"]:
 		var o: Array = r["origin"]
@@ -184,7 +213,7 @@ func _spawn_entities() -> void:
 				var ls := LightShaft.new()
 				var pos := _tile_corner(e["tile"]) + Vector2(T * 0.5, 0)
 				ls.position = pos
-				ls.setup(Color(torch_color.r * 0.8, torch_color.g * 0.85, torch_color.b * 1.2 + 0.3), _shaft_height(e["tile"]), 64.0)
+				ls.setup(Color(1.3, 1.25, 1.1), _shaft_height(e["tile"]), 26.0)
 				entities.add_child(ls)
 			"gate":
 				var g := Gate.new()
@@ -285,13 +314,13 @@ func _spawn_player() -> void:
 	entities.add_child(player)
 	camera = GameCamera.new()
 	camera.target = player
-	add_child(camera)
+	world.add_child(camera)
 	camera.set_bounds(Rect2(0, 0, layout["width"] * T, layout["height"] * T))
 	camera.snap()
 	camera.make_current()
 	var amb := AmbientParticles.new()
 	amb.setup(biome.get("particles", "dust"), camera)
-	add_child(amb)
+	world.add_child(amb)
 
 
 func _build_layers() -> void:
@@ -300,13 +329,13 @@ func _build_layers() -> void:
 	var tint_a: Array = biome.get("tint", [1, 1, 1])
 	var bg_tint := Color(tint_a[0], tint_a[1], tint_a[2]) * Color(ambient_a[0] * 1.5, ambient_a[1] * 1.5, ambient_a[2] * 1.5)
 	bg.camera = camera
-	bg.build(biome.get("background", "town"), bg_tint)
-	add_child(bg)
+	bg.build(biome.get("tileset", "castle"), Color(tint_a[0], tint_a[1], tint_a[2]))
+	world.add_child(bg)
 	postfx = PostFX.new()
 	postfx.camera = camera
 	postfx.player = player
-	postfx.build(self, dimension, biome.get("tags", []).has("outdoor"))
-	add_child(postfx)
+	postfx.build(world, dimension, biome.get("tags", []).has("outdoor"))
+	world.add_child(postfx)
 	hud = load("res://scripts/ui/hud.gd").new()
 	hud.level = self
 	add_child(hud)
@@ -327,7 +356,7 @@ func _physics_process(_delta: float) -> void:
 	if idx != _current_room and idx >= 0:
 		_current_room = idx
 		_on_room_entered(idx)
-	if player.global_position.y > layout["height"] * T + 64:
+	if player.global_position.y > layout["height"] * T + 32:
 		player.take_status_damage(10.0, "fall")
 		player._hazard_respawn()
 
@@ -339,9 +368,13 @@ func _on_room_entered(idx: int) -> void:
 		return
 	var alive := _alive_enemies(idx)
 	if alive > 0:
+		var locked := false
 		for g in _room_gates.get(idx, []):
 			if g.mode == "combat":
 				g.set_closed(true)
+				locked = true
+		if locked and player:
+			player.emote("!", 0.8)
 		if room.get("type", "") == "boss" and boss_node and is_instance_valid(boss_node):
 			if hud and hud.has_method("show_boss"):
 				hud.show_boss(boss_node)

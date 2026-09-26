@@ -14,39 +14,39 @@ signal state_changed(state: int)
 enum State { NORMAL, DASH, CLIMB, ATTACK, DODGE, HURT, DEAD, SIGIL, POUND, RESPAWN }
 
 # --- Corrida / ar ---
-const MAX_RUN := 170.0
-const RUN_ACCEL := 1700.0
-const RUN_DECEL := 1500.0
-const RUN_REDUCE := 480.0 ## acima da velocidade máxima (preserva o embalo)
-const AIR_MULT := 0.7
+const MAX_RUN := 90.0
+const RUN_ACCEL := 1000.0
+const RUN_DECEL := 1000.0
+const RUN_REDUCE := 400.0 ## acima da velocidade máxima (preserva o embalo)
+const AIR_MULT := 0.65
 # --- Gravidade / pulo ---
-const GRAVITY := 1800.0
-const MAX_FALL := 330.0
-const FAST_FALL := 470.0
-const HALF_GRAV_THRESHOLD := 70.0
-const JUMP_SPEED := 262.0
-const JUMP_H_BOOST := 45.0
-const VAR_JUMP_TIME := 0.17
-const DOUBLE_JUMP_SPEED := 238.0
+const GRAVITY := 900.0
+const MAX_FALL := 160.0
+const FAST_FALL := 240.0
+const HALF_GRAV_THRESHOLD := 40.0
+const JUMP_SPEED := 115.0
+const JUMP_H_BOOST := 40.0
+const VAR_JUMP_TIME := 0.2
+const DOUBLE_JUMP_SPEED := 105.0
 const COYOTE := 0.1
 const JUMP_BUFFER := 0.12
 # --- Parede ---
-const WALL_SLIDE_MAX := 95.0
-const WALL_JUMP_H := 230.0
+const WALL_SLIDE_MAX := 40.0
+const WALL_JUMP_H := 130.0
 const WALL_JUMP_FORCE_TIME := 0.16
 const WALL_COYOTE := 0.08
-const CLIMB_SPEED := 85.0
+const CLIMB_SPEED := 45.0
 const CLIMB_STAMINA := 1.4
 # --- Dash ---
-const DASH_SPEED := 520.0
-const DASH_TIME := 0.14
-const DASH_END_SPEED := 300.0
+const DASH_SPEED := 240.0
+const DASH_TIME := 0.15
+const DASH_END_SPEED := 160.0
 const DASH_COOLDOWN := 0.16
 const DASH_IFRAMES := 0.06
-const SUPER_H := 560.0
-const HYPER_H := 650.0
+const SUPER_H := 260.0
+const HYPER_H := 325.0
 # --- Defesa ---
-const DODGE_SPEED := 310.0
+const DODGE_SPEED := 150.0
 const DODGE_TIME := 0.3
 const DODGE_IFRAMES := 0.24
 const DODGE_COOLDOWN := 0.35
@@ -57,10 +57,10 @@ const PARRY_COOLDOWN := 0.3
 const HURT_TIME := 0.24
 const HURT_IFRAMES := 0.9
 # --- Outros ---
-const POGO_SPEED := 300.0
-const POUND_SPEED := 640.0
-const CORNER_CORRECTION := 6
-const BODY := Vector2(12, 38)
+const POGO_SPEED := 150.0
+const POUND_SPEED := 300.0
+const CORNER_CORRECTION := 4
+const BODY := Vector2(6, 10)
 const COMBO_TIMEOUT := 1.3
 const FOCUS_MAX_BASE := 100.0
 const ATTACK_BUFFER := 0.16
@@ -140,17 +140,17 @@ func _ready() -> void:
 	cs.shape = rect
 	cs.position = Vector2(0, -BODY.y * 0.5)
 	add_child(cs)
-	setup_sprite("hero")
-	var hb := Hurtbox.make(self, Vector2(12, 32), Vector2(0, -18))
+	setup_creature({"body": [5, 4], "head": [6, 5], "color": [0.24, 0.22, 0.38], "shell": [0.93, 0.9, 0.84], "eyes": "hollow", "legs": 2, "horns": true, "weapon": true})
+	var hb := Hurtbox.make(self, Vector2(6, 9), Vector2(0, -5))
 	add_child(hb)
 	interact_area = Area2D.new()
 	interact_area.collision_layer = 0
 	interact_area.collision_mask = Layers.INTERACT
 	var ic := CollisionShape2D.new()
 	var circ := CircleShape2D.new()
-	circ.radius = 20.0
+	circ.radius = 8.0
 	ic.shape = circ
-	ic.position = Vector2(0, -18)
+	ic.position = Vector2(0, -6)
 	interact_area.add_child(ic)
 	add_child(interact_area)
 	attack = AttackRunner.new(self)
@@ -160,9 +160,9 @@ func _ready() -> void:
 	caster = SpellCaster.new(self)
 	add_child(caster)
 	buffs = BuffSystem.new(self)
-	light = LightUtil.make_light(Color(1.0, 0.85, 0.7), 0.55, 0.7, true)
+	light = LightUtil.make_light(Color(1.0, 0.9, 0.8), 0.4, 0.8, true)
 	if light:
-		light.position = Vector2(0, -22)
+		light.position = Vector2(0, -7)
 		add_child(light)
 	apply_profile()
 	hp = max_hp()
@@ -386,7 +386,7 @@ func _fall(d: float) -> void:
 	if wall_dir != 0 and input_x == wall_dir and vy > 0.0 and not _on_ground():
 		max_fall = WALL_SLIDE_MAX
 		if rng.randf() < 0.3:
-			FX.burst(global_position + Vector2(wall_dir * 7, -30), Color(0.9, 0.9, 1.0, 0.5), 1, 30.0, Vector2.DOWN, 20.0, 0.3, 1.5)
+			FX.burst(global_position + Vector2(wall_dir * 3, -8), Color(0.9, 0.9, 1.0, 0.5), 1, 15.0, Vector2.DOWN, 20.0, 0.25, 1.0)
 	vy = move_toward(vy, max_fall, g * d)
 	if var_jump_t > 0.0:
 		if Input.is_action_pressed("jump"):
@@ -418,7 +418,7 @@ func _try_jump() -> bool:
 		force_move_x = -wd
 		force_move_t = WALL_JUMP_FORCE_TIME
 		facing = -wd
-		FX.burst(global_position + Vector2(wd * 6, -10), Color(0.9, 0.9, 1.0, 0.7), 6, 90.0, Vector2(-wd, -0.3), 40.0)
+		FX.burst(global_position + Vector2(wd * 3, -4), Color(0.9, 0.9, 1.0, 0.7), 4, 45.0, Vector2(-wd, -0.3), 40.0, 0.25, 1.0)
 		return true
 	if air_jumps > 0:
 		air_jumps -= 1
@@ -574,7 +574,7 @@ func _dash_through_check() -> void:
 	for a in get_tree().get_nodes_in_group("actors"):
 		if a == self or a.team == team or a.dead:
 			continue
-		if a.body_center().distance_to(body_center()) < 22.0 and not _dash_through_hit.has(a):
+		if a.body_center().distance_to(body_center()) < 8.0 and not _dash_through_hit.has(a):
 			_dash_through_hit[a] = true
 			buffs.trigger("dash_through", {"target": a})
 	if dash_t <= 0.0:
@@ -639,7 +639,7 @@ func _start_light() -> void:
 			var beat := float(attack.step.get("beat", 0.07))
 			if absf(attack.time_to_end()) <= beat * 1.6:
 				rhythm_stacks = mini(rhythm_stacks + 1, 5)
-				FX.text(global_position + Vector2(0, -52), "♪ %d" % rhythm_stacks, Color(2.4, 1.6, 3.0))
+				emote("note", 0.5)
 			else:
 				rhythm_stacks = 0
 		combo_index += 1
@@ -652,7 +652,8 @@ func _start_light() -> void:
 	play_anim("attack", true)
 
 
-func _slash_fx(step: Dictionary) -> void:
+func _slash_fx(raw_step: Dictionary) -> void:
+	var step := AttackRunner.scaled(raw_step)
 	var box: Array = step.get("box", [0, -30, 40, 30])
 	var center := Vector2((float(box[0]) + float(box[2]) * 0.5) * facing, float(box[1]) + float(box[3]) * 0.5)
 	var c := Color(2.2, 2.4, 3.0)
@@ -667,7 +668,7 @@ func _slash_fx(step: Dictionary) -> void:
 			rot = PI * 0.5 * facing
 		elif float(box[1]) < -70:
 			rot = -PI * 0.5 * facing
-		FX.slash(global_position + Vector2(0, -22), facing, float(arc[0]), float(arc[1]), c, rot)
+		FX.slash(body_center(), facing, float(arc[0]), float(arc[1]) * AttackRunner.BOX_SCALE, c, rot)
 	Audio.play("swing_heavy" if step.get("dmg", 1.0) > 1.3 else "swing", 0.12, -4.0)
 
 
@@ -699,7 +700,7 @@ func _throw(step: Dictionary) -> void:
 	p.color = Color(2.4, 2.4, 2.8)
 	p.lifetime = 0.9
 	p.light_enabled = false
-	p.global_position = body_center() + Vector2(facing * 10, 0)
+	p.global_position = body_center() + Vector2(facing * 4, 0)
 	get_parent().add_child(p)
 
 
@@ -783,7 +784,7 @@ func build_attack_info(step: Dictionary, kind: String, charge: float, target: No
 	elif kind == "up_air":
 		dir = Vector2(0, -1)
 	info.direction = dir
-	info.knockback = dir * float(step.get("kb", 150.0)) + Vector2(0, -60.0 if kind != "down_air" else 0.0)
+	info.knockback = dir * float(step.get("kb", 150.0)) + Vector2(0, -30.0 if kind != "down_air" else 0.0)
 	var st: Dictionary = moveset.get("weapon_status", {}).duplicate()
 	for s in step.get("status", {}).keys():
 		st[s] = int(st.get(s, 0)) + int(step["status"][s])
@@ -822,7 +823,7 @@ func _on_attack_landed(target: Node, info: DamageInfo, result: int) -> void:
 	if result == DamageInfo.Result.BLOCKED or result == DamageInfo.Result.PARRIED:
 		FX.hitstop(0.05)
 		Audio.play("hit_metal")
-		velocity.x = -facing * 120.0
+		velocity.x = -facing * 60.0
 		return
 	combo_count += 1
 	combo_timer = COMBO_TIMEOUT
@@ -835,6 +836,9 @@ func _on_attack_landed(target: Node, info: DamageInfo, result: int) -> void:
 	buffs.trigger("combo", ctx)
 	if info.pogo:
 		_pogo()
+	elif not info.is_dash_attack and attack.kind != "up_air":
+		# recuo ao acertar (Hollow Knight)
+		velocity.x = -facing * 55.0
 	if info.is_dash_attack:
 		dash_t = maxf(dash_t, 0.04)
 	Audio.play("hit_heavy" if info.is_heavy or info.is_crit else "hit", 0.1, -2.0)
@@ -879,7 +883,7 @@ func _pound_impact() -> void:
 	ring.global_position = global_position
 	get_parent().add_child(ring)
 	for a in get_tree().get_nodes_in_group("actors"):
-		if a.team != team and not a.dead and a.global_position.distance_to(global_position) < 64.0:
+		if a.team != team and not a.dead and a.global_position.distance_to(global_position) < 26.0:
 			var info := DamageInfo.new()
 			info.amount = float(moveset.get("damage", 10.0)) * 1.4
 			info.damage_type = "blunt"
@@ -892,7 +896,7 @@ func _pound_impact() -> void:
 					hb.receive(info)
 					break
 	for b in get_tree().get_nodes_in_group("cracked_floor"):
-		if b.global_position.distance_to(global_position) < 40.0:
+		if b.global_position.distance_to(global_position) < 16.0:
 			b.shatter()
 
 
@@ -905,11 +909,11 @@ func _start_parry() -> void:
 		return
 	parry_t = PARRY_WINDOW + float(moveset.get("parry_bonus", 0.0))
 	parry_cd = PARRY_COOLDOWN
-	FX.burst(body_center() + Vector2(facing * 12, 0), Color(2.4, 2.4, 3.0), 4, 60.0)
+	FX.burst(body_center() + Vector2(facing * 4, 0), Color(2.4, 2.4, 3.0), 3, 30.0, Vector2.ZERO, 180.0, 0.2, 1.0)
 	# área curta que rebate projéteis
 	var hb := attack.hitbox
 	if not attack.is_busy():
-		hb.set_box([-4, -40, 30, 40], facing)
+		hb.set_box([-2, -12, 12, 12], facing)
 		hb.pogo = false
 		hb.info_factory = func(_t): return null
 		hb.activate()
@@ -948,7 +952,7 @@ func _before_hit(info: DamageInfo) -> int:
 	# esquiva perfeita: golpe chegou no começo da esquiva
 	if state == State.DODGE and DODGE_TIME - dodge_t <= PERFECT_DODGE_WINDOW and not info.is_hazard:
 		FX.slowmo(0.3, 0.55 * (1.0 + stats.get_stat("perfect_dodge_time")))
-		FX.text(global_position + Vector2(0, -50), "ESQUIVA PERFEITA", Color(1.6, 2.4, 3.0))
+		emote("!", 0.6)
 		gain_focus(12.0)
 		buffs.trigger("perfect_dodge")
 		Events.perfect_dodge.emit(self)
@@ -965,12 +969,12 @@ func _before_hit(info: DamageInfo) -> int:
 		FX.hitstop(0.14 if perfect else 0.07)
 		FX.flash(1.0 if perfect else 0.5)
 		FX.shake(0.3 if perfect else 0.15)
-		FX.burst(body_center() + Vector2(facing * 14, 0), Color(3.2, 3.0, 2.2), 20 if perfect else 10, 260.0)
+		FX.burst(body_center() + Vector2(facing * 5, 0), Color(3.2, 3.0, 2.2), 12 if perfect else 6, 120.0, Vector2.ZERO, 180.0, 0.25, 1.0)
 		Audio.play("parry_perfect" if perfect else "parry")
 		gain_focus(22.0 if perfect else 10.0)
 		if perfect:
 			FX.slowmo(0.35, 0.35)
-			FX.text(global_position + Vector2(0, -50), "APARO PERFEITO", Color(3.0, 2.6, 1.4))
+			emote("!", 0.6)
 			refill_dash()
 			buffs.trigger("perfect_parry")
 		buffs.trigger("parry")
@@ -982,8 +986,8 @@ func _before_hit(info: DamageInfo) -> int:
 		if from_front:
 			info.amount *= 1.0 - float(moveset.get("block", 0.8))
 			Audio.play("block")
-			FX.burst(body_center() + Vector2(facing * 12, 0), Color(2.0, 2.0, 2.4), 8, 150.0)
-			velocity.x = -facing * 140.0
+			FX.burst(body_center() + Vector2(facing * 4, 0), Color(2.0, 2.0, 2.4), 5, 70.0, Vector2.ZERO, 180.0, 0.2, 1.0)
+			velocity.x = -facing * 70.0
 			if info.amount < 1.0:
 				return DamageInfo.Result.BLOCKED
 	return -1
@@ -1014,7 +1018,7 @@ func _on_damaged(info: DamageInfo, amount: float) -> void:
 		return
 	hurt_t = HURT_TIME
 	var kb_dir := signf(info.direction.x) if info.direction.x != 0.0 else -float(facing)
-	velocity = Vector2(kb_dir * 200.0, -180.0 * g_dir)
+	velocity = Vector2(kb_dir * 100.0, -120.0 * g_dir)
 	_set_state(State.HURT)
 
 
@@ -1053,7 +1057,7 @@ func _die(info: DamageInfo) -> void:
 		invuln_time = 2.0
 		FX.slowmo(0.2, 0.8)
 		FX.flash(1.0)
-		FX.text(global_position + Vector2(0, -60), "%s te salvou!" % npc["name"], Color(2.4, 2.2, 1.2))
+		emote("heart", 2.0)
 		Events.toast.emit("%s (%s) chegou a tempo e te salvou." % [npc["name"], npc["title"]])
 		Events.player_health_changed.emit(hp, max_hp())
 		return
@@ -1103,7 +1107,7 @@ func aim_direction() -> Vector2:
 func aim_target() -> Vector2:
 	if _using_mouse:
 		return get_global_mouse_position()
-	return body_center() + aim_direction() * 110.0
+	return body_center() + aim_direction() * 50.0
 
 
 func _cast_slot(i: int) -> void:
@@ -1115,12 +1119,12 @@ func _cast_slot(i: int) -> void:
 
 func cast_spell(spell_id: String, power: float) -> bool:
 	if has_rule("no_spells"):
-		FX.text(global_position + Vector2(0, -50), "A magia não responde aqui", Color(1.6, 1.0, 1.0))
+		emote("?", 0.8)
 		return false
 	var level := Inventory.spell_level(Game.profile, spell_id)
 	var cost := caster.cost_of(spell_id, level)
 	if focus < cost:
-		FX.text(global_position + Vector2(0, -50), "Foco insuficiente", Color(1.6, 1.6, 2.4))
+		emote("drop", 0.8)
 		Audio.play("ui_error", 0.0, -8.0)
 		return false
 	if not caster.is_ready(spell_id):
@@ -1136,7 +1140,7 @@ func cast_spell(spell_id: String, power: float) -> bool:
 func refund_last_spell() -> void:
 	if _spell_refund.has("cost"):
 		gain_focus(float(_spell_refund["cost"]))
-		FX.text(global_position + Vector2(0, -56), "Fluxo!", Color(1.4, 1.8, 3.0))
+		emote("note", 0.6)
 
 
 func _start_sigil() -> void:
@@ -1168,15 +1172,15 @@ func _finish_sigil() -> void:
 	var res := SigilRecognizer.recognize(sigil_points)
 	sigil_points = PackedVector2Array()
 	if res["name"] == "":
-		FX.text(global_position + Vector2(0, -50), "Sigilo falhou (%d%%)" % int(res["accuracy"] * 100), Color(1.6, 1.0, 1.0))
+		emote("?", 0.8)
 		return
 	for sid in Game.profile.get("sigils", {}).keys():
 		if DB.spell(sid).get("sigil", "") == res["name"]:
 			var power := SigilRecognizer.power_from_accuracy(res["accuracy"])
 			if cast_spell(sid, power):
-				FX.text(global_position + Vector2(0, -60), "%s  %d%%" % [DB.display_name(sid), int(res["accuracy"] * 100)], Color(2.4, 2.0, 3.0))
+				Events.toast.emit("%s  %d%%" % [DB.display_name(sid), int(res["accuracy"] * 100)])
 			return
-	FX.text(global_position + Vector2(0, -50), "Você não conhece esse sigilo", Color(1.6, 1.4, 1.0))
+	emote("?", 0.8)
 
 
 func start_echo(count: int, mult: float, duration: float) -> void:
@@ -1311,9 +1315,37 @@ func _after_move(d: float) -> void:
 		last_wall_dir = wall_dir
 
 
+var _idle_t: float = 0.0
+var _mood_t: float = 0.0
+
+
+## Reações sem fala: "…" parado, gota de suor com pouca vida, "?" perto de
+## segredos. (Level chama emote("!") ao trancar uma sala de combate.)
+func _moods(d: float) -> void:
+	_mood_t -= d
+	if state == State.NORMAL and is_on_floor() and absf(velocity.x) < 5.0 and input_x == 0.0:
+		_idle_t += d
+		if _idle_t > 6.0:
+			_idle_t = -4.0
+			emote("...", 2.0)
+	else:
+		_idle_t = 0.0
+	if _mood_t <= 0.0:
+		_mood_t = 3.0
+		if hp / maxf(max_hp(), 1.0) < 0.3:
+			emote("drop", 1.2)
+		else:
+			for b in get_tree().get_nodes_in_group("secrets"):
+				if b.global_position.distance_to(global_position) < 20.0:
+					emote("?", 1.2)
+					break
+
+
 func _animate() -> void:
 	if sprite == null:
 		return
+	_moods(get_physics_process_delta_time())
+	sprite.attack_pose = attack.progress() if attack.is_busy() else 0.0
 	match state:
 		State.DASH, State.DODGE, State.POUND:
 			play_anim("crouch")

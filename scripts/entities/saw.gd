@@ -2,8 +2,6 @@ class_name Saw
 extends Hazard
 ## Serra giratória. Pode oscilar entre dois pontos.
 
-const TEX := preload("res://assets/art/props/traps/saw_on.png")
-
 var travel: Vector2 = Vector2.ZERO
 var period: float = 2.5
 var _origin: Vector2
@@ -13,7 +11,7 @@ var _t: float = 0.0
 func _ready() -> void:
 	damage = 20.0
 	pogoable = true
-	add_circle(Vector2.ZERO, 15.0)
+	add_circle(Vector2.ZERO, 5.0)
 	_origin = position
 	_t = randf() * period
 	z_index = 4
@@ -29,6 +27,10 @@ func _physics_process(delta: float) -> void:
 
 func _draw() -> void:
 	if travel != Vector2.ZERO:
-		draw_line(_origin - position, _origin + travel - position, Color(0.3, 0.3, 0.35, 0.8), 2.0)
-	var frame := int(_t * 20.0) % 8
-	draw_texture_rect_region(TEX, Rect2(-19, -19, 38, 38), Rect2(frame * 38, 0, 38, 38))
+		draw_line(_origin - position, _origin + travel - position, Color(0.3, 0.3, 0.35, 0.6), 1.0)
+	var rot := _t * 14.0
+	for i in 8:
+		var a := rot + i * TAU / 8.0
+		draw_rect(Rect2(Vector2.from_angle(a) * 5.0 - Vector2(0.5, 0.5), Vector2(2, 2)), Color(0.85, 0.85, 0.9))
+	draw_circle(Vector2.ZERO, 4.0, Color(0.55, 0.55, 0.62))
+	draw_circle(Vector2.ZERO, 1.5, Color(0.2, 0.2, 0.25))

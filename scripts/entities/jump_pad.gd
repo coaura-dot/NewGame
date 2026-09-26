@@ -1,12 +1,10 @@
 class_name JumpPad
 extends Area2D
-## Trampolim: lança o jogador (e restaura dash).
+## Mola: lança o jogador e recarrega o dash.
 
-const IDLE := preload("res://assets/art/props/traps/trampoline_idle.png")
-const JUMP := preload("res://assets/art/props/traps/trampoline_jump.png")
-const FORCE := 520.0
+const FORCE := 250.0
 
-var _anim: float = -1.0
+var _anim: float = 0.0
 
 
 func _init() -> void:
@@ -18,9 +16,9 @@ func _init() -> void:
 func _ready() -> void:
 	var cs := CollisionShape2D.new()
 	var r := RectangleShape2D.new()
-	r.size = Vector2(22, 8)
+	r.size = Vector2(8, 3)
 	cs.shape = r
-	cs.position = Vector2(0, -6)
+	cs.position = Vector2(0, -2)
 	add_child(cs)
 	body_entered.connect(_on_body)
 
@@ -32,21 +30,17 @@ func _on_body(b: Node) -> void:
 		b.refill_dash()
 		if b.state == Player.State.DASH:
 			b._set_state(Player.State.NORMAL)
-		_anim = 0.0
+		_anim = 1.0
 		Audio.play("jump", 0.05, 0.0, 0.7)
-		FX.burst(global_position, Color(1.6, 1.6, 1.2), 8, 120.0, Vector2.UP, 40.0)
 
 
 func _process(delta: float) -> void:
-	if _anim >= 0.0:
-		_anim += delta * 20.0
-		if _anim >= 8.0:
-			_anim = -1.0
+	_anim = maxf(_anim - delta * 5.0, 0.0)
 	queue_redraw()
 
 
 func _draw() -> void:
-	if _anim >= 0.0:
-		draw_texture_rect_region(JUMP, Rect2(-14, -28, 28, 28), Rect2(int(_anim) * 28, 0, 28, 28))
-	else:
-		draw_texture(IDLE, Vector2(-14, -28))
+	var h := 2.0 + _anim * 3.0
+	draw_rect(Rect2(-4, -1, 8, 1), Color(0.35, 0.3, 0.4))
+	draw_rect(Rect2(-1, -1 - h, 2, h), Color(0.7, 0.7, 0.75))
+	draw_rect(Rect2(-4, -2 - h, 8, 2), Color(1.0, 0.45, 0.35))

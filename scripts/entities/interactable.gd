@@ -3,12 +3,12 @@ extends Area2D
 ## Base para coisas com que o jogador interage (Cima/W/Enter perto delas).
 ## Mostra o texto de ação quando o jogador está perto.
 
-const FONT := preload("res://assets/fonts/kenney_pixel.ttf")
+const FONT := preload("res://assets/fonts/kenney_mini.ttf")
 
 var prompt: String = "Interagir"
 var level: Node = null
 var room_index: int = -1
-var size: Vector2 = Vector2(24, 32)
+var size: Vector2 = Vector2(10, 12)
 var _near: bool = false
 var _prompt_a: float = 0.0
 
@@ -66,10 +66,10 @@ func _draw() -> void:
 		return
 	var key := Settings.binding_label("interact")
 	var text := "[%s] %s" % [key, prompt]
-	var w := FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-	var pos := Vector2(-w * 0.5, -size.y - 10 - (1.0 - _prompt_a) * 4.0)
-	draw_rect(Rect2(pos + Vector2(-3, -9), Vector2(w + 6, 12)), Color(0.05, 0.03, 0.1, 0.75 * _prompt_a))
-	draw_string(FONT, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1.0, 0.95, 0.8, _prompt_a))
+	var w := FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	var pos := Vector2(roundf(-w * 0.5), roundf(-size.y - 6 - (1.0 - _prompt_a) * 3.0))
+	draw_rect(Rect2(pos + Vector2(-2, -7), Vector2(w + 4, 9)), Color(0.05, 0.03, 0.1, 0.7 * _prompt_a))
+	draw_string(FONT, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1.0, 0.95, 0.8, _prompt_a))
 
 
 func _draw_body() -> void:

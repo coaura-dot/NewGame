@@ -1,40 +1,43 @@
 class_name Checkpoint
 extends Interactable
-## Ponto de retorno: ao tocar vira o respawn; ao interagir descansa (cura).
-
-const TEX := preload("res://assets/art/props/checkpoint_idle.png")
+## Banco/fogueira: ao tocar vira o ponto de retorno; interagir descansa (cura).
 
 var active: bool = false
 var _t: float = 0.0
+var _light: PointLight2D
 
 
 func _ready() -> void:
 	prompt = "Descansar"
-	size = Vector2(24, 40)
+	size = Vector2(12, 12)
 	super._ready()
 
 
-func _on_player_near(player: Node) -> void:
+func _on_player_near(_player: Node) -> void:
 	if not active and level:
 		active = true
 		level.set_checkpoint(self)
-		FX.burst(global_position + Vector2(0, -30), Color(2.0, 1.6, 0.6), 14, 120.0)
+		FX.burst(global_position + Vector2(0, -6), Color(2.0, 1.6, 0.6), 8, 80.0)
 		Audio.play("confirmation", 0.0, -6.0)
-		var l := LightUtil.make_light(Color(1.0, 0.8, 0.5), 0.9, 0.7)
-		if l:
-			l.position = Vector2(0, -34)
-			add_child(l)
+		_light = LightUtil.make_light(Color(1.0, 0.75, 0.45), 0.9, 0.9)
+		if _light:
+			_light.position = Vector2(0, -6)
+			add_child(_light)
 
 
 func interact(player: Node) -> void:
 	player.heal(player.max_hp())
 	player.gain_focus(player.max_focus())
-	FX.text(global_position + Vector2(0, -60), "Descansou", Color(2.0, 1.8, 1.2))
+	if player.has_method("emote"):
+		player.emote("z", 1.6)
 	Game.save()
 
 
 func deactivate() -> void:
 	active = false
+	if _light:
+		_light.queue_free()
+		_light = null
 
 
 func _process(delta: float) -> void:
@@ -43,8 +46,10 @@ func _process(delta: float) -> void:
 
 
 func _draw_body() -> void:
+	draw_rect(Rect2(-5, -2, 10, 2), Color(0.35, 0.3, 0.3))
+	draw_rect(Rect2(-3, -3, 2, 1), Color(0.5, 0.35, 0.25))
+	draw_rect(Rect2(1, -3, 2, 1), Color(0.5, 0.35, 0.25))
 	if active:
-		var frame := int(_t * 12.0) % 10
-		draw_texture_rect_region(TEX, Rect2(-32, -64, 64, 64), Rect2(frame * 64, 0, 64, 64))
-	else:
-		draw_texture_rect_region(TEX, Rect2(-32, -64, 64, 64), Rect2(0, 0, 64, 64), Color(0.5, 0.5, 0.6))
+		var h := 3.0 + (1.0 if fmod(_t * 8.0, 2.0) > 1.0 else 0.0)
+		draw_rect(Rect2(-1, -3 - h, 2, h), Color(2.6, 1.4, 0.4))
+		draw_rect(Rect2(-2, -5, 4, 2), Color(2.4, 1.0, 0.3))

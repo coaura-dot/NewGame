@@ -7,13 +7,13 @@ var _t: float = 0.0
 
 
 func _ready() -> void:
-	size = Vector2(30, 48)
+	size = Vector2(12, 18)
 	super._ready()
 	var dim_id: String = Game.world.get("regions", {}).get(target_region, {}).get("dimension", "umbra")
 	prompt = "Atravessar: " + str(DB.dimension(dim_id).get("name", "?"))
 	var l := LightUtil.make_light(Color(0.8, 0.4, 1.0), 1.2, 0.8)
 	if l:
-		l.position = Vector2(0, -26)
+		l.position = Vector2(0, -9)
 		add_child(l)
 
 
@@ -35,11 +35,11 @@ func _process(delta: float) -> void:
 func _draw_body() -> void:
 	for i in 5:
 		var k := float(i) / 5.0
-		var r := Vector2(10.0 + 4.0 * sin(_t * 3.0 + i), 22.0 + 3.0 * cos(_t * 2.0 + i)) * (1.0 - k * 0.6)
+		var r := Vector2(4.0 + 1.5 * sin(_t * 3.0 + i), 8.0 + 1.0 * cos(_t * 2.0 + i)) * (1.0 - k * 0.6)
 		var pts := PackedVector2Array()
 		for a in 24:
 			var ang := a / 24.0 * TAU + _t * (1.0 + k)
-			pts.append(Vector2(cos(ang) * r.x, sin(ang) * r.y - 26))
+			pts.append(Vector2(cos(ang) * r.x, sin(ang) * r.y - 9))
 		pts.append(pts[0])
-		draw_polyline(pts, Color(1.2 + k, 0.4, 2.4 + k, 0.8 - k * 0.5), 1.5)
-	draw_circle(Vector2(0, -26), 4.0, Color(0.02, 0.0, 0.05))
+		draw_polyline(pts, Color(1.2 + k, 0.4, 2.4 + k, 0.8 - k * 0.5), 1.0)
+	draw_circle(Vector2(0, -9), 1.5, Color(0.02, 0.0, 0.05))

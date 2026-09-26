@@ -24,9 +24,9 @@ func setup(style_name: String, cam: Camera2D) -> void:
 	style = STYLES.get(style_name, STYLES["dust"])
 	camera = cam
 	var q: int = int(Settings.video("particles"))
-	var n := int(style["count"] * [0.3, 0.6, 1.0][clampi(q, 0, 2)])
+	var n := int(style["count"] * [0.0, 0.25, 0.5][clampi(q, 0, 2)])
 	for i in n:
-		_p.append([Vector2(randf() * 520.0, randf() * 310.0), randf() * TAU])
+		_p.append([Vector2(randf() * 340.0, randf() * 200.0), randf() * TAU])
 	z_index = 40
 	material = CanvasItemMaterial.new()
 	(material as CanvasItemMaterial).blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
@@ -38,10 +38,10 @@ func _process(delta: float) -> void:
 	var wander: float = style.get("wander", 0.0)
 	for p in _p:
 		p[0] += (vel + Vector2(sin(_t * 0.7 + p[1]), cos(_t * 0.9 + p[1] * 1.3)) * wander) * delta
-		p[0].x = fposmod(p[0].x, 520.0)
-		p[0].y = fposmod(p[0].y, 310.0)
+		p[0].x = fposmod(p[0].x, 340.0)
+		p[0].y = fposmod(p[0].y, 200.0)
 	if camera:
-		global_position = camera.get_screen_center_position() - Vector2(260, 155)
+		global_position = camera.get_screen_center_position() - Vector2(170, 100)
 	queue_redraw()
 
 
@@ -50,9 +50,9 @@ func _draw() -> void:
 	var s: float = style.get("size", 1.0)
 	var cam_off := Vector2.ZERO
 	if camera:
-		cam_off = Vector2(fposmod(camera.get_screen_center_position().x * 0.3, 520.0), fposmod(camera.get_screen_center_position().y * 0.3, 310.0))
+		cam_off = Vector2(fposmod(camera.get_screen_center_position().x * 0.3, 340.0), fposmod(camera.get_screen_center_position().y * 0.3, 200.0))
 	for p in _p:
-		var pos: Vector2 = Vector2(fposmod(p[0].x - cam_off.x, 520.0), fposmod(p[0].y - cam_off.y, 310.0))
+		var pos: Vector2 = Vector2(fposmod(p[0].x - cam_off.x, 340.0), fposmod(p[0].y - cam_off.y, 200.0))
 		var a := c.a
 		if style.get("blink", false):
 			a *= 0.4 + 0.6 * (0.5 + 0.5 * sin(_t * 3.0 + p[1] * 5.0))

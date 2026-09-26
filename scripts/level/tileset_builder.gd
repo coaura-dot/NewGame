@@ -1,7 +1,7 @@
 class_name TileSetBuilder
 extends RefCounted
 ## Monta um TileSet em código a partir do atlas de papéis gerado por
-## tools/build_assets.py (8x4 tiles de 16 px):
+## tools/build_tiles.py (8x4 tiles de 8 px):
 ##   linha 0: TOPO 0-3 | TOPO_E | TOPO_D | TOPO_ÚNICO | QUEBRÁVEL
 ##   linha 1: SUB 0-3  | PLAT_E | PLAT_M | PLAT_D | ESPINHOS
 ##   linha 2: FILL 0-3 | BORDA_E | BORDA_D | TETO | PONTO
@@ -10,7 +10,7 @@ extends RefCounted
 ## economiza física e sombras).
 
 const DIR := "res://assets/art/tilesets/"
-const T := 16
+const T := 8
 const SOURCE := 0
 
 const TOP := [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0)]
@@ -68,7 +68,7 @@ static func build(tileset_name: String) -> TileSet:
 	for c in [PLAT_L, PLAT_M, PLAT_R]:
 		var td := src.get_tile_data(c, 0)
 		td.add_collision_polygon(1)
-		td.set_collision_polygon_points(1, 0, PackedVector2Array([Vector2(-8, -8), Vector2(8, -8), Vector2(8, -3), Vector2(-8, -3)]))
+		td.set_collision_polygon_points(1, 0, PackedVector2Array([Vector2(-4, -4), Vector2(4, -4), Vector2(4, -1), Vector2(-4, -1)]))
 		td.set_collision_polygon_one_way(1, 0, true)
 	# espinhos: 4 orientações via alternativas (sem colisão sólida — o dano vem do Hazard)
 	var down := src.create_alternative_tile(SPIKES, SPIKE_DOWN)
@@ -85,7 +85,7 @@ static func build(tileset_name: String) -> TileSet:
 
 
 static func _solid(td: TileData) -> void:
-	var square := PackedVector2Array([Vector2(-8, -8), Vector2(8, -8), Vector2(8, 8), Vector2(-8, 8)])
+	var square := PackedVector2Array([Vector2(-4, -4), Vector2(4, -4), Vector2(4, 4), Vector2(-4, 4)])
 	td.add_collision_polygon(0)
 	td.set_collision_polygon_points(0, 0, square)
 	var occ := OccluderPolygon2D.new()

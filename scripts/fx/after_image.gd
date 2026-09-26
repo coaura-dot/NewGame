@@ -7,10 +7,14 @@ var life: float = 0.28
 var _t: float = 0.0
 
 
-static func from_sprite(src: AnimatedSprite2D, tint: Color, lifetime: float = 0.28) -> AfterImage:
-	if src == null or src.sprite_frames == null or not Settings.video("afterimages"):
+static func from_sprite(src: Node2D, tint: Color, lifetime: float = 0.28) -> Node2D:
+	if src == null or not Settings.video("afterimages"):
 		return null
-	var tex := src.sprite_frames.get_frame_texture(src.animation, src.frame)
+	if src is CreatureSprite:
+		return src.ghost(tint, lifetime)
+	if not (src is AnimatedSprite2D) or src.sprite_frames == null:
+		return null
+	var tex: Texture2D = src.sprite_frames.get_frame_texture(src.animation, src.frame)
 	if tex == null:
 		return null
 	var a := AfterImage.new()

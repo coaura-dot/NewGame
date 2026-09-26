@@ -11,12 +11,12 @@ func _ready() -> void:
 	FX.clear_time_effects()
 	get_tree().paused = false
 	_cam = Camera2D.new()
-	_cam.position = Vector2(240, 135)
+	_cam.position = Vector2(160, 90)
 	add_child(_cam)
 	_cam.make_current()
 	var bg := BackgroundLayer.new()
 	bg.camera = _cam
-	bg.build("town", Color(0.8, 0.8, 1.0))
+	bg.build("town", Color(1.0, 1.0, 1.0))
 	add_child(bg)
 	var env := Environment.new()
 	env.background_mode = Environment.BG_CANVAS
@@ -26,18 +26,19 @@ func _ready() -> void:
 	we.environment = env
 	add_child(we)
 	var amb := AmbientParticles.new()
-	amb.setup("embers", _cam)
+	amb.setup("fireflies", _cam)
 	add_child(amb)
 	var layer := CanvasLayer.new()
 	layer.layer = 10
+	layer.scale = Vector2(2.0 / 3.0, 2.0 / 3.0)
 	add_child(layer)
 	_ui = Control.new()
-	_ui.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_ui.size = Vector2(480, 270)
 	_ui.theme = UIKit.theme()
 	layer.add_child(_ui)
 	var shade := ColorRect.new()
-	shade.color = Color(0.02, 0.0, 0.06, 0.35)
-	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.02, 0.0, 0.06, 0.2)
+	shade.size = Vector2(480, 270)
 	_ui.add_child(shade)
 	_show_main()
 

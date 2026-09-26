@@ -4,6 +4,7 @@ extends Node
 ## motion blur, sombras...) pode ser desligado aqui.
 
 const PATH := "user://settings.cfg"
+const VERSION := 2 ## mudou o visual padrão => reseta as opções de vídeo antigas
 
 const DEFAULTS := {
 	"video": {
@@ -14,17 +15,17 @@ const DEFAULTS := {
 		"bloom_intensity": 0.8,
 		"god_rays": true,
 		"motion_blur": true,
-		"motion_blur_strength": 0.6,
+		"motion_blur_strength": 0.35,
 		"dynamic_lights": true,
 		"shadows": true,
-		"chromatic_aberration": true,
-		"vignette": true,
-		"film_grain": true,
+		"chromatic_aberration": false,
+		"vignette": false,
+		"film_grain": false,
 		"afterimages": true,
-		"particles": 2, # 0 = mínimo, 1 = médio, 2 = alto
+		"particles": 0, # 0 = mínimo, 1 = médio, 2 = alto
 		"screen_shake": 1.0,
 		"hitstop": true,
-		"damage_numbers": true,
+		"damage_numbers": false,
 	},
 	"audio": {
 		"master": 0.8,
@@ -113,7 +114,10 @@ func _load() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) != OK:
 		return
+	var old: bool = int(cfg.get_value("meta", "version", 1)) < VERSION
 	for section in DEFAULTS.keys():
+		if old and section == "video":
+			continue
 		for key in DEFAULTS[section].keys():
 			if cfg.has_section_key(section, key):
 				data[section][key] = cfg.get_value(section, key)
@@ -121,6 +125,7 @@ func _load() -> void:
 
 func save() -> void:
 	var cfg := ConfigFile.new()
+	cfg.set_value("meta", "version", VERSION)
 	for section in data.keys():
 		for key in data[section].keys():
 			cfg.set_value(section, key, data[section][key])

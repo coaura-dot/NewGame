@@ -8,7 +8,7 @@ var _t: float = 0.0
 
 
 func _ready() -> void:
-	size = Vector2(26, 26)
+	size = Vector2(10, 10)
 	var req: String = DB.enemy(boss_id).get("refight", {}).get("requires_item", "")
 	prompt = "Reconjurar (%s)" % DB.display_name(req) if req != "" else ""
 	super._ready()
@@ -34,7 +34,6 @@ func _process(delta: float) -> void:
 
 
 func _draw_body() -> void:
-	draw_rect(Rect2(-12, -14, 24, 14), Color(0.25, 0.2, 0.28))
-	draw_rect(Rect2(-14, -16, 28, 3), Color(0.45, 0.38, 0.5))
-	var f := 3.0 + sin(_t * 8.0)
-	draw_circle(Vector2(0, -20), f, Color(3.0, 1.0, 0.4, 0.9))
+	draw_rect(Rect2(-4, -5, 8, 5), Color(0.25, 0.2, 0.28))
+	draw_rect(Rect2(-5, -6, 10, 1), Color(0.45, 0.38, 0.5))
+	draw_rect(Rect2(-1, -9, 2, 3), Color(3.0, 1.0, 0.4, 0.9))

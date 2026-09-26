@@ -19,14 +19,15 @@ var _region_title: String = ""
 
 func _ready() -> void:
 	layer = 10
+	scale = Vector2(2.0 / 3.0, 2.0 / 3.0) ## layout em 480x270, tela base 320x180
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_root = Control.new()
-	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root.size = Vector2(480, 270)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.theme = UIKit.theme()
 	add_child(_root)
 	_draw_node = Control.new()
-	_draw_node.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_draw_node.size = Vector2(480, 270)
 	_draw_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_draw_node.draw.connect(_draw_hud)
 	_root.add_child(_draw_node)
@@ -198,7 +199,9 @@ func _draw_hud() -> void:
 			if pts.size() > 1:
 				d.draw_polyline(pts, Color(1.4, 1.2, 2.4, 0.6), 1.0)
 		_text(Vector2(14, 38), "Desenhe um sigilo e solte", 10, UIKit.INK)
-		var sp: PackedVector2Array = player.sigil_points
+		var sp := PackedVector2Array()
+		for q in player.sigil_points:
+			sp.append(q * 1.5)
 		if sp.size() > 1:
 			d.draw_polyline(sp, Color(1.0, 0.6, 2.6, 0.5), 5.0)
 			d.draw_polyline(sp, Color(2.6, 2.2, 3.6), 1.5)

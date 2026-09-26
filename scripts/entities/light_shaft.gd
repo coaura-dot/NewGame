@@ -5,7 +5,7 @@ extends ColorRect
 const SHADER := preload("res://shaders/light_shaft.gdshader")
 
 
-func setup(tint: Color, height: float = 150.0, width: float = 70.0) -> void:
+func setup(tint: Color, height: float = 60.0, width: float = 28.0) -> void:
 	size = Vector2(width, height)
 	position -= Vector2(width * 0.5, 0)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE

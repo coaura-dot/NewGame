@@ -17,9 +17,9 @@ func _ready() -> void:
 	collision_mask = 0
 	_shape = CollisionShape2D.new()
 	var r := RectangleShape2D.new()
-	r.size = Vector2(12, 64)
+	r.size = Vector2(6, 32)
 	_shape.shape = r
-	_shape.position = Vector2(8, 32)
+	_shape.position = Vector2(4, 16)
 	add_child(_shape)
 	add_to_group("gates")
 	set_closed(mode == "lever", true)
@@ -46,11 +46,9 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if _amount <= 0.01:
 		return
-	var h := 64.0 * _amount
-	for i in 3:
-		var x := 3.0 + i * 5.0
-		draw_rect(Rect2(x, 0, 3, h), Color(0.35, 0.3, 0.4))
-		draw_rect(Rect2(x + 1, 0, 1, h), Color(0.6, 0.55, 0.7))
-	draw_rect(Rect2(1, h - 4, 14, 4), Color(0.3, 0.25, 0.35))
+	var h := 32.0 * _amount
+	for i in 2:
+		draw_rect(Rect2(1 + i * 4, 0, 2, h), Color(0.4, 0.36, 0.46))
+	draw_rect(Rect2(0, h - 2, 8, 2), Color(0.3, 0.25, 0.35))
 	var glow := Color(2.0, 0.6, 0.4, 0.8) if mode == "combat" else Color(0.6, 1.2, 2.4, 0.8)
-	draw_circle(Vector2(8, h * 0.5), 2.5, glow)
+	draw_rect(Rect2(3, h * 0.5 - 1, 2, 2), glow)

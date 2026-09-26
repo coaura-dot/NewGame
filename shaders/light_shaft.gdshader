@@ -5,7 +5,7 @@ render_mode blend_add;
 // faixas animadas e poeira brilhando.
 
 uniform vec4 color = vec4(1.4, 1.25, 0.95, 1.0);
-uniform float intensity = 0.28;
+uniform float intensity = 0.12;
 uniform float top_width = 0.35;
 uniform float skew = 0.18;
 uniform float speed = 0.25;

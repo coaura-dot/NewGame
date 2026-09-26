@@ -81,6 +81,18 @@ func cast(spell_id: String, level: int, aim: Vector2, target: Vector2, power: fl
 	return true
 
 
+## Escala do mundo 320x180 para valores espaciais das magias.
+const SPACE := {"radius": 0.42, "range": 0.45, "speed": 0.5, "pull": 0.5, "knockback": 0.5, "knockup": 0.5}
+
+
+func _sv(spell_id: String, key: String, level: int) -> float:
+	return DB.spell_value(spell_id, key, level) * float(SPACE.get(key, 1.0))
+
+
+func _sf(s: Dictionary, key: String, default: float) -> float:
+	return float(s.get(key, default)) * float(SPACE.get(key, 1.0))
+
+
 func _color(s: Dictionary) -> Color:
 	var c: Array = s.get("color", [2, 2, 2])
 	return Color(c[0], c[1], c[2])
@@ -117,15 +129,15 @@ func _projectile(spell_id: String, s: Dictionary, level: int, aim: Vector2, powe
 		p.owner_actor = actor
 		p.info = _info(spell_id, s, level, power)
 		if s.has("knockback"):
-			p.info.knockback = dir * float(s["knockback"])
-		p.velocity = dir * float(s.get("speed", 280))
-		p.radius = DB.spell_value(spell_id, "radius", level) if s.has("radius") else 5.0
+			p.info.knockback = dir * _sf(s, "knockback", 0.0)
+		p.velocity = dir * _sf(s, "speed", 280)
+		p.radius = maxf(_sv(spell_id, "radius", level), 2.0) if s.has("radius") else 2.5
 		p.pierce = s.get("pierce", false)
 		p.homing = float(s.get("homing", 0.0))
 		p.lifetime = float(s.get("lifetime", 2.2))
 		p.color = _color(s)
 		p.light_enabled = s.get("light", false)
-		p.global_position = actor.body_center() + dir * 14.0
+		p.global_position = actor.body_center() + dir * 6.0
 		_world().add_child(p)
 
 
@@ -158,17 +170,17 @@ func _raycast(from: Vector2, to: Vector2) -> Vector2:
 
 func _beam(spell_id: String, s: Dictionary, level: int, aim: Vector2, power: float) -> void:
 	var from: Vector2 = actor.body_center()
-	var end := _raycast(from, from + aim * float(s.get("range", 200)))
+	var end := _raycast(from, from + aim * _sf(s, "range", 200))
 	var col := _color(s)
 	var lightning: bool = s.get("school", "") == "lightning"
-	LightningFX.spawn(_world(), from, end, col, 3.0 if not lightning else 2.0, lightning)
+	LightningFX.spawn(_world(), from, end, col, 1.0, lightning)
 	# alvos ao longo do feixe
 	var hits := []
-	var steps := int(from.distance_to(end) / 12.0) + 1
+	var steps := int(from.distance_to(end) / 6.0) + 1
 	var seen := {}
 	for i in steps:
 		var p := from.lerp(end, float(i) / steps)
-		for hb in _hurtboxes_in(p, 10.0):
+		for hb in _hurtboxes_in(p, 4.0):
 			if not seen.has(hb.actor):
 				seen[hb.actor] = true
 				hits.append(hb)
@@ -182,8 +194,8 @@ func _beam(spell_id: String, s: Dictionary, level: int, aim: Vector2, power: flo
 		var last: Node = hits[-1].actor
 		for i in chain:
 			var nxt: Hurtbox = null
-			var best := 120.0
-			for hb in _hurtboxes_in(last.body_center(), 120.0):
+			var best := 50.0
+			for hb in _hurtboxes_in(last.body_center(), 50.0):
 				if not seen.has(hb.actor) and hb.actor.body_center().distance_to(last.body_center()) < best:
 					best = hb.actor.body_center().distance_to(last.body_center())
 					nxt = hb
@@ -199,12 +211,12 @@ func _beam(spell_id: String, s: Dictionary, level: int, aim: Vector2, power: flo
 
 func _eruption(spell_id: String, s: Dictionary, level: int, aim: Vector2, power: float) -> void:
 	var dx := signf(aim.x) if aim.x != 0.0 else float(actor.facing)
-	var from: Vector2 = actor.global_position + Vector2(dx * float(s.get("range", 80)), -8)
-	var ground := _raycast(from, from + Vector2(0, 120))
-	var r := DB.spell_value(spell_id, "radius", level)
+	var from: Vector2 = actor.global_position + Vector2(dx * _sf(s, "range", 80), -4)
+	var ground := _raycast(from, from + Vector2(0, 60))
+	var r := _sv(spell_id, "radius", level)
 	for hb in _hurtboxes_in(ground + Vector2(0, -r), r):
 		var info := _info(spell_id, s, level, power)
-		info.knockback = Vector2(dx * 60.0, -float(s.get("knockup", 300)))
+		info.knockback = Vector2(dx * 30.0, -_sf(s, "knockup", 300))
 		info.stagger = 3.0
 		hb.receive(info)
 	FX.burst(ground, _color(s), 18, 220.0, Vector2.UP, 35.0, 0.5, 3.0)
@@ -212,11 +224,11 @@ func _eruption(spell_id: String, s: Dictionary, level: int, aim: Vector2, power:
 
 
 func _nova(spell_id: String, s: Dictionary, level: int, center: Vector2, power: float) -> void:
-	var r := DB.spell_value(spell_id, "radius", level)
+	var r := _sv(spell_id, "radius", level)
 	for hb in _hurtboxes_in(center, r):
 		var info := _info(spell_id, s, level, power)
 		var dir: Vector2 = (hb.actor.body_center() - center).normalized()
-		info.knockback = dir * float(s.get("knockback", 140.0)) + Vector2(0, -80)
+		info.knockback = dir * _sf(s, "knockback", 140.0) + Vector2(0, -40)
 		info.parryable = false
 		hb.receive(info)
 	var ring := NovaFX.new()
@@ -228,7 +240,7 @@ func _nova(spell_id: String, s: Dictionary, level: int, center: Vector2, power: 
 
 
 func _smite(spell_id: String, s: Dictionary, level: int, aim: Vector2, target: Vector2, power: float) -> void:
-	var rng_r := float(s.get("range", 180))
+	var rng_r := _sf(s, "range", 180)
 	var best: Node = null
 	var best_score := INF
 	for a in actor.get_tree().get_nodes_in_group("actors"):
@@ -242,16 +254,16 @@ func _smite(spell_id: String, s: Dictionary, level: int, aim: Vector2, target: V
 			best_score = score
 			best = a
 	var point: Vector2 = best.body_center() if best else target
-	for hb in _hurtboxes_in(point, DB.spell_value(spell_id, "radius", level)):
+	for hb in _hurtboxes_in(point, _sv(spell_id, "radius", level)):
 		hb.receive(_info(spell_id, s, level, power))
-	LightningFX.spawn(_world(), point + Vector2(0, -120), point, _color(s), 3.0, false)
+	LightningFX.spawn(_world(), point + Vector2(0, -60), point, _color(s), 1.0, false)
 	FX.burst(point, _color(s), 16, 180.0)
 
 
 func _storm(spell_id: String, s: Dictionary, level: int, power: float) -> void:
 	var targets := []
 	for a in actor.get_tree().get_nodes_in_group("actors"):
-		if a.team != actor.team and not a.dead and a.body_center().distance_to(actor.body_center()) < float(s.get("range", 200)):
+		if a.team != actor.team and not a.dead and a.body_center().distance_to(actor.body_center()) < _sf(s, "range", 200):
 			targets.append(a)
 	targets.sort_custom(func(x, y): return x.body_center().distance_to(actor.body_center()) < y.body_center().distance_to(actor.body_center()))
 	var bolts := int(round(DB.spell_value(spell_id, "count", level)))
@@ -259,7 +271,7 @@ func _storm(spell_id: String, s: Dictionary, level: int, power: float) -> void:
 		if targets.is_empty():
 			break
 		var a: Node = targets[i % targets.size()]
-		LightningFX.spawn(_world(), a.body_center() + Vector2(randf_range(-20, 20), -160), a.body_center(), _color(s), 2.5)
+		LightningFX.spawn(_world(), a.body_center() + Vector2(randf_range(-10, 10), -70), a.body_center(), _color(s), 1.0)
 		for hb in a.get_children():
 			if hb is Hurtbox:
 				hb.receive(_info(spell_id, s, level, power))
@@ -274,9 +286,9 @@ func _field(spell_id: String, s: Dictionary, level: int, aim: Vector2, target: V
 	f.source = actor
 	f.spell_id = spell_id
 	f.school = s.get("school", "gravity")
-	f.radius = DB.spell_value(spell_id, "radius", level)
+	f.radius = _sv(spell_id, "radius", level)
 	f.duration = DB.spell_value(spell_id, "duration", level)
-	f.pull = float(s.get("pull", 0.0))
+	f.pull = _sf(s, "pull", 0.0)
 	f.tick = float(s.get("tick", 0.25))
 	f.damage = DB.spell_value(spell_id, "damage", level) * power
 	f.implode = DB.spell_value(spell_id, "implode", level) * power
@@ -285,7 +297,7 @@ func _field(spell_id: String, s: Dictionary, level: int, aim: Vector2, target: V
 	if kind == "time":
 		f.global_position = actor.body_center()
 	else:
-		var dist := float(s.get("range", 110))
+		var dist := _sf(s, "range", 110)
 		var desired: Vector2 = target if target != Vector2.ZERO and target.distance_to(actor.body_center()) < dist * 1.5 else actor.body_center() + aim * dist
 		f.global_position = _raycast(actor.body_center(), desired)
 	_world().add_child(f)
@@ -293,7 +305,7 @@ func _field(spell_id: String, s: Dictionary, level: int, aim: Vector2, target: V
 
 func _blink(s: Dictionary, level: int, aim: Vector2) -> void:
 	var from: Vector2 = actor.global_position
-	var dist := DB.spell_value("passo_etereo", "range", level) if s.has("range") else 110.0
+	var dist := _sv("passo_etereo", "range", level) if s.has("range") else 50.0
 	var desired := from + aim * dist
 	# para antes de paredes (testa o corpo em passos)
 	var best := from
@@ -311,12 +323,12 @@ func _blink(s: Dictionary, level: int, aim: Vector2) -> void:
 	actor.global_position = best
 	actor.reset_physics_interpolation()
 	actor.invuln_time = maxf(actor.invuln_time, 0.2)
-	LightningFX.spawn(_world(), from + Vector2(0, -20), best + Vector2(0, -20), _color(s), 2.0, false)
-	FX.burst(best + Vector2(0, -20), _color(s), 14, 160.0)
+	LightningFX.spawn(_world(), from + Vector2(0, -6), best + Vector2(0, -6), _color(s), 1.0, false)
+	FX.burst(best + Vector2(0, -6), _color(s), 8, 80.0)
 
 
 func _grab(spell_id: String, s: Dictionary, level: int, aim: Vector2, power: float) -> void:
-	var rng_r := DB.spell_value(spell_id, "range", level)
+	var rng_r := _sv(spell_id, "range", level)
 	var best: Node = null
 	var best_d := rng_r
 	for p in actor.get_tree().get_nodes_in_group("projectiles"):
@@ -335,7 +347,7 @@ func _grab(spell_id: String, s: Dictionary, level: int, aim: Vector2, power: flo
 			best_d = d
 			best = a
 	if best:
-		var front: Vector2 = actor.global_position + Vector2(actor.facing * 36, 0)
+		var front: Vector2 = actor.global_position + Vector2(actor.facing * 14, 0)
 		LightningFX.spawn(_world(), actor.body_center(), best.body_center(), _color(s), 1.5, false)
 		if not best.profile.get("boss", false):
 			best.global_position = actor._raycast_safe(best.global_position, front) if actor.has_method("_raycast_safe") else front

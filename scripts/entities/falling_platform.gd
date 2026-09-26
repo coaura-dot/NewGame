@@ -2,8 +2,6 @@ class_name FallingPlatform
 extends AnimatableBody2D
 ## Plataforma que treme e cai quando pisada; volta depois.
 
-const TEX := preload("res://assets/art/props/traps/falling_platform.png")
-
 var _origin: Vector2
 var _state: String = "idle"
 var _t: float = 0.0
@@ -16,9 +14,9 @@ func _ready() -> void:
 	collision_mask = 0
 	_shape = CollisionShape2D.new()
 	var r := RectangleShape2D.new()
-	r.size = Vector2(32, 6)
+	r.size = Vector2(16, 3)
 	_shape.shape = r
-	_shape.position = Vector2(0, 3)
+	_shape.position = Vector2(0, 1.5)
 	_shape.one_way_collision = true
 	add_child(_shape)
 	_origin = position
@@ -30,7 +28,7 @@ func _physics_process(delta: float) -> void:
 	match _state:
 		"idle":
 			var p := get_tree().get_first_node_in_group("player")
-			if p and p.is_on_floor() and absf(p.global_position.x - global_position.x) < 20.0 and absf(p.global_position.y - global_position.y) < 4.0:
+			if p and p.is_on_floor() and absf(p.global_position.x - global_position.x) < 10.0 and absf(p.global_position.y - global_position.y) < 3.0:
 				_state = "shaking"
 				_t = 0.0
 		"shaking":
@@ -39,7 +37,7 @@ func _physics_process(delta: float) -> void:
 				_state = "falling"
 				_vy = 0.0
 		"falling":
-			_vy += 900.0 * delta
+			_vy += 450.0 * delta
 			position.y += _vy * delta
 			if _t > 2.0:
 				_state = "gone"
@@ -51,9 +49,9 @@ func _physics_process(delta: float) -> void:
 				_shape.set_deferred("disabled", false)
 				visible = true
 				_state = "idle"
-				FX.burst(global_position, Color(1.2, 1.2, 1.2), 6, 60.0)
+	queue_redraw()
 
 
 func _draw() -> void:
-	var frame := int(_t * 12.0) % 4 if _state != "idle" else 0
-	draw_texture_rect_region(TEX, Rect2(-16, 0, 32, 10), Rect2(frame * 32, 0, 32, 10))
+	draw_rect(Rect2(-8, 0, 16, 3), Color(0.09, 0.07, 0.12))
+	draw_rect(Rect2(-7, 0, 14, 2), Color(0.8, 0.62, 0.4) if _state == "idle" else Color(1.0, 0.55, 0.4))

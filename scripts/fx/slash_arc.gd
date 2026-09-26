@@ -2,7 +2,7 @@ extends Node2D
 ## Arco de corte procedural (cores HDR > 1 geram bloom). Também desenha
 ## estocadas (thrust). Criado por FX.slash().
 
-const DURATION := 0.17
+const DURATION := 0.12
 
 var facing: int = 1
 var arc_deg: float = 150.0 ## sinal = sentido do corte
@@ -32,8 +32,8 @@ func _draw() -> void:
 	var c := Color(color.r, color.g, color.b, alpha)
 	if thrust:
 		var length := radius * (0.55 + 0.45 * minf(p * 4.0, 1.0))
-		var w := 4.0 * (1.0 - p)
-		draw_colored_polygon(PackedVector2Array([Vector2(-4, 0), Vector2(0, -w), Vector2(length, 0), Vector2(0, w)]), c)
+		var w := 1.5 * (1.0 - p)
+		draw_colored_polygon(PackedVector2Array([Vector2(-2, 0), Vector2(0, -w), Vector2(length, 0), Vector2(0, w)]), c)
 		draw_line(Vector2(0, 0), Vector2(length * 1.1, 0), Color(c.r, c.g, c.b, alpha * 0.5), 1.0)
 		return
 	var sweep := deg_to_rad(absf(arc_deg))
@@ -46,7 +46,7 @@ func _draw() -> void:
 	var n := 14
 	var outer := PackedVector2Array()
 	var inner := PackedVector2Array()
-	var max_w := clampf(radius * 0.28, 4.0, 16.0) * (1.0 - p * 0.6)
+	var max_w := clampf(radius * 0.3, 1.5, 5.0) * (1.0 - p * 0.6)
 	for i in range(n + 1):
 		var f := float(i) / n
 		var a := lerpf(a_tail, a_head, f)

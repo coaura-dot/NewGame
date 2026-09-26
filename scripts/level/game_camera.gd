@@ -4,7 +4,7 @@ extends Camera2D
 ## respeita os limites da fase e aplica o tremor de tela do FX.
 
 var target: Node2D = null
-var look_ahead: float = 36.0
+var look_ahead: float = 16.0
 var screen_velocity: Vector2 = Vector2.ZERO ## usado pelo motion blur
 var _look: Vector2 = Vector2.ZERO
 var _last_pos: Vector2 = Vector2.ZERO
@@ -23,7 +23,7 @@ func _ready() -> void:
 
 func snap() -> void:
 	if target:
-		_pos = target.global_position + Vector2(0, -30)
+		_pos = target.global_position + Vector2(0, -8)
 		global_position = _pos
 		reset_physics_interpolation()
 
@@ -32,11 +32,11 @@ func _physics_process(delta: float) -> void:
 	if target == null or not is_instance_valid(target):
 		return
 	var v: Vector2 = target.velocity if "velocity" in target else Vector2.ZERO
-	var want_look := Vector2(clampf(v.x * 0.22, -look_ahead, look_ahead), clampf(v.y * 0.08, -20.0, 36.0))
+	var want_look := Vector2(clampf(v.x * 0.2, -look_ahead, look_ahead), clampf(v.y * 0.06, -8.0, 16.0))
 	if "facing" in target and absf(v.x) < 30.0:
 		want_look.x = target.facing * look_ahead * 0.35
 	_look = _look.lerp(want_look, 1.0 - exp(-delta * 3.0))
-	var desired: Vector2 = target.global_position + Vector2(0, -30) + _look
+	var desired: Vector2 = target.global_position + Vector2(0, -8) + _look
 	_pos = _pos.lerp(desired, 1.0 - exp(-delta * 9.0))
 	global_position = _pos
 	offset = FX.shake_offset
