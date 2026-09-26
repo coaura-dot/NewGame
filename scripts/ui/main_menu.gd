@@ -62,7 +62,7 @@ func _show_main() -> void:
 	var t := UIKit.title("NEWGAME", 48)
 	t.add_theme_color_override("font_color", Color(1.0, 0.92, 0.75))
 	v.add_child(t)
-	v.add_child(UIKit.label("arcade de stages procedural — protótipo", 11, UIKit.INK, HORIZONTAL_ALIGNMENT_CENTER))
+	v.add_child(UIKit.label("arcade de stages procedural — v0.2 (320x180)", 11, UIKit.INK, HORIZONTAL_ALIGNMENT_CENTER))
 	var sp := Control.new()
 	sp.custom_minimum_size = Vector2(0, 8)
 	v.add_child(sp)

@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="NewGame"
+config/name="NewGame 320 (v0.2)"
 config/description="Arcade de stages procedural em pixel art 320x180: movimento estilo Celeste + combate estilo Hollow Knight/Katana Zero."
 run/main_scene="res://scenes/boot.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")

@@ -5,9 +5,9 @@ Arcade de stages procedural em pixel art **320x180**: movimento de **Celeste** +
 reputação e o Cerco final.
 
 ## Como abrir e jogar
-1. Baixe o projeto: no GitHub, repositório `coaura-dot/NewGame`, branch **`claude/awesome-cannon-s9w4t8`** → **Code → Download ZIP**.
+1. Baixe o ZIP direto: https://github.com/coaura-dot/NewGame/archive/refs/heads/claude/awesome-cannon-s9w4t8.zip e extraia numa pasta NOVA (não por cima da antiga).
 2. Godot 4.7 (4.4+ funciona): extraia o zip do Godot em `C:\Users\igo\Downloads\godot` e rode o `.exe` (não precisa instalar).
-3. No Project Manager: **Import** → `project.godot` desta pasta → **Import & Edit** → **F5**.
+3. No Project Manager: **Import** → `project.godot` da pasta nova → **Import & Edit** → **F5**. O projeto certo aparece como **"NewGame 320 (v0.2)"** e o menu mostra "v0.2 (320x180)". Se aparecer só "NewGame", é a versão antiga.
 4. No menu: **Treino** (fase fixa com tudo liberado) ou **Novo jogo** (mapa-múndi por seed).
 
 ## Controles (teclado)
