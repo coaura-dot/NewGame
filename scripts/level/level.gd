@@ -33,6 +33,8 @@ var timer_running: bool = true
 
 var _room_index_by_cell: Dictionary = {}
 var _room_enemies: Dictionary = {} ## room -> Array[Enemy]
+## Ondas das arenas: room -> Array[Array[Enemy]] (ainda fora da árvore)
+var _room_waves: Dictionary = {}
 var _room_gates: Dictionary = {} ## room -> Array[Gate]
 var _room_levers_pulled: Dictionary = {}
 var _current_room: int = -1
@@ -53,6 +55,7 @@ func _ready() -> void:
 	world = pixel_view.world
 	_build_world()
 	_spawn_entities()
+	_setup_waves()
 	_spawn_player()
 	_build_layers()
 	Events.player_died.connect(_on_player_died)
@@ -375,6 +378,9 @@ func _on_room_entered(idx: int) -> void:
 	var room: Dictionary = layout["rooms"][idx]
 	Events.room_entered.emit(room)
 	_update_room_spawn(idx)
+	# desafio (caminho da dor): qualquer espinho volta ao começo da sala
+	if player:
+		player.hazard_spawn_override = room_spawn if room.get("type", "") == "challenge" else Vector2.ZERO
 	if _cleared.has(idx):
 		return
 	var alive := _alive_enemies(idx)
@@ -423,10 +429,20 @@ func _update_room_spawn(idx: int) -> void:
 	room_spawn = Vector2((int(o[0]) + e.x) * T + T * 0.5, (int(o[1]) + e.y + 1) * T)
 
 
+func _exit_tree() -> void:
+	# inimigos de ondas que nunca entraram na árvore
+	for waves in _room_waves.values():
+		for wave in waves:
+			for en in wave:
+				if is_instance_valid(en) and not en.is_inside_tree():
+					en.free()
+	_room_waves.clear()
+
+
 func _alive_enemies(idx: int) -> int:
 	var n := 0
 	for en in _room_enemies.get(idx, []):
-		if is_instance_valid(en) and not en.dead:
+		if is_instance_valid(en) and not en.dead and en.is_inside_tree():
 			n += 1
 	return n
 
@@ -458,11 +474,60 @@ func on_enemy_killed(en: Node) -> void:
 		if hud and hud.has_method("hide_boss"):
 			hud.hide_boss()
 	var room: int = int(en.get_meta("room", -1))
+	if room >= 0 and _alive_enemies(room) == 0 and not _room_waves.get(room, []).is_empty():
+		_next_wave(room)
+		return
 	if room >= 0 and _alive_enemies(room) == 0 and room == _current_room:
 		_mark_cleared(room)
 	elif room >= 0 and _alive_enemies(room) == 0:
 		_cleared.erase(room)
 		_mark_cleared(room)
+
+
+## Arenas que fecham: os inimigos vêm em ondas (2 no tier 1, até 3 depois).
+func _setup_waves() -> void:
+	var tier: int = int(params.get("tier", 1))
+	for r in layout["rooms"]:
+		var idx: int = int(r["index"])
+		if r.get("type", "") != "combat" or not PackedStringArray(r.get("tags", [])).has("lock"):
+			continue
+		var list: Array = _room_enemies.get(idx, []).filter(func(e): return is_instance_valid(e) and e != boss_node)
+		if list.size() < 3:
+			continue
+		var n_waves := mini(1 + tier, 3) if list.size() >= 5 else 2
+		var per := int(ceil(float(list.size()) / n_waves))
+		var waves: Array = []
+		for w in range(1, n_waves):
+			var wave: Array = list.slice(w * per, (w + 1) * per)
+			if wave.is_empty():
+				continue
+			for en in wave:
+				en.get_parent().remove_child(en)
+			waves.append(wave)
+		if not waves.is_empty():
+			_room_waves[idx] = waves
+
+
+func _next_wave(room: int) -> void:
+	var wave: Array = _room_waves[room].pop_front()
+	if _room_waves[room].is_empty():
+		_room_waves.erase(room)
+	Events.toast.emit("Mais inimigos!")
+	FX.shake(0.15)
+	if player and player.emote:
+		player.emote.show_emote("!", 0.6, true)
+	var delay := 0.0
+	for en in wave:
+		delay += 0.18
+		var e: Enemy = en
+		get_tree().create_timer(0.35 + delay, false).timeout.connect(func():
+			if not is_inside_tree() or not is_instance_valid(e):
+				return
+			FX.burst(e.global_position + Vector2(0, -6), Color(2.0, 1.2, 2.4), 10, 70.0)
+			FX.hit_spark(e.global_position + Vector2(0, -6), Vector2.UP, Color(2.2, 1.4, 2.6), true)
+			entities.add_child(e)
+			e.invuln_time = 0.4
+			e.emote.show_emote("!", 0.6))
 
 
 func respawn_boss(id: String, pos: Vector2) -> void:

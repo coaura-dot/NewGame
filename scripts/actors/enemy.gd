@@ -173,6 +173,7 @@ func _actor_physics(d: float, raw: float) -> void:
 		"turret": _ai_turret(d)
 		"charger": _ai_charger(d)
 		"boss_demon": _ai_boss(d)
+		"diver": _ai_diver(d)
 		_: _ai_melee(d)
 	_gravity(d)
 	_move(d, raw)
@@ -520,6 +521,52 @@ func _ai_charger(d: float) -> void:
 			_anim("idle")
 			if ai_t <= 0.0:
 				ai_state = "chase"
+
+
+## Mergulhador (estilo Vengefly): persegue pelo ar, telegrafa e dá um rasante
+## em linha reta na direção do herói. Ótimo alvo de pogo no meio do parkour.
+func _ai_diver(d: float) -> void:
+	_bob += d * 3.0
+	var valid := _target_valid()
+	match ai_state:
+		"spawn", "idle", "patrol":
+			var hover := home + Vector2(sin(_bob * 0.5) * 10.0, sin(_bob) * 3.0)
+			velocity = velocity.move_toward((hover - global_position).limit_length(1.0) * speed * 0.5, 200.0 * d)
+			_anim("idle")
+			if valid:
+				ai_state = "chase"
+		"chase":
+			if not valid:
+				ai_state = "patrol"
+				return
+			_face_target()
+			var want: Vector2 = target.body_center() + Vector2(-facing * 18.0, -22.0 + sin(_bob) * 4.0)
+			var to := want - global_position
+			velocity = velocity.move_toward(to.limit_length(1.0) * speed * 1.4, 260.0 * d)
+			if to.length() < 14.0 and ai_t <= 0.0:
+				ai_state = "windup"
+				ai_t = _windup_time() * 0.8
+				_telegraph()
+				emote.show_emote("!", ai_t)
+		"windup":
+			velocity = velocity.move_toward(Vector2.ZERO, 400.0 * d)
+			# recua um pouquinho antes do bote
+			global_position += Vector2(0, -8.0 * d)
+			if ai_t <= 0.0:
+				var dir: Vector2 = (target.body_center() - global_position).normalized() if target else Vector2(facing, 0.5)
+				velocity = dir * 190.0
+				ai_state = "dive"
+				ai_t = 0.45
+				Audio.play("dash", 0.1, -10.0, 1.3)
+		"dive":
+			if ai_t <= 0.0 or test_move(global_transform, velocity.normalized() * 2.0):
+				ai_state = "recover"
+				ai_t = rng.randf_range(0.6, 0.9)
+		"recover":
+			velocity = velocity.move_toward(Vector2(0, -30.0), 300.0 * d)
+			if ai_t <= 0.0:
+				ai_state = "chase"
+				ai_t = rng.randf_range(0.2, 0.6)
 
 
 func _check_phase() -> void:

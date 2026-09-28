@@ -162,3 +162,48 @@ func test_plataforma_movel_carrega() -> void:
 	check(p.grounded(), "herói continua em cima da plataforma")
 	check(absf(moved - pm) <= 1.0 and pm > 10.0, "herói anda junto com a plataforma")
 	await _teardown()
+
+
+func test_mergulhador_da_rasante() -> void:
+	var p := await _setup()
+	p.invuln_time = 99.0
+	var en := Enemy.new()
+	en.setup("fire_skull", 1)
+	en.position = p.global_position + Vector2(50, -30)
+	_root.add_child(en)
+	var states := {}
+	for i in 360:
+		await _frames(1)
+		states[en.ai_state] = true
+	print("    estados do mergulhador: %s" % str(states.keys()))
+	check(states.has("chase"), "mergulhador persegue")
+	check(states.has("dive"), "mergulhador dá o rasante")
+	await _teardown()
+
+
+func test_pogo_nos_espinhos() -> void:
+	var p := await _setup()
+	var hz := Hazard.new()
+	hz.add_rect(Rect2(-8, -5, 16, 5))
+	hz.position = p.global_position
+	_root.add_child(hz)
+	p.invuln_time = 99.0
+	p.global_position += Vector2(0, -24)
+	p._prev_pos = p.global_position
+	p.on_ground = false
+	p.dashes = 0
+	Input.action_press("move_down")
+	var bounced := false
+	for i in 60:
+		await _frames(1)
+		if i == 8:
+			Input.action_press("attack")
+		if i == 10:
+			Input.action_release("attack")
+		if p.velocity.y < -100.0:
+			bounced = true
+			break
+	Input.action_release("move_down")
+	check(bounced, "golpe para baixo quica nos espinhos")
+	check(p.dashes >= 1, "pogo recarrega o dash")
+	await _teardown()

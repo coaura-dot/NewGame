@@ -114,3 +114,35 @@ func test_regiao_real() -> void:
 	Game.has_game = had
 	Game.slot = old_slot
 	FX.clear_time_effects()
+
+
+func test_ondas_da_arena() -> void:
+	Game.pending = {"training": true}
+	var level: Node = load("res://scenes/level.tscn").instantiate()
+	tree.root.add_child(level)
+	await _frames(10)
+	check(not level._room_waves.is_empty(), "treino tem arena com ondas")
+	if level._room_waves.is_empty():
+		level.queue_free()
+		await _frames(2)
+		Game.end_training()
+		return
+	var room: int = level._room_waves.keys()[0]
+	var waves_before: int = level._room_waves[room].size()
+	level.player.invuln_time = 99.0
+	for en in level._room_enemies[room]:
+		if is_instance_valid(en) and en.is_inside_tree() and not en.dead:
+			var info := DamageInfo.new()
+			en.hp = 0.0
+			en._die(info)
+	await _frames(240)
+	var alive := 0
+	for en in level._room_enemies[room]:
+		if is_instance_valid(en) and en.is_inside_tree() and not en.dead:
+			alive += 1
+	check(alive > 0, "a próxima onda entra quando a anterior cai")
+	check(level._room_waves.get(room, []).size() < waves_before, "consumiu uma onda")
+	level.queue_free()
+	await _frames(2)
+	Game.end_training()
+	FX.clear_time_effects()

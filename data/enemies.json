@@ -278,8 +278,8 @@
     "sprite": "fire_skull",
     "tier": 1,
     "hp": 16,
-    "speed": 44,
-    "ai": "caster",
+    "speed": 70,
+    "ai": "diver",
     "flying": true,
     "scale": 1.0,
     "body": [

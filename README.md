@@ -45,8 +45,28 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
   números de dano (desligado por padrão), partículas de ambiente, câmera suave, escala inteira.
 - HUD em pixel art: máscaras de vida, orbe de foco, dashes, brasas, magias, barra de chefe.
 
+## Sessão 3 — parkour frenético + combate no meio do parkour
+- **Salas geradas por "batidas" de parkour** (`scripts/level/room_synth.gd`): pulinhos entre pilares, salto longo
+  correndo, cadeia de **Orbes de Impulso**, vão de **cristal de dash**, **plataformas que desabam**, **plataforma móvel**,
+  corredor de **serra**, **chaminé** de salto de parede, **escalada** e **mergulho** — seguindo um perfil de altura
+  (morro, vale, subida, descida, zigue-zague) com teto de caverna acompanhando o caminho. Inimigos ficam nas ilhas
+  do percurso e voadores sobre os fossos (alvos de pogo).
+- **Arenas**: suspensa sobre espinhos (ilhas + orbes), torre de andares e chão; salas de combate fecham e mandam
+  **ondas** de inimigos.
+- **Validador de travessia** (`scripts/level/room_reach.gd`): toda sala é conferida com o pulo/dash REAIS do herói
+  (medidos no motor por `tests/test_movimento.gd`: pulo 28 px, 8 tiles correndo, super a 260 px/s), entendendo orbes,
+  cristais, molas, chaminés e plataformas móveis. Sala que não passa é refeita.
+- **Mecânicas**: Orbe de Impulso (golpeie para quicar ~4 tiles e recarregar dash/pulo; dash atravessando recarrega),
+  **pogo em espinhos e serras**, **hit-stall** (acertar no ar segura a queda, até 3x por salto — combos aéreos),
+  golpe deslizando na parede sai para fora dela, **crânio mergulhador** que persegue e dá rasantes.
+- **Perfeccionismo**: morrer volta para a entrada da sala em <1 s; nas salas de desafio, qualquer espinho volta ao
+  começo da sala; cada fase mede **tempo, mortes e golpes sofridos** e dá **nota S/A/B/C**; cronômetro opcional
+  (Opções > Jogabilidade).
+- Ferramentas: `tools/room_sheet.gd` (prancha de salas geradas), `tools/level_map.gd` (mapa da fase),
+  `tools/screenshot.gd -- <prefixo> salas` (print de cada sala do treino).
+
 ## Testes
-`godot --headless --path . res://tests/test_runner.tscn` — 4416 verificações (dados, balanceamento, mundo, fases,
+`godot --headless --path . res://tests/test_runner.tscn` — 5500+ verificações (dados, balanceamento, mundo, fases,
 combate, sigilos, inventário, social, save e um teste que joga o treino: anda, pula, dash, ataca, magia, aparo).
 Prints do jogo rodando: `godot --path . --script tools/screenshot.gd -- <prefixo> [treino|menu]`.
 

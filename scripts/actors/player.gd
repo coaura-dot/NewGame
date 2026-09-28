@@ -171,6 +171,8 @@ var echo_mult := 0.6
 var echo_time := 0.0
 var sigil_points: PackedVector2Array = []
 var last_safe_pos := Vector2.ZERO
+## Em salas de desafio a fase define isto: tocar espinho volta ao início da sala.
+var hazard_spawn_override := Vector2.ZERO
 var _safe_t := 0.0
 var _history: Array = [] ## [pos, hp]
 var _history_t := 0.0
@@ -229,6 +231,11 @@ func _ready() -> void:
 	add_child(attack)
 	attack.landed.connect(_on_attack_landed)
 	attack.activated.connect(_on_attack_activated)
+	# pogo em espinhos e serras (Hollow Knight): golpe para baixo quica neles
+	attack.hitbox.pogo_surface.connect(func(_at: Vector2):
+		if not on_ground:
+			_pogo()
+			FX.hit_spark(global_position + Vector2(0, 6), Vector2.UP, Color(2.4, 2.4, 2.8)))
 	caster = SpellCaster.new(self)
 	add_child(caster)
 	buffs = BuffSystem.new(self)
@@ -1010,6 +1017,9 @@ func _start_light() -> void:
 		combo_index += 1
 	if input_x != 0.0:
 		facing = int(input_x)
+	# deslizando na parede: o golpe sai para longe dela (Hollow Knight)
+	if wall_dir != 0 and not on_ground and kind in ["air", "light"]:
+		facing = -wall_dir
 	attack.cancel()
 	attack.start(step, kind, facing)
 	combo_timer = COMBO_TIMEOUT
@@ -1415,7 +1425,8 @@ func _hazard_respawn() -> void:
 	var tw := create_tween()
 	tw.tween_property(rig, "modulate:a", 0.0, 0.12)
 	tw.tween_callback(func():
-		global_position = last_safe_pos.round()
+		var back := hazard_spawn_override if hazard_spawn_override != Vector2.ZERO else last_safe_pos
+		global_position = back.round()
 		_prev_pos = global_position
 		_rem = Vector2.ZERO
 		reset_physics_interpolation()
