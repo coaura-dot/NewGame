@@ -56,7 +56,7 @@ const DEFAULT_BINDINGS := {
 	"move_down": ["k:S", "k:Down", "ja:1:1", "jb:12"],
 	"jump": ["k:Space", "k:C", "jb:0"],
 	"dash": ["k:Shift", "k:X", "jb:1"],
-	"attack": ["k:J", "m:1", "jb:2"],
+	"attack": ["k:J", "k:Z", "m:1", "jb:2"],
 	"heavy": ["k:K", "m:2", "jb:3"],
 	"parry": ["k:L", "k:F", "jb:9"],
 	"dodge": ["k:Ctrl", "k:V", "jb:10"],

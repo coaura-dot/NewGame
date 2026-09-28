@@ -798,15 +798,40 @@ static func _hub(g: Array, _rng: RandomNumberGenerator, exits: String) -> void:
 	put(g, W - 9, 8, "L")
 
 
-static func _boss(g: Array, _rng: RandomNumberGenerator, exits: String) -> void:
-	_ledge(g, 6, FLOOR - 5, 6, false)
-	_ledge(g, W - 12, FLOOR - 5, 6, false)
-	if not exits.contains("U"):
-		_ledge(g, 16, FLOOR - 10, 8, false)
-	put(g, 26, FLOOR - 4, "M")
+static func _boss(g: Array, rng: RandomNumberGenerator, exits: String) -> void:
+	var roll := rng.randf()
+	if roll < 0.4:
+		# chefe de parkour: arena sobre espinhos, ilhas largas e orbes para
+		# alcançar o chefe no ar
+		var res := _reserved(exits)
+		_pit(g, res, 5, W - 6)
+		var xs := [5, 15, 25]
+		for i in xs.size():
+			var x0: int = xs[i]
+			var top := FLOOR - (2 if i % 2 == 0 else 5)
+			if not _hits(res, x0, x0 + 6):
+				fill(g, x0, top, x0 + 6, top + 1, "#")
+		for ox in [12, 22, 32]:
+			put(g, ox, FLOOR - 9, "I")
+	elif roll < 0.7:
+		# torre: andares para lutar em vários níveis
+		_ledge(g, 4, FLOOR - 5, 10, false)
+		_ledge(g, W - 14, FLOOR - 5, 10, false)
+		if not exits.contains("U"):
+			_ledge(g, 14, FLOOR - 10, 12, false)
+		put(g, 8, FLOOR - 12, "I")
+		put(g, W - 9, FLOOR - 12, "I")
+	else:
+		# chão clássico com duas plataformas
+		_ledge(g, 6, FLOOR - 5, 6, false)
+		_ledge(g, W - 12, FLOOR - 5, 6, false)
+		if not exits.contains("U"):
+			_ledge(g, 16, FLOOR - 10, 8, false)
+	put(g, 26, FLOOR - 6, "M")
 	put(g, 0, LevelConst.EXIT_LR_ROWS[0], "G")
 	put(g, W - 1, LevelConst.EXIT_LR_ROWS[0], "G")
-	_put_on_floor(g, 10, "A")
+	if not _put_on_floor(g, 3, "A"):
+		_put_on_floor(g, W - 4, "A")
 
 
 # ---------------------------------------------------------------------------

@@ -397,6 +397,18 @@ func _actor_physics(d: float, raw: float) -> void:
 		_move(d)
 		_after_move(d)
 	_animate(d)
+	_speed_trail(d)
+
+
+## Rastro quando o herói está muito rápido (super, hyper, quiques) — mostra o embalo.
+func _speed_trail(d: float) -> void:
+	if state == State.DASH or state == State.DODGE:
+		return
+	if absf(velocity.x) > MAX_RUN * 1.6 or _vy() < -JUMP_SPEED * 1.4:
+		_after_t -= d
+		if _after_t <= 0.0:
+			_after_t = 0.05
+			_ghost(Color(1.2, 1.2, 1.8, 0.45), 0.16)
 
 
 func _read_input() -> void:

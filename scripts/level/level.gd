@@ -451,10 +451,21 @@ func _mark_cleared(idx: int) -> void:
 	if _cleared.has(idx):
 		return
 	_cleared[idx] = true
+	var had_fight := false
 	for g in _room_gates.get(idx, []):
 		if g.mode == "combat":
+			if g.closed:
+				had_fight = true
 			g.set_closed(false)
 	Events.room_cleared.emit(layout["rooms"][idx])
+	# sala limpa: respiro em câmera lenta, recompensa pequena e comemoração
+	if had_fight and player and not player.dead:
+		FX.slowmo(0.35, 0.45)
+		player.gain_focus(15.0)
+		player.refill_dash()
+		player.emote.show_emote("spark", 0.9, true)
+		player.rig.set_expression("happy", 0.9)
+		Audio.play("confirmation", 0.0, -6.0)
 
 
 func on_enemy_killed(en: Node) -> void:
