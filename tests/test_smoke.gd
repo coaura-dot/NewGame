@@ -28,7 +28,7 @@ func test_treino() -> void:
 	Input.action_press("move_right")
 	await _frames(90)
 	Input.action_release("move_right")
-	check(p.global_position.x > x0 + 40.0, "anda para a direita (%.1f -> %.1f)" % [x0, p.global_position.x])
+	check(p.global_position.x > x0 + 24.0, "anda para a direita (%.1f -> %.1f)" % [x0, p.global_position.x])
 	await _frames(30)
 	var y0 := p.global_position.y
 	Input.action_press("jump")

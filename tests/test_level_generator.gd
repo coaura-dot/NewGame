@@ -74,3 +74,50 @@ func test_sintetizador_cobre_todas_saidas() -> void:
 					"R": check(rows[18][LevelConst.ROOM_W - 1] != "#", "synth %s %s saída R" % [t, ex])
 					"U": check(rows[0][19] != "#", "synth %s %s saída U" % [t, ex])
 					"D": check(rows[22][19] != "#", "synth %s %s saída D" % [t, ex])
+
+
+func test_salas_atravessaveis() -> void:
+	# toda sala gerada deve ser atravessável com o pulo/dash reais do herói
+	var rng := RngUtil.make(11, "reach")
+	var combos := ["LR", "LU", "LD", "RU", "RD", "UD", "LRU", "LRD", "LUD", "RUD", "LRUD"]
+	for t in ["combat", "platforming", "challenge", "corridor", "puzzle", "treasure", "entrance", "exit", "hub", "boss", "shaft"]:
+		for ex in combos:
+			for k in 2:
+				var rows := RoomSynth.synth(t, ex, rng, {"tier": 2})
+				var mode := "dash" if t in RoomSynth.DASH_TYPES else "jump"
+				var err := RoomReach.check_rows(rows, ex, mode)
+				check(err == "", "synth %s %s: %s" % [t, ex, err])
+
+
+func test_fases_atravessaveis() -> void:
+	# cada sala de fases completas liga todas as suas saídas
+	var biomes := DB.biomes.keys()
+	for i in 12:
+		var params := {"seed": 500 + i * 7, "biome": biomes[i % biomes.size()], "tier": 1 + i % 3,
+			"boss": "nightmare" if i % 3 == 0 else "", "hub": "vila" if i % 4 == 0 else "", "npcs": ["a"], "abilities": ["dash"]}
+		var L := LevelGenerator.generate(params, lib, DB)
+		var rows: PackedStringArray = L["rows"]
+		for r in L["rooms"]:
+			var o: Array = r["origin"]
+			var g := []
+			for y in LevelConst.ROOM_H:
+				var row := []
+				for x in LevelConst.ROOM_W:
+					var c: String = rows[int(o[1]) + y][int(o[0]) + x]
+					row.append("." if c == "B" else c) # parede secreta conta como passagem
+				g.append(row)
+			var mode := "dash" if r["type"] in RoomSynth.DASH_TYPES else "jump"
+			var err := RoomReach.check_room(g, r["exits"], mode)
+			check(err == "", "seed %d sala %d (%s, %s): %s" % [params["seed"], r["index"], r["type"], r.get("template", "?"), err])
+
+
+func test_validador_reconhece_sala_impossivel() -> void:
+	# parede de 8 tiles no meio: só com pulo não passa
+	var g := RoomSynth.blank()
+	RoomSynth.frame(g, "LR")
+	RoomSynth.fill(g, 19, 12, 20, LevelConst.FLOOR_ROW - 1, "#")
+	check(RoomReach.check_room(g, "LR", "jump") != "", "parede alta bloqueia")
+	var g2 := RoomSynth.blank()
+	RoomSynth.frame(g2, "LR")
+	RoomSynth.fill(g2, 19, LevelConst.FLOOR_ROW - 2, 20, LevelConst.FLOOR_ROW - 1, "#")
+	check(RoomReach.check_room(g2, "LR", "jump") == "", "degrau de 2 tiles passa")

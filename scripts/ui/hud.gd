@@ -15,6 +15,7 @@ var _hp_ghost: float = 1.0
 var _panel: Control = null
 var _region_title_t: float = 0.0
 var _region_title: String = ""
+var _weapon_t: float = 4.0
 
 
 func _ready() -> void:
@@ -46,6 +47,7 @@ func _ready() -> void:
 		_combo = c)
 	Events.dialogue_requested.connect(open_dialogue)
 	Events.player_spawned.connect(func(p): player = p)
+	Events.player_equipment_changed.connect(func(): _weapon_t = 3.0)
 	if level:
 		player = level.player
 		_region_title = level.region.get("name", "")
@@ -57,6 +59,7 @@ func _process(delta: float) -> void:
 		player = level.player
 	_combo_pop = maxf(_combo_pop - delta * 4.0, 0.0)
 	_region_title_t = maxf(_region_title_t - delta, 0.0)
+	_weapon_t = maxf(_weapon_t - delta, 0.0)
 	if player:
 		var ratio: float = player.hp / maxf(player.max_hp(), 1.0)
 		_hp_ghost = move_toward(_hp_ghost, ratio, delta * 0.5) if _hp_ghost > ratio else ratio
@@ -176,55 +179,61 @@ func _draw_hud() -> void:
 		sx += 6.0
 	if player.ward_charges > 0:
 		_text(Vector2(sx + 2, 26), "Égide x%d" % player.ward_charges, 8, Color(1.0, 0.9, 0.6))
-	# brasas (canto superior direito)
+	# poções: número pequeno junto do orbe
+	var potions := int(Game.profile.get("items", {}).get("pocao_vida", 0))
+	if potions > 0:
+		d.draw_rect(Rect2(3, 22, 3, 4), INK)
+		d.draw_rect(Rect2(4, 23, 1, 2), Color(0.95, 0.35, 0.5))
+		_text(Vector2(8, 27), "%d" % potions, 8, Color(1.0, 0.7, 0.8))
+	# canto superior direito: brasas e, embaixo, as magias (nada cobre o chão)
 	var cur := str(int(Game.profile.get("currency", 0)))
 	var cw := SMALL.get_string_size(cur, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-	d.draw_rect(Rect2(308 - cw - 8, 6, 5, 5), INK)
-	d.draw_rect(Rect2(308 - cw - 7, 7, 3, 3), Color(1.9, 1.3, 0.35))
-	_text(Vector2(310 - cw, 11), cur, 8, Color(1.0, 0.85, 0.5))
-	# arma e magias (canto inferior esquerdo)
+	d.draw_rect(Rect2(308 - cw - 8, 5, 5, 5), INK)
+	d.draw_rect(Rect2(308 - cw - 7, 6, 3, 3), Color(1.9, 1.3, 0.35))
+	_text(Vector2(310 - cw, 10), cur, 8, Color(1.0, 0.85, 0.5))
 	var slots: Array = Game.profile.get("spell_slots", [])
 	var keys := [Settings.binding_label("spell_1"), Settings.binding_label("spell_2")]
 	for i in slots.size():
 		var sid: String = slots[i]
-		var x := 6.0 + i * 20.0
-		d.draw_rect(Rect2(x - 1, 157, 18, 18), INK)
-		d.draw_rect(Rect2(x, 158, 16, 16), Color(0.16, 0.14, 0.24))
+		var x := 314.0 - (slots.size() - i) * 19.0
+		var y := 14.0
+		d.draw_rect(Rect2(x - 1, y - 1, 18, 18), INK)
+		d.draw_rect(Rect2(x, y, 16, 16), Color(0.16, 0.14, 0.24))
 		var ic := DB.icon(sid)
 		if ic:
-			d.draw_texture(ic, Vector2(x, 158))
+			d.draw_texture(ic, Vector2(x, y))
 		var cd: float = player.caster.cooldown_left(sid)
 		var total: float = float(DB.spell(sid).get("cooldown", 1.0))
 		if cd > 0.0:
 			var k := cd / maxf(total, 0.01)
-			d.draw_rect(Rect2(x, 158 + roundf(16 * (1.0 - k)), 16, roundf(16 * k)), Color(0, 0, 0, 0.6))
+			d.draw_rect(Rect2(x, y + roundf(16 * (1.0 - k)), 16, roundf(16 * k)), Color(0, 0, 0, 0.6))
 		var lvl := Inventory.spell_level(Game.profile, sid)
 		if player.focus < player.caster.cost_of(sid, lvl):
-			d.draw_rect(Rect2(x, 158, 16, 16), Color(0.1, 0.1, 0.35, 0.5))
-		_text(Vector2(x + 11, 156), keys[i] if i < keys.size() else "", 8, Color(1.0, 0.85, 0.5))
-	var info_x := 8.0 + slots.size() * 20.0
-	_text(Vector2(info_x, 166), DB.display_name(player.weapon_id), 8, Color(0.85, 0.82, 0.9))
-	var potions := int(Game.profile.get("items", {}).get("pocao_vida", 0))
-	if potions > 0:
-		_text(Vector2(info_x, 175), "%s poção x%d" % [Settings.binding_label("heal"), potions], 8, Color(1.0, 0.6, 0.7))
+			d.draw_rect(Rect2(x, y, 16, 16), Color(0.1, 0.1, 0.35, 0.5))
+		_text(Vector2(x + 1, y + 23), keys[i] if i < keys.size() else "", 8, Color(1.0, 0.85, 0.5))
+	# nome da arma: aparece só por alguns segundos ao trocar/entrar
+	if _weapon_t > 0.0:
+		var wn := DB.display_name(player.weapon_id)
+		var ww := SMALL.get_string_size(wn, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		_text(Vector2(314 - ww, 46), wn, 8, Color(0.9, 0.88, 0.95, minf(_weapon_t, 1.0)))
 	# combo
 	if _combo >= 3:
 		var col := Color(1.0, 0.85, 0.35) if _combo >= 10 else Color(0.96, 0.94, 0.9)
-		_text(Vector2(292, 30 - roundf(_combo_pop * 2.0)), "x%d" % _combo, 8, col)
+		_text(Vector2(24, 36 - roundf(_combo_pop * 2.0)), "x%d" % _combo, 8, col)
 		if player.rhythm_stacks > 0:
-			_text(Vector2(292, 40), "♪%d" % player.rhythm_stacks, 8, Color(0.8, 0.6, 1.0))
-	# chefe
+			_text(Vector2(40, 36), "♪%d" % player.rhythm_stacks, 8, Color(0.8, 0.6, 1.0))
+	# chefe: nome e barra no topo central
 	if boss and is_instance_valid(boss) and not boss.dead:
 		var br: float = boss.hp / maxf(boss.max_hp(), 1.0)
 		var bn: String = boss.data.get("name", "Chefe")
 		var bw := SMALL.get_string_size(bn, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-		_text(Vector2(160 - roundf(bw * 0.5), 164), bn, 8, Color(1.0, 0.7, 0.55))
-		_bar(Rect2(90, 168, 140, 3), br, Color(0.9, 0.3, 0.25))
+		_text(Vector2(160 - roundf(bw * 0.5), 10), bn, 8, Color(1.0, 0.7, 0.55))
+		_bar(Rect2(100, 13, 120, 2), br, Color(0.9, 0.3, 0.25))
 	# título da região
 	if _region_title_t > 0.0 and _region_title != "":
 		var a := minf(_region_title_t, 1.0) * minf((3.5 - _region_title_t) * 2.0, 1.0)
 		var w := SMALL.get_string_size(_region_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
-		var pos := Vector2(roundf(160 - w * 0.5), 44)
+		var pos := Vector2(roundf(160 - w * 0.5), 62)
 		for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(0, 2)]:
 			d.draw_string(SMALL, pos + o, _region_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(INK.r, INK.g, INK.b, a))
 		d.draw_string(SMALL, pos, _region_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.93, 0.8, a))

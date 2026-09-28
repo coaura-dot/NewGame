@@ -147,21 +147,28 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 		var room: Dictionary = rooms[cell]
 		var entry := _entry_dir(room, connections, rooms)
 		var tpl := _choose_template(library, room["type"], room["exits"], biome_id, rng)
-		var g: Array
-		if tpl.is_empty():
-			g = RoomSynth.from_rows(RoomSynth.synth(room["type"], room["exits"], rng,
-				{"tier": tier, "entry": entry, "indoor": indoor}))
-			room["template"] = "synth:" + room["type"]
-		else:
+		var g: Array = []
+		if not tpl.is_empty():
 			g = RoomSynth.from_rows(tpl["rows"])
-			room["template"] = tpl["id"]
-			room["tags"] = tpl["tags"]
 			for e in tpl["exits"]:
 				if not room["exits"].contains(e):
 					RoomSynth.seal_exit(g, e)
-		# saída para cima sem escada no template? adiciona
-		if room["exits"].contains("U") and tpl.is_empty() == false and not tpl["exits"].contains("U"):
-			RoomSynth.ladder(g, rng)
+			# saída para cima sem escada no template? adiciona
+			if room["exits"].contains("U") and not tpl["exits"].contains("U"):
+				RoomSynth.ladder(g, rng)
+			# template feito para a escala antiga: só vale se o herói atravessa
+			var mode := "dash" if room["type"] in RoomSynth.DASH_TYPES else "jump"
+			if room["exits"].length() >= 2 and RoomReach.check_room(g, room["exits"], mode) != "":
+				g = []
+			else:
+				room["template"] = tpl["id"]
+				room["tags"] = tpl["tags"]
+		if g.is_empty():
+			g = RoomSynth.from_rows(RoomSynth.synth(room["type"], room["exits"], rng,
+				{"tier": tier, "entry": entry, "indoor": indoor}))
+			room["template"] = "synth:" + room["type"]
+			if room["type"] == "combat":
+				room["tags"] = PackedStringArray(["lock"])
 		# conexões especiais do lado desta sala (a sala-âncora do ramo)
 		var gate_conns := {}
 		for c in connections:
@@ -324,8 +331,8 @@ static func _choose_template(library: ChunkLibrary, t: String, exits: String, bi
 	var found := library.find(t, exits, biome)
 	if found.is_empty():
 		return {}
-	# 35% das vezes usa o sintetizador mesmo havendo template (variedade)
-	if t in ["combat", "corridor", "platforming", "shaft"] and rng.randf() < 0.35:
+	# o sintetizador (escala 8 px) é o principal; templates entram às vezes
+	if t in ["combat", "corridor", "platforming", "shaft", "challenge"] and rng.randf() < 0.7:
 		return {}
 	return RngUtil.weighted_item(rng, found)
 

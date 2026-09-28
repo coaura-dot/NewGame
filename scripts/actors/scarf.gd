@@ -4,7 +4,7 @@ extends Node2D
 ## disponíveis, como o cabelo da Madeline em Celeste:
 ##   vermelho = 1 dash, azul = sem dash, rosa = 2+ dashes.
 
-const COUNT := 6
+const COUNT := 7
 const SEG := 2.4
 const COL_ONE := Color(0.88, 0.28, 0.3)
 const COL_NONE := Color(0.31, 0.62, 0.92)
@@ -68,12 +68,13 @@ func _draw() -> void:
 	if _pts.size() < 2 or host == null or not host.visible or not host.scarf_visible():
 		return
 	var c := color.lerp(Color(2.0, 2.0, 2.0), flash)
-	var dark := Color(c.r * 0.7, c.g * 0.7, c.b * 0.7)
+	var dark := Color(c.r * 0.72, c.g * 0.72, c.b * 0.72)
+	# 2 px de espessura (legível na tela 320x180), ponta afinando
 	for i in range(COUNT - 1):
 		var a := _pts[i].round()
 		var b := _pts[i + 1].round()
-		draw_line(a, b, c if i < COUNT - 2 else dark, 1.0)
-		if i < 3:
-			draw_line(a + Vector2(0, 1), b + Vector2(0, 1), dark if i > 0 else c, 1.0)
+		draw_line(a, b, c, 1.0)
+		if i < COUNT - 2:
+			draw_line(a + Vector2(0, 1), b + Vector2(0, 1), dark, 1.0)
 	var tip := _pts[COUNT - 1].round()
 	draw_rect(Rect2(tip, Vector2(1, 1)), dark)
