@@ -391,6 +391,7 @@ func _on_room_entered(idx: int) -> void:
 	# desafio (caminho da dor): qualquer espinho volta ao começo da sala
 	if player:
 		player.hazard_spawn_override = room_spawn if room.get("type", "") == "challenge" else Vector2.ZERO
+	_hints_for_room(idx)
 	if _cleared.has(idx):
 		return
 	var alive := _alive_enemies(idx)
@@ -405,6 +406,40 @@ func _on_room_entered(idx: int) -> void:
 			player.emote.show_emote("!", 0.8)
 	else:
 		_mark_cleared(idx)
+
+
+const HINTS := {
+	"impulse_orb": "Golpeie o ORBE DOURADO para quicar — recarrega dash e pulo!",
+	"dash_crystal": "Toque no CRISTAL no ar para recuperar o dash.",
+	"falling_platform": "Tábuas frágeis desabam: não pare em cima delas!",
+	"moving_platform": "Suba na plataforma móvel — ela te leva junto.",
+	"challenge": "Caminho da dor: tocar em espinho volta ao começo da sala.",
+	"pogo": "Golpe para baixo no ar QUICA em espinhos e inimigos.",
+	"waves": "Arena fechada: derrote todas as ondas para abrir.",
+}
+
+
+## Dicas de primeira vez (salvas no perfil: aparecem uma vez só).
+func _hints_for_room(idx: int) -> void:
+	var flags: Dictionary = Game.profile.get("flags", {})
+	var seen: Dictionary = flags.get("hints", {})
+	var room: Dictionary = layout["rooms"][idx]
+	var want: Array = []
+	for e in layout["entities"]:
+		if int(e.get("room", -1)) == idx and HINTS.has(e["type"]):
+			want.append(e["type"])
+	if room.get("type", "") == "challenge":
+		want.append("challenge")
+		want.append("pogo")
+	if _room_waves.has(idx):
+		want.append("waves")
+	for k in want:
+		if not seen.has(k):
+			seen[k] = true
+			Events.toast.emit(HINTS[k])
+			break
+	flags["hints"] = seen
+	Game.profile["flags"] = flags
 
 
 ## Acha um chão firme perto da porta por onde o herói entrou na sala.

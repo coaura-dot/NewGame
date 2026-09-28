@@ -14,7 +14,7 @@ reputação e o Cerco final.
 | Ação | Tecla | Ação | Tecla |
 |---|---|---|---|
 | Mover | A/D ou setas | Pular (segure = mais alto) | Espaço / C |
-| Dash (8 direções) | Shift / X | Golpe (↑ = pra cima, ↓ no ar = pogo) | J / mouse esq. |
+| Dash (8 direções) | Shift / X | Golpe (↑ = pra cima, ↓ no ar = pogo) | J / Z / mouse esq. |
 | Pesado (segure = arte da lâmina) | K / mouse dir. | Aparar/Bloquear | L / F |
 | Esquiva (invencível) | Ctrl / V | Magias | Q / E |
 | Sigilo (segure e desenhe com o mouse) | R / mouse meio | Foco: segure = cura / toque = poção | H |

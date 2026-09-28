@@ -35,8 +35,8 @@ func _ready() -> void:
 	_root.theme = UIKit.theme()
 	add_child(_root)
 	_toasts = UIKit.vbox(2)
-	_toasts.position = Vector2(140, 44)
-	_toasts.size = Vector2(200, 100)
+	_toasts.position = Vector2(90, 44)
+	_toasts.size = Vector2(300, 100)
 	_toasts.alignment = BoxContainer.ALIGNMENT_BEGIN
 	_toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_toasts)
@@ -70,7 +70,8 @@ func toast(text: String) -> void:
 	if text == "":
 		return
 	var l := UIKit.label(text, 12, UIKit.INK, HORIZONTAL_ALIGNMENT_CENTER)
-	l.custom_minimum_size = Vector2(200, 0)
+	l.custom_minimum_size = Vector2(300, 0)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD
 	l.add_theme_color_override("font_outline_color", Color(0.05, 0.02, 0.08))
 	l.add_theme_constant_override("outline_size", 3)
 	_toasts.add_child(l)

@@ -46,6 +46,17 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_t += delta
+	# brasas voam até o herói quando ele passa perto (não quebra o ritmo)
+	if currency > 0 and _t > 0.35:
+		var p := get_tree().get_first_node_in_group("player")
+		if p and not p.dead:
+			var to: Vector2 = p.body_center() - global_position
+			if to.length() < 44.0:
+				velocity = velocity.lerp(to.normalized() * 220.0, 1.0 - exp(-delta * 10.0))
+				global_position += velocity * delta
+				_grounded = true
+				queue_redraw()
+				return
 	if not _grounded:
 		velocity.y += 420.0 * delta
 		var space := get_world_2d().direct_space_state
