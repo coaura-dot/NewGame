@@ -83,7 +83,7 @@ func _salas() -> bool:
 		p._prev_pos = best
 		p.reset_physics_interpolation()
 		p.invuln_time = 99.0
-		_level.camera.set_room(r)
+		_level.camera.set_room(_level.camera_rect(_room))
 		_level.camera.snap()
 	if k == 30:
 		_save("sala%02d_%s" % [_room, _level.layout["rooms"][_room]["type"]])

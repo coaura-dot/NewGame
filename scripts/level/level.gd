@@ -311,7 +311,7 @@ func _spawn_player() -> void:
 	camera.set_bounds(Rect2(0, 0, layout["width"] * T, layout["height"] * T))
 	var idx := _room_at(player.global_position)
 	if idx >= 0:
-		camera.set_room(room_rect(idx))
+		camera.set_room(camera_rect(idx))
 	camera.snap()
 	pixel_view.camera = camera
 	if Settings.video("ambient_particles"):
@@ -324,6 +324,16 @@ func _spawn_player() -> void:
 func room_rect(idx: int) -> Rect2:
 	var o: Array = layout["rooms"][idx]["origin"]
 	return Rect2(int(o[0]) * T, int(o[1]) * T, LevelConst.ROOM_W * T, LevelConst.ROOM_H * T)
+
+
+## Área da câmera: a sala, ou o par inteiro se for uma sala larga (2 telas).
+func camera_rect(idx: int) -> Rect2:
+	var r := room_rect(idx)
+	for gr in layout.get("groups", []):
+		if gr.has(idx):
+			for other in gr:
+				r = r.merge(room_rect(int(other)))
+	return r
 
 
 func _room_at(pos: Vector2) -> int:
@@ -367,7 +377,7 @@ func _physics_process(_delta: float) -> void:
 	var idx := _room_at(player.global_position)
 	if idx != _current_room and idx >= 0:
 		_current_room = idx
-		camera.set_room(room_rect(idx))
+		camera.set_room(camera_rect(idx))
 		_on_room_entered(idx)
 	if player.global_position.y > layout["height"] * T + 32:
 		player.take_status_damage(10.0, "fall")
@@ -388,7 +398,7 @@ func _on_room_entered(idx: int) -> void:
 		for g in _room_gates.get(idx, []):
 			if g.mode == "combat":
 				g.set_closed(true)
-		if room.get("type", "") == "boss" and boss_node and is_instance_valid(boss_node):
+		if room.get("type", "") == "boss" and boss_node and is_instance_valid(boss_node) and boss_node.is_inside_tree():
 			if hud and hud.has_method("show_boss"):
 				hud.show_boss(boss_node)
 		if player and player.emote:
@@ -500,6 +510,9 @@ func _setup_waves() -> void:
 	var tier: int = int(params.get("tier", 1))
 	for r in layout["rooms"]:
 		var idx: int = int(r["index"])
+		if r.get("type", "") == "boss":
+			_setup_horde(idx)
+			continue
 		if r.get("type", "") != "combat" or not PackedStringArray(r.get("tags", [])).has("lock"):
 			continue
 		var list: Array = _room_enemies.get(idx, []).filter(func(e): return is_instance_valid(e) and e != boss_node)
@@ -517,6 +530,26 @@ func _setup_waves() -> void:
 			waves.append(wave)
 		if not waves.is_empty():
 			_room_waves[idx] = waves
+
+
+## Chefe de horda: se a arena do chefe tem lacaios, eles vêm em ondas e o
+## chefe entra sozinho na última.
+func _setup_horde(idx: int) -> void:
+	if boss_node == null or not is_instance_valid(boss_node):
+		return
+	var minions: Array = _room_enemies.get(idx, []).filter(func(e): return is_instance_valid(e) and e != boss_node)
+	if minions.size() < 3:
+		return
+	var waves: Array = []
+	var half := int(ceil(minions.size() / 2.0))
+	var second: Array = minions.slice(half)
+	for en in second:
+		en.get_parent().remove_child(en)
+	if not second.is_empty():
+		waves.append(second)
+	boss_node.get_parent().remove_child(boss_node)
+	waves.append([boss_node])
+	_room_waves[idx] = waves
 
 
 func _next_wave(room: int) -> void:
@@ -538,7 +571,13 @@ func _next_wave(room: int) -> void:
 			FX.hit_spark(e.global_position + Vector2(0, -6), Vector2.UP, Color(2.2, 1.4, 2.6), true)
 			entities.add_child(e)
 			e.invuln_time = 0.4
-			e.emote.show_emote("!", 0.6))
+			e.emote.show_emote("!", 0.6)
+			if e == boss_node:
+				FX.shake(0.5)
+				FX.white_flash(0.3)
+				Events.toast.emit(e.data.get("name", "Chefe"))
+				if hud and hud.has_method("show_boss"):
+					hud.show_boss(e))
 
 
 func respawn_boss(id: String, pos: Vector2) -> void:
@@ -615,7 +654,7 @@ func _on_player_died(_p: Node) -> void:
 	var idx := _room_at(at)
 	if idx >= 0:
 		_current_room = idx
-		camera.set_room(room_rect(idx))
+		camera.set_room(camera_rect(idx))
 	camera.snap()
 	FX.clear_time_effects()
 

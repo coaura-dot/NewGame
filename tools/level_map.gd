@@ -51,5 +51,6 @@ func _initialize() -> void:
 		for j in LevelConst.ROOM_H * S:
 			img.set_pixel(rx, ry + j, Color(0.2, 0.9, 0.9, 1))
 		print("sala %d (%s) tipo=%s template=%s exits=%s" % [r["index"], str(o), r["type"], r.get("template", "?"), r.get("exits", "")])
+	print("salas largas: ", L.get("groups", []))
 	img.save_png(out)
 	quit()

@@ -828,6 +828,9 @@ static func _boss(g: Array, rng: RandomNumberGenerator, exits: String) -> void:
 		if not exits.contains("U"):
 			_ledge(g, 16, FLOOR - 10, 8, false)
 	put(g, 26, FLOOR - 6, "M")
+	# chefe de horda: lacaios vêm em ondas antes do chefe entrar
+	if rng.randf() < 0.35:
+		_spawn_enemies(g, rng, rng.randi_range(3, 5), rng.randi_range(1, 2))
 	put(g, 0, LevelConst.EXIT_LR_ROWS[0], "G")
 	put(g, W - 1, LevelConst.EXIT_LR_ROWS[0], "G")
 	if not _put_on_floor(g, 3, "A"):

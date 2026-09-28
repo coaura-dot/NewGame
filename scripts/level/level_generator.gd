@@ -56,6 +56,10 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 		types.append("exit")
 		if params.get("boss", "") != "" and length >= 3:
 			types[length - 2] = "boss"
+		# parkour em sequência horizontal: continua o mesmo tipo (vira sala larga)
+		for i in range(2, length - 2):
+			if types[i - 1] in ["platforming", "challenge"] and types[i] != "boss" and path[i].y == path[i - 1].y and rng.randf() < 0.5:
+				types[i] = types[i - 1]
 	for i in path.size():
 		rooms[path[i]]["type"] = types[i]
 		# salas verticais de verdade viram "shaft" se o caminho sobe/desce
@@ -243,6 +247,9 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 		exit_tile = Vector2i(o1[0] + 28, o1[1] + LevelConst.FLOOR_ROW - 1)
 		entities.append({"type": "exit", "tile": [exit_tile.x, exit_tile.y], "room": rooms[path[-1]]["index"], "data": {}})
 
+	# 6) salas largas: funde pares vizinhos de parkour/corredor no caminho
+	var groups := _merge_wide(rng, path, rooms, grid, min_c)
+
 	var rows := PackedStringArray()
 	for row in grid:
 		rows.append("".join(row))
@@ -263,7 +270,59 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 		"exit": [exit_tile.x, exit_tile.y],
 		"key_placed": key_placed or not key_needed,
 		"indoor": indoor,
+		"groups": groups,
 	}
+
+
+## Tipos que podem virar uma sala larga (2 telas) quando vizinhos no caminho.
+const WIDE_TYPES := ["platforming", "challenge", "corridor"]
+
+
+## Abre a parede entre salas vizinhas de parkour (esquerda-direita) no caminho
+## crítico: uma sequência de 2 telas com a câmera rolando. Costura o teto e o
+## chão na emenda. Retorna [[índice_a, índice_b], ...].
+static func _merge_wide(rng: RandomNumberGenerator, path: Array, rooms: Dictionary, grid: Array, min_c: Vector2i) -> Array:
+	var groups := []
+	var used := {}
+	for i in range(0, path.size() - 1):
+		var a: Vector2i = path[i]
+		var b: Vector2i = path[i + 1]
+		if absi(b.x - a.x) != 1 or b.y != a.y or used.has(a) or used.has(b):
+			continue
+		if not (rooms[a]["type"] in WIDE_TYPES and rooms[b]["type"] in WIDE_TYPES):
+			continue
+		if rng.randf() > 0.6:
+			continue
+		var left: Vector2i = a if a.x < b.x else b
+		var right: Vector2i = b if a.x < b.x else a
+		used[a] = true
+		used[b] = true
+		var ox := (left.x - min_c.x) * LevelConst.ROOM_W
+		var oy := (left.y - min_c.y) * LevelConst.ROOM_H
+		var sx := ox + LevelConst.ROOM_W - 1 # última coluna da esquerda; sx+1 = primeira da direita
+		# teto: menor abertura entre as vizinhas da emenda
+		var ceil_l := _first_open(grid, sx - 1, oy)
+		var ceil_r := _first_open(grid, sx + 2, oy)
+		var ceil_y := mini(ceil_l, ceil_r)
+		# chão: se os dois lados da emenda são fosso, a emenda também vira fosso
+		var pit: bool = grid[oy + LevelConst.FLOOR_ROW][sx - 1] != "#" and grid[oy + LevelConst.FLOOR_ROW][sx + 2] != "#"
+		for x in [sx, sx + 1]:
+			for y in range(oy + 1, oy + LevelConst.FLOOR_ROW):
+				grid[y][x] = "#" if y - oy < ceil_y else "."
+			if pit:
+				grid[oy + LevelConst.FLOOR_ROW][x] = "."
+				grid[oy + LevelConst.FLOOR_ROW + 1][x] = "^"
+		rooms[left]["wide"] = true
+		rooms[right]["wide"] = true
+		groups.append([int(rooms[left]["index"]), int(rooms[right]["index"])])
+	return groups
+
+
+static func _first_open(grid: Array, x: int, oy: int) -> int:
+	for y in range(1, LevelConst.FLOOR_ROW):
+		if grid[oy + y][x] != "#":
+			return y
+	return LevelConst.FLOOR_ROW
 
 
 static func _room(cell: Vector2i, t: String, on_path: bool, idx: int) -> Dictionary:
