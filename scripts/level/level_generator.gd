@@ -13,8 +13,9 @@ extends RefCounted
 
 const DIRS := {"R": Vector2i(1, 0), "L": Vector2i(-1, 0), "U": Vector2i(0, -1), "D": Vector2i(0, 1)}
 const OPP := {"R": "L", "L": "R", "U": "D", "D": "U"}
-const PATH_WEIGHTS := {"combat": 5.0, "platforming": 3.0, "corridor": 2.0, "puzzle": 1.2, "shaft": 0.6}
-const BRANCH_WEIGHTS := {"treasure": 3.0, "secret": 2.0, "challenge": 1.5, "puzzle": 1.0, "combat": 1.0}
+## Mistura frenética: muito parkour e combate, pouca pausa.
+const PATH_WEIGHTS := {"combat": 4.0, "platforming": 4.0, "corridor": 1.5, "puzzle": 0.7, "shaft": 1.2}
+const BRANCH_WEIGHTS := {"treasure": 3.0, "secret": 2.0, "challenge": 2.5, "puzzle": 0.8, "combat": 1.0}
 
 
 static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dictionary:

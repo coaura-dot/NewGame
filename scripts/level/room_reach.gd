@@ -11,14 +11,21 @@ extends RefCounted
 const W := LevelConst.ROOM_W
 const H := LevelConst.ROOM_H
 const SOLID := "#Z" ## "B" (quebrável) conta como vazio: nunca pode ser degrau obrigatório
-const PLATFORM := "-"
+const PLATFORM := "-O" ## O = plataforma que desaba (dá para usar se for rápido)
+const MOVER_REACH := 9 ## plataforma móvel: 3 de largura + 6 de trilho
 const HAZARD := "^"
 
 ## Capacidades (em tiles). "jump": só pulo; "dash": pulo + 1 dash.
 const CAPS := {
 	"jump": {"up": 3, "reach": [6, 6, 5, 4], "drift": 4},
 	"dash": {"up": 6, "reach": [10, 9, 8, 7, 6, 5, 4], "drift": 7},
+	## mola: lançamento de ~5 tiles
+	"spring": {"up": 5, "reach": [5, 5, 5, 4, 4, 3], "drift": 5},
 }
+
+## Elementos que viram "nós aéreos" (dá para quicar/recarregar no ar):
+##   I = Orbe de Impulso (golpear quica ~4 tiles), D = cristal de dash (só no
+##   modo dash: recarrega o dash), J = mola (no chão; lança ~5 tiles).
 
 
 static func _ch(g: Array, x: int, y: int) -> String:
@@ -38,7 +45,7 @@ static func blocked(g: Array, x: int, y: int) -> bool:
 
 static func support(g: Array, x: int, y: int) -> bool:
 	var c := _ch(g, x, y)
-	return SOLID.contains(c) or c == PLATFORM
+	return SOLID.contains(c) or PLATFORM.contains(c) or c == "U"
 
 
 ## Pés em (x, y): a célula e a de cima livres, e algo firme embaixo.
@@ -49,7 +56,7 @@ static func standable(g: Array, x: int, y: int) -> bool:
 		return false
 	# dentro de uma plataforma fina só se ela estiver apoiada em sólido (o
 	# corpo atravessa a plataforma e pisa no bloco de baixo)
-	return _ch(g, x, y) != PLATFORM or SOLID.contains(_ch(g, x, y + 1))
+	return not PLATFORM.contains(_ch(g, x, y)) or SOLID.contains(_ch(g, x, y + 1))
 
 
 ## Onde cai quem está em (x, y) (desce até achar apoio). -1 se cair em espinho
@@ -85,14 +92,18 @@ class Grid:
 	var free2 := PackedByteArray()
 	var stand := PackedByteArray()
 	var land := PackedInt32Array()
+	var wall := PackedByteArray()
 
-	func _init(g: Array) -> void:
+	func _init(g_in: Array) -> void:
+		var g := RoomReach.expand_movers(g_in)
 		free2.resize(W * H)
 		stand.resize(W * H)
 		land.resize(W * H)
+		wall.resize(W * H)
 		for y in H:
 			for x in W:
 				var i := y * W + x
+				wall[i] = 1 if RoomReach.SOLID.contains(RoomReach._ch(g, x, y)) else 0
 				free2[i] = 1 if not RoomReach.blocked(g, x, y) and not RoomReach.blocked(g, x, y - 1) else 0
 				stand[i] = 1 if RoomReach.standable(g, x, y) else 0
 		for x in W:
@@ -120,6 +131,13 @@ class Grid:
 		if x < 0 or x >= W or y < 0 or y >= H:
 			return -1
 		return land[y * W + x]
+
+	func w(x: int, y: int) -> bool:
+		if x < 0 or x >= W:
+			return true
+		if y < 0 or y >= H:
+			return false
+		return wall[y * W + x] == 1
 
 	func col(x: int, y0: int, y1: int) -> bool:
 		for y in range(mini(y0, y1), maxi(y0, y1) + 1):
@@ -176,20 +194,119 @@ static func moves(gr: Grid, x: int, y: int, cap: Dictionary) -> Array:
 	return out
 
 
-static func reachable_from(g: Array, start: Vector2i, cap: Dictionary, gr: Grid = null) -> Dictionary:
+static func specials(g: Array, dash_mode: bool) -> Dictionary:
+	var orbs: Array = []
+	var springs := {}
+	for y in H:
+		for x in W:
+			var c: String = g[y][x]
+			if c == "I" or (c == "D" and dash_mode):
+				orbs.append(Vector2i(x, y))
+			elif c == "J":
+				springs[Vector2i(x, y)] = true
+	return {"orbs": orbs, "springs": springs}
+
+
+## Dá para golpear/tocar o orbe o a partir de p (pés em p)?
+static func _can_reach_orb(gr: Grid, p: Vector2i, o: Vector2i, cap: Dictionary) -> bool:
+	var feet := Vector2i(o.x, o.y + 1)
+	if not gr.f(feet.x, feet.y):
+		return false
+	var dy := p.y - o.y # quantos tiles o orbe está acima dos pés
+	var up: int = cap["up"]
+	if dy > up + 2 or dy < -6:
+		return false
+	var reach: Array = cap["reach"]
+	var r: int = int(reach[clampi(dy, 0, reach.size() - 1)]) + 2 # + alcance do golpe (~2,5 tiles)
+	if absi(o.x - p.x) > r:
+		return false
+	if dy >= 0:
+		var apex := maxi(feet.y, p.y - up)
+		return gr.col(p.x, apex, p.y) and gr.row(p.x, o.x, apex)
+	return gr.row(p.x, o.x, p.y) and gr.col(o.x, p.y, feet.y)
+
+
+## Plataforma móvel 'U' (anda 6 tiles para a direita, 3 de largura): para o
+## validador vira uma ponte contínua no trilho.
+static func expand_movers(g: Array) -> Array:
+	var has := false
+	for row in g:
+		if row.has("U"):
+			has = true
+			break
+	if not has:
+		return g
+	var out := []
+	for row in g:
+		out.append(row.duplicate())
+	for y in H:
+		for x in W:
+			if g[y][x] == "U":
+				for k in MOVER_REACH:
+					if x + k < W and out[y][x + k] == ".":
+						out[y][x + k] = "-"
+				out[y][x] = "-"
+	return out
+
+
+## Subida por salto de parede numa chaminé (paredes dos dois lados, vão de até
+## 5 tiles): devolve os pontos "no ar" alcançáveis subindo pela coluna x.
+static func chimney(gr: Grid, x: int, y: int) -> Array:
+	var out := []
+	var yy := y - 1
+	var guard := 0
+	while yy > 0 and guard < H:
+		guard += 1
+		if not gr.f(x, yy):
+			break
+		var lw := -1
+		var rw := -1
+		for k in range(1, 6):
+			if gr.w(x - k, yy) or gr.w(x - k, yy - 1):
+				lw = k
+				break
+		for k in range(1, 6):
+			if gr.w(x + k, yy) or gr.w(x + k, yy - 1):
+				rw = k
+				break
+		if lw < 0 or rw < 0 or lw + rw - 1 > 5:
+			break
+		out.append(Vector2i(x, yy))
+		yy -= 1
+	return out
+
+
+static func reachable_from(g: Array, start: Vector2i, cap: Dictionary, gr: Grid = null, sp: Dictionary = {}, wall_jump: bool = true) -> Dictionary:
 	var seen := {}
 	if start.x < 0:
 		return seen
 	if gr == null:
 		gr = Grid.new(g)
+	if sp.is_empty():
+		sp = specials(g, int(cap["up"]) >= int(CAPS["dash"]["up"]))
+	var orbs: Array = sp["orbs"]
+	var springs: Dictionary = sp["springs"]
 	var st := [start]
 	seen[start] = true
 	while not st.is_empty():
 		var p: Vector2i = st.pop_back()
-		for n in moves(gr, p.x, p.y, cap):
+		var c := cap
+		if springs.has(p):
+			c = CAPS["spring"] if int(CAPS["spring"]["up"]) > int(cap["up"]) else cap
+		for n in moves(gr, p.x, p.y, c):
 			if not seen.has(n):
 				seen[n] = true
 				st.append(n)
+		if wall_jump:
+			for n in chimney(gr, p.x, p.y):
+				if not seen.has(n):
+					seen[n] = true
+					st.append(n)
+		for o in orbs:
+			var node := Vector2i(o.x, o.y + 1)
+			if not seen.has(node) and _can_reach_orb(gr, p, o, cap):
+				seen[node] = true
+				st.append(node)
 	return seen
 
 
@@ -243,19 +360,20 @@ static func exit_reached(g: Array, e: String, seen: Dictionary, cap: Dictionary)
 static func check_room(g: Array, exits: String, mode: String = "jump") -> String:
 	var cap: Dictionary = CAPS.get(mode, CAPS["jump"])
 	var gr := Grid.new(g)
+	var sp := specials(g, mode == "dash")
 	if exits.length() == 1:
 		# beco sem saída: precisa dar para entrar E voltar pela mesma saída
 		var st := entry_point(g, exits)
 		if st.x < 0:
 			return "entrada %s sem chão" % exits
-		if not exit_reached(g, exits, reachable_from(g, st, cap, gr), cap):
+		if not exit_reached(g, exits, reachable_from(g, st, cap, gr, sp), cap):
 			return "não volta por %s (%s)" % [exits, mode]
 		return ""
 	for a in exits:
 		var start := entry_point(g, a)
 		if start.x < 0:
 			return "entrada %s sem chão" % a
-		var seen := reachable_from(g, start, cap, gr)
+		var seen := reachable_from(g, start, cap, gr, sp)
 		for b in exits:
 			if b == a:
 				continue

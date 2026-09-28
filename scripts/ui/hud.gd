@@ -229,6 +229,14 @@ func _draw_hud() -> void:
 		var bw := SMALL.get_string_size(bn, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 		_text(Vector2(160 - roundf(bw * 0.5), 10), bn, 8, Color(1.0, 0.7, 0.55))
 		_bar(Rect2(100, 13, 120, 2), br, Color(0.9, 0.3, 0.25))
+	# cronômetro (opcional, para speedrun)
+	if Settings.gameplay("speedrun_timer") and level:
+		var ts := Level.format_time(float(level.result.get("time", 0.0)))
+		var tw := SMALL.get_string_size(ts, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		_text(Vector2(160 - roundf(tw * 0.5), 26 if boss else 10), ts, 8, Color(0.95, 0.95, 1.0))
+		var dth := int(level.result.get("deaths", 0))
+		if dth > 0:
+			_text(Vector2(160 + roundf(tw * 0.5) + 4, 26 if boss else 10), "†%d" % dth, 8, Color(1.0, 0.6, 0.6))
 	# título da região
 	if _region_title_t > 0.0 and _region_title != "":
 		var a := minf(_region_title_t, 1.0) * minf((3.5 - _region_title_t) * 2.0, 1.0)
@@ -396,6 +404,10 @@ func show_summary(result: Dictionary, quests_done: Array) -> void:
 	var v := UIKit.vbox(4)
 	p.add_child(v)
 	v.add_child(UIKit.title("Região concluída", 22))
+	var rank: String = result.get("rank", "B")
+	var rank_col: Color = {"S": Color(1.0, 0.85, 0.3), "A": Color(0.6, 0.9, 1.0), "B": Color(0.8, 0.8, 0.9), "C": Color(0.8, 0.6, 0.6)}.get(rank, UIKit.INK)
+	v.add_child(UIKit.label("Nota  %s" % rank, 20, rank_col, HORIZONTAL_ALIGNMENT_CENTER))
+	v.add_child(UIKit.label("Tempo %s   Mortes %d   Golpes sofridos %d" % [Level.format_time(float(result.get("time", 0.0))), int(result.get("deaths", 0)), int(result.get("hits", 0))], 12, UIKit.INK, HORIZONTAL_ALIGNMENT_CENTER))
 	v.add_child(UIKit.label("Inimigos derrotados: %d" % int(result.get("kills", 0))))
 	if result.get("boss_killed", false):
 		v.add_child(UIKit.label("Chefe derrotado!", 12, Color(1.4, 0.8, 0.5)))

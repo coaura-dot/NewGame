@@ -97,13 +97,19 @@ func test_fases_atravessaveis() -> void:
 			"boss": "nightmare" if i % 3 == 0 else "", "hub": "vila" if i % 4 == 0 else "", "npcs": ["a"], "abilities": ["dash"]}
 		var L := LevelGenerator.generate(params, lib, DB)
 		var rows: PackedStringArray = L["rows"]
+		var marks := {}
+		for e in L["entities"]:
+			var ch: String = {"impulse_orb": "I", "dash_crystal": "D", "jump_pad": "J", "falling_platform": "O", "moving_platform": "U"}.get(e["type"], "")
+			if ch != "":
+				marks[Vector2i(int(e["tile"][0]), int(e["tile"][1]))] = ch
 		for r in L["rooms"]:
 			var o: Array = r["origin"]
 			var g := []
 			for y in LevelConst.ROOM_H:
 				var row := []
 				for x in LevelConst.ROOM_W:
-					var c: String = rows[int(o[1]) + y][int(o[0]) + x]
+					var wp := Vector2i(int(o[0]) + x, int(o[1]) + y)
+					var c: String = marks.get(wp, rows[wp.y][wp.x])
 					row.append("." if c == "B" else c) # parede secreta conta como passagem
 				g.append(row)
 			var mode := "dash" if r["type"] in RoomSynth.DASH_TYPES else "jump"
@@ -121,3 +127,19 @@ func test_validador_reconhece_sala_impossivel() -> void:
 	RoomSynth.frame(g2, "LR")
 	RoomSynth.fill(g2, 19, LevelConst.FLOOR_ROW - 2, 20, LevelConst.FLOOR_ROW - 1, "#")
 	check(RoomReach.check_room(g2, "LR", "jump") == "", "degrau de 2 tiles passa")
+	# fosso largo de espinhos: impossível só pulando, possível quicando em orbes
+	var g3 := RoomSynth.blank()
+	RoomSynth.frame(g3, "LR")
+	for x in range(6, 34):
+		g3[LevelConst.FLOOR_ROW][x] = "^"
+	check(RoomReach.check_room(g3, "LR", "jump") != "", "fosso de 28 tiles bloqueia")
+	for ox in [10, 16, 22, 28]:
+		g3[LevelConst.FLOOR_ROW - 4][ox] = "I"
+	check(RoomReach.check_room(g3, "LR", "jump") == "", "orbes em cadeia atravessam o fosso")
+
+
+func test_nota_da_fase() -> void:
+	eq(Level.rank_for({"time": 60.0, "deaths": 0, "hits": 0}, 10), "S", "rápido e sem erro = S")
+	eq(Level.rank_for({"time": 150.0, "deaths": 1, "hits": 2}, 10), "A", "uma morte = A")
+	eq(Level.rank_for({"time": 400.0, "deaths": 3, "hits": 10}, 10), "C", "lento e morrendo = C")
+	eq(Level.format_time(75.5), "1:15.50", "formato do tempo")

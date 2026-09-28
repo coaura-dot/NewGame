@@ -91,6 +91,8 @@ const PARRY_COOLDOWN := 0.3
 const POUND_SPEED := 320.0
 const ATTACK_BUFFER := 0.12
 const COMBO_TIMEOUT := 1.2
+const AIR_STALL := 35.0 ## golpe acertado no ar segura a queda (combos aéreos)
+const AIR_STALL_MAX := 3 ## quantas vezes por salto
 const FOCUS_MAX_BASE := 100.0
 const HEAL_HOLD := 0.2 ## segurar para focar; toque rápido = poção
 const HEAL_TIME := 0.85
@@ -116,6 +118,7 @@ var coyote_t := 0.0
 var jump_buffer_t := 0.0
 var var_jump_t := 0.0
 var var_jump_speed := 0.0
+var auto_jump_t := 0.0 ## quiques (orbe, pogo): age como se o pulo estivesse segurado
 var force_move_x := 0
 var force_move_t := 0.0
 var wall_dir := 0 ## parede encostada (-1/1) segurando na direção dela
@@ -135,6 +138,7 @@ var input_x := 0.0
 var input_y := 0.0
 var recoil_t := 0.0
 var recoil_x := 0.0
+var air_stalls := 0
 var _rem := Vector2.ZERO
 var _after_t := 0.0
 var _prev_pos := Vector2.ZERO
@@ -382,6 +386,7 @@ func _actor_physics(d: float, raw: float) -> void:
 		State.RESPAWN, State.DEAD:
 			velocity = Vector2.ZERO
 	if state != State.RESPAWN and state != State.DEAD:
+		_ride_platform()
 		_move(d)
 		_after_move(d)
 	_animate(d)
@@ -416,6 +421,7 @@ func _timers(d: float) -> void:
 	coyote_t -= d
 	jump_buffer_t -= d
 	var_jump_t -= d
+	auto_jump_t -= d
 	force_move_t -= d
 	dash_cd -= d
 	dash_refill_cd -= d
@@ -462,6 +468,28 @@ func _collides(offset: Vector2) -> bool:
 
 func _wall_at(dir: int, dist: int = 1) -> bool:
 	return _collides(Vector2(dir * dist, 0))
+
+
+## Em cima de uma plataforma móvel? Anda junto com ela (em pixels inteiros).
+func _ride_platform() -> void:
+	if not on_ground:
+		return
+	var space := get_world_2d().direct_space_state
+	var q := PhysicsShapeQueryParameters2D.new()
+	var r := RectangleShape2D.new()
+	r.size = Vector2(BODY.x - 2.0, 2.0)
+	q.shape = r
+	q.transform = Transform2D(0.0, global_position + Vector2(0, g_dir))
+	q.collision_mask = Layers.ONE_WAY
+	for hit in space.intersect_shape(q, 4):
+		var c: Object = hit["collider"]
+		if c is MovingPlatform and c.delta_pos != Vector2.ZERO:
+			var saved := _rem
+			_rem = Vector2.ZERO
+			_move_h(c.delta_pos.x)
+			_move_v(c.delta_pos.y)
+			_rem = saved
+			return
 
 
 func _move(d: float) -> void:
@@ -577,7 +605,8 @@ func _gravity_step(d: float) -> void:
 	var g := GRAVITY * float(phys.get("gravity", 1.0))
 	var vy := _vy()
 	# meia gravidade no ápice segurando pulo (feel de Celeste)
-	var mult := 0.5 if absf(vy) < HALF_GRAV_THRESHOLD and Input.is_action_pressed("jump") else 1.0
+	var holding := Input.is_action_pressed("jump") or auto_jump_t > 0.0
+	var mult := 0.5 if absf(vy) < HALF_GRAV_THRESHOLD and holding else 1.0
 	# queda rápida segurando baixo
 	if input_y * g_dir > 0.0 and vy >= max_fall:
 		max_fall = move_toward(max_fall, FAST_MAX_FALL, FAST_MAX_ACCEL * d)
@@ -594,7 +623,7 @@ func _gravity_step(d: float) -> void:
 		wall_slide_t = maxf(wall_slide_t - d * 3.0, 0.0)
 	vy = move_toward(vy, mf, g * mult * d)
 	if var_jump_t > 0.0:
-		if Input.is_action_pressed("jump"):
+		if holding:
 			vy = minf(vy, -var_jump_speed)
 		else:
 			var_jump_t = 0.0
@@ -1111,6 +1140,8 @@ func slowmo_bonus() -> bool:
 func _on_attack_landed(target: Node, info: DamageInfo, result: int) -> void:
 	if result == DamageInfo.Result.IGNORED or result == DamageInfo.Result.INVULNERABLE:
 		return
+	if target is ImpulseOrb:
+		return
 	# recuo (Hollow Knight): bater empurra o herói um pouco para trás
 	_recoil(info)
 	if not (target is Actor):
@@ -1136,6 +1167,12 @@ func _on_attack_landed(target: Node, info: DamageInfo, result: int) -> void:
 	buffs.trigger("combo", ctx)
 	if info.pogo:
 		_pogo()
+	elif not on_ground and air_stalls < AIR_STALL_MAX and state != State.DASH:
+		# combo aéreo: cada acerto segura a queda um instante
+		air_stalls += 1
+		if _vy() > -AIR_STALL:
+			_set_vy(-AIR_STALL)
+			var_jump_t = 0.0
 	if info.is_dash_attack:
 		dash_t = maxf(dash_t, 0.04)
 	Audio.play("hit_heavy" if info.is_heavy or info.is_crit else "hit", 0.1, -3.0)
@@ -1163,6 +1200,7 @@ func _recoil(info: DamageInfo) -> void:
 func _pogo() -> void:
 	_set_vy(-POGO_SPEED * float(phys.get("jump", 1.0)))
 	var_jump_t = 0.12
+	auto_jump_t = 0.1
 	var_jump_speed = POGO_SPEED * float(phys.get("jump", 1.0))
 	refill_dash()
 	buffs.trigger("pogo")
@@ -1673,6 +1711,7 @@ func _after_move(d: float) -> void:
 	if on_ground:
 		coyote_t = COYOTE
 		stamina = CLIMB_STAMINA
+		air_stalls = 0
 		air_jumps = max_air_jumps()
 		if dash_refill_cd <= 0.0 and state != State.DASH and dashes < max_dashes():
 			refill_dash()

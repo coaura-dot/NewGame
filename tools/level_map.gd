@@ -18,7 +18,7 @@ func _initialize() -> void:
 	if mode == "treino":
 		params = {"seed": 20260926, "biome": "castelo", "tier": 1, "boss": "nightmare", "hub": "", "dimension": "prima", "npcs": [],
 			"abilities": ["dash", "wall_jump", "double_jump", "wall_climb"],
-			"force_path": ["entrance", "corridor", "platforming", "combat", "shaft", "puzzle", "challenge", "combat", "boss", "exit"]}
+			"force_path": ["entrance", "platforming", "combat", "platforming", "shaft", "combat", "challenge", "corridor", "boss", "exit"]}
 	else:
 		var p := mode.split(":")
 		params = {"seed": int(p[1]), "biome": p[2] if p.size() > 2 else "castelo", "tier": 2, "boss": "nightmare", "hub": "vila", "npcs": ["a"], "abilities": ["dash", "wall_jump"]}

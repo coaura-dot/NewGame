@@ -29,6 +29,7 @@ const ENTITY_CHARS := {
 	"J": "jump_pad", "S": "saw", "L": "torch", "W": "light_shaft", "P": "spawn", "X": "exit",
 	"G": "gate", "T": "lever", "N": "npc", "H": "checkpoint", "O": "falling_platform",
 	"R": "relic", "Q": "quest_board", "Y": "rift", "A": "altar", "V": "ability_gate",
+	"I": "impulse_orb", "U": "moving_platform",
 }
 
 const ROOM_TYPES := ["entrance", "exit", "combat", "platforming", "corridor", "puzzle", "treasure",

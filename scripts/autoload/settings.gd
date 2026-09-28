@@ -43,6 +43,7 @@ const DEFAULTS := {
 		"invincible": false,
 		"aim_assist": true,
 		"sigil_slowmo": true,
+		"speedrun_timer": false,
 	},
 }
 

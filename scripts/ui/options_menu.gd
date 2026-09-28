@@ -55,7 +55,8 @@ func _video_tab() -> Control:
 		["fullscreen", "Tela cheia"], ["vsync", "VSync"], ["integer_scaling", "Escala inteira (pixel perfeito)"],
 		["bloom", "Bloom (brilho)"], ["god_rays", "Raios de luz"], ["motion_blur", "Motion blur"],
 		["dynamic_lights", "Luzes dinâmicas"], ["shadows", "Sombras"], ["chromatic_aberration", "Aberração cromática"],
-		["vignette", "Vinheta"], ["film_grain", "Granulação"], ["afterimages", "Rastros (afterimages)"],
+		["vignette", "Vinheta"], ["smooth_camera", "Câmera suave (subpixel)"], ["afterimages", "Rastros (afterimages)"],
+		["screen_flash", "Clarões de tela"], ["ambient_particles", "Partículas de ambiente"],
 		["hitstop", "Congelamento no impacto (hitstop)"], ["damage_numbers", "Números de dano"],
 	]
 	for t in toggles:
@@ -93,6 +94,7 @@ func _gameplay_tab() -> Control:
 	v.add_child(UIKit.check("Dash infinito", bool(Settings.gameplay("infinite_dash")), func(val): Settings.set_value("gameplay", "infinite_dash", val)))
 	v.add_child(UIKit.check("Invencível", bool(Settings.gameplay("invincible")), func(val): Settings.set_value("gameplay", "invincible", val)))
 	v.add_child(UIKit.check("Câmera lenta ao desenhar sigilos", bool(Settings.gameplay("sigil_slowmo")), func(val): Settings.set_value("gameplay", "sigil_slowmo", val)))
+	v.add_child(UIKit.check("Cronômetro na tela (speedrun)", bool(Settings.gameplay("speedrun_timer")), func(val): Settings.set_value("gameplay", "speedrun_timer", val)))
 	return pair[0]
 
 

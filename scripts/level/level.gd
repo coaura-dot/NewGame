@@ -26,7 +26,10 @@ var checkpoint: Node = null
 var spawn_pos: Vector2 = Vector2.ZERO
 var boss_defeated: bool = false
 var boss_node: Node = null
-var result: Dictionary = {"completed": false, "boss_killed": false, "puzzles": 0, "kills": 0}
+var result: Dictionary = {"completed": false, "boss_killed": false, "puzzles": 0, "kills": 0, "time": 0.0, "deaths": 0, "hits": 0}
+## Renascimento rápido (estilo Celeste): morrer volta para a entrada da sala.
+var room_spawn: Vector2 = Vector2.ZERO
+var timer_running: bool = true
 
 var _room_index_by_cell: Dictionary = {}
 var _room_enemies: Dictionary = {} ## room -> Array[Enemy]
@@ -70,7 +73,7 @@ func _resolve_params() -> void:
 		params = {
 			"seed": 20260926, "biome": "castelo", "tier": 1, "boss": "nightmare", "hub": "",
 			"dimension": "prima", "npcs": [], "abilities": Game.profile["abilities"],
-			"force_path": ["entrance", "corridor", "platforming", "combat", "shaft", "puzzle", "challenge", "combat", "boss", "exit"],
+			"force_path": ["entrance", "platforming", "combat", "platforming", "shaft", "combat", "challenge", "corridor", "boss", "exit"],
 		}
 		region = {"name": "Salão de Treino", "biome": "castelo", "tier": 1}
 		return
@@ -214,6 +217,17 @@ func _spawn_entities() -> void:
 				var cp := Checkpoint.new()
 				cp.position = _tile_feet(e["tile"])
 				node = cp
+			"impulse_orb":
+				var orb := ImpulseOrb.new()
+				orb.position = _tile_center(e["tile"])
+				node = orb
+			"moving_platform":
+				var mp := MovingPlatform.new()
+				var tr: Array = data.get("travel", [6, 0])
+				mp.travel = Vector2(float(tr[0]) * T, float(tr[1]) * T)
+				mp.width = float(data.get("width", 3)) * T
+				mp.position = _tile_corner(e["tile"])
+				node = mp
 			"falling_platform":
 				var fp := FallingPlatform.new()
 				fp.position = _tile_corner(e["tile"]) + Vector2(T * 0.5, 0)
@@ -287,6 +301,7 @@ func _spawn_player() -> void:
 	player.level = self
 	player.position = spawn_pos
 	entities.add_child(player)
+	player.damaged.connect(func(_i, _a): result["hits"] = int(result["hits"]) + 1)
 	camera = GameCamera.new()
 	camera.target = player
 	world.add_child(camera)
@@ -332,6 +347,17 @@ func _build_layers() -> void:
 # Loop: salas, trancas, chefe
 # ---------------------------------------------------------------------------
 
+var _last_ms: int = 0
+
+
+func _process(_delta: float) -> void:
+	# tempo real (o que um speedrun mede), sem contar pausas
+	var now := Time.get_ticks_msec()
+	if _last_ms > 0 and timer_running and not _completed and not get_tree().paused:
+		result["time"] = float(result["time"]) + float(now - _last_ms) / 1000.0
+	_last_ms = now
+
+
 func _physics_process(_delta: float) -> void:
 	if player == null or player.dead:
 		return
@@ -348,6 +374,7 @@ func _physics_process(_delta: float) -> void:
 func _on_room_entered(idx: int) -> void:
 	var room: Dictionary = layout["rooms"][idx]
 	Events.room_entered.emit(room)
+	_update_room_spawn(idx)
 	if _cleared.has(idx):
 		return
 	var alive := _alive_enemies(idx)
@@ -362,6 +389,38 @@ func _on_room_entered(idx: int) -> void:
 			player.emote.show_emote("!", 0.8)
 	else:
 		_mark_cleared(idx)
+
+
+## Acha um chão firme perto da porta por onde o herói entrou na sala.
+func _update_room_spawn(idx: int) -> void:
+	if player == null:
+		return
+	var r := room_rect(idx)
+	var p := player.global_position
+	var d := {"L": p.x - r.position.x, "R": r.end.x - p.x, "U": p.y - r.position.y, "D": r.end.y - p.y}
+	var best := "L"
+	for k in d.keys():
+		if float(d[k]) < float(d[best]):
+			best = k
+	var o: Array = layout["rooms"][idx]["origin"]
+	var g := []
+	for y in LevelConst.ROOM_H:
+		var row := []
+		var line: String = layout["rows"][int(o[1]) + y]
+		for x in LevelConst.ROOM_W:
+			row.append(line[int(o[0]) + x])
+		g.append(row)
+	var e := RoomReach.entry_point(g, best)
+	if e.x < 0:
+		room_spawn = player.last_safe_pos
+		return
+	# entra um pouco para dentro da sala (longe da borda)
+	var dirx := 1 if best == "L" else (-1 if best == "R" else 0)
+	for k in range(3, 0, -1):
+		if dirx != 0 and RoomReach.standable(g, e.x + dirx * k, e.y):
+			e.x += dirx * k
+			break
+	room_spawn = Vector2((int(o[0]) + e.x) * T + T * 0.5, (int(o[1]) + e.y + 1) * T)
 
 
 func _alive_enemies(idx: int) -> int:
@@ -461,16 +520,21 @@ func spawn_currency(amount: int, pos: Vector2) -> void:
 # ---------------------------------------------------------------------------
 
 func _on_player_died(_p: Node) -> void:
-	await get_tree().create_timer(1.6, true, false, true).timeout
+	result["deaths"] = int(result["deaths"]) + 1
+	await get_tree().create_timer(0.85, true, false, true).timeout
 	if not is_inside_tree():
 		return
-	var lost := int(int(Game.profile.get("currency", 0)) * 0.25)
+	var lost := int(int(Game.profile.get("currency", 0)) * 0.1)
 	Game.profile["currency"] = int(Game.profile.get("currency", 0)) - lost
 	if lost > 0:
-		Events.toast.emit("Você perdeu %d brasas" % lost)
-	var at := spawn_pos
-	if checkpoint and is_instance_valid(checkpoint):
+		Events.toast.emit("-%d brasas" % lost)
+	var at := room_spawn if room_spawn != Vector2.ZERO else spawn_pos
+	if at == Vector2.ZERO and checkpoint and is_instance_valid(checkpoint):
 		at = checkpoint.global_position
+	# chefe se recompõe quando o herói cai
+	if boss_node and is_instance_valid(boss_node) and not boss_node.dead:
+		boss_node.hp = boss_node.max_hp()
+		boss_node.health_changed.emit(boss_node.hp, boss_node.max_hp())
 	player.revive(at)
 	var idx := _room_at(at)
 	if idx >= 0:
@@ -485,6 +549,7 @@ func complete_level() -> void:
 		return
 	_completed = true
 	result["completed"] = true
+	result["rank"] = rank_for(result, layout["rooms"].size())
 	var quests_done: Array = []
 	if not training:
 		Game.complete_region(region_id)
@@ -494,6 +559,29 @@ func complete_level() -> void:
 		hud.show_summary(result, quests_done)
 	else:
 		leave_level()
+
+
+## Nota da fase (perfeccionismo): tempo, mortes e dano sofrido.
+static func rank_for(res: Dictionary, rooms: int) -> String:
+	var par := float(rooms) * 18.0
+	var score := 100.0
+	score -= float(res.get("deaths", 0)) * 15.0
+	score -= float(res.get("hits", 0)) * 3.0
+	score -= maxf(float(res.get("time", 0.0)) - par, 0.0) * 0.4
+	if score >= 90.0:
+		return "S"
+	if score >= 75.0:
+		return "A"
+	if score >= 55.0:
+		return "B"
+	return "C"
+
+
+## Tempo no formato m:ss.cc
+static func format_time(t: float) -> String:
+	var m := int(t / 60.0)
+	var sec := t - m * 60.0
+	return "%d:%05.2f" % [m, sec]
 
 
 func leave_level() -> void:
