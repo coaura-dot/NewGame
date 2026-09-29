@@ -173,6 +173,8 @@ static func marry(social: Dictionary, npc_id: String, profile: Dictionary) -> bo
 
 ## NPC que pode te salvar da morte nesta região (cônjuge vale em qualquer lugar).
 static func rescue_candidate(social: Dictionary, region_id: String) -> String:
+	if not social.has("npcs"):
+		return "" # treino / sem mundo carregado
 	var spouse: String = social.get("spouse", "")
 	if spouse != "" and social["npcs"].has(spouse):
 		var s: Dictionary = social["npcs"][spouse]

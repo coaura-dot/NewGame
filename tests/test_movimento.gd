@@ -442,3 +442,35 @@ func test_renasce_visivel() -> void:
 	var dis: float = float(p._mat.get_shader_parameter("dissolve")) if p._mat else 0.0
 	check(not p.dead and p.rig.modulate.a > 0.99 and dis < 0.01, "depois de renascer o herói aparece (alpha %.2f, dissolve %.2f)" % [p.rig.modulate.a, dis])
 	await _teardown()
+
+
+## Pavio: a chama apaga na morte, reacende ao renascer, encolhe com pouca
+## vida e deita contra o movimento; todo quadro tem as âncoras novas.
+func test_chama_do_pavio() -> void:
+	var p := await _setup()
+	await _frames(5)
+	var meta: Dictionary = HeroRig._meta
+	for fname in meta.get("frames", {}).keys():
+		var m: Dictionary = meta["frames"][fname]
+		check(m.has("flame") and m.has("cheeks") and m.has("collar"), "quadro %s tem chama, bochechas e gola" % fname)
+		if fname != "dead":
+			eq(m["cheeks"].size(), 2, "quadro %s tem as duas bochechas" % fname)
+	var full := p.rig._flame_height()
+	p.hp = p.max_hp() * 0.1
+	await _frames(3)
+	check(p.rig._flame_height() < full - 1.0, "chama menor com pouca vida (%.1f < %.1f)" % [p.rig._flame_height(), full])
+	p.hp = p.max_hp()
+	p.velocity = Vector2(200, 0)
+	p.rig.motion = Vector2(200, 0)
+	for i in 20:
+		await tree.process_frame
+	check(p.rig._flame_lean * p.facing < -1.0, "chama deita para trás correndo (lean %.1f)" % p.rig._flame_lean)
+	var at := p.global_position
+	p.invuln_time = 0.0
+	p.take_status_damage(9999.0, "teste")
+	await _frames(30)
+	check(p.dead and p.rig.lit == 0.0 and p.rig._flame_height() == 0.0, "chama apaga na morte")
+	p.revive(at)
+	await _frames(3)
+	check(p.rig.lit == 1.0 and p.rig._flame_height() > 2.0, "chama reacende ao renascer")
+	await _teardown()

@@ -1,6 +1,6 @@
 class_name Player
 extends Actor
-## O herói — uma criaturinha de ~13 px numa tela de 320x180.
+## O herói — Pavio, uma velinha viva de ~11 px (mais a chama) numa tela de 320x180.
 ##
 ## MOVIMENTO no estilo Celeste, com os números do próprio Celeste (px/s na
 ## escala de tiles de 8 px): aceleração/inércia, coyote time, buffer de pulo,
@@ -104,8 +104,9 @@ const FOCUS_MAX_BASE := 100.0
 const HEAL_HOLD := 0.2 ## segurar para focar; toque rápido = poção
 const HEAL_TIME := 0.85
 const HEAL_COST := 33.0
-const HEAL_AMOUNT := 20.0 ## uma "máscara"
+const HEAL_AMOUNT := 20.0 ## uma velinha de vida no HUD
 # --- Corpo ---
+const LIGHT_ENERGY := 0.4 ## luz da chama do Pavio
 const BODY := Vector2(8, 11)
 const DUCK_BODY := Vector2(8, 6)
 const HURT_SIZE := Vector2(6, 9)
@@ -254,9 +255,9 @@ func _ready() -> void:
 	caster = SpellCaster.new(self)
 	add_child(caster)
 	buffs = BuffSystem.new(self)
-	light = LightUtil.make_light(Color(1.0, 0.9, 0.8), 0.35, 0.8)
+	light = LightUtil.make_light(Color(1.0, 0.82, 0.58), LIGHT_ENERGY, 0.85)
 	if light:
-		light.position = Vector2(0, -6)
+		light.position = Vector2(0, -14)
 		add_child(light)
 	apply_profile()
 	hp = max_hp()
@@ -1314,6 +1315,7 @@ func end_chain(reward: bool) -> void:
 	gain_focus(n * 3.0)
 	FX.text(body_center() + Vector2(0, -14), "CADEIA x%d!" % n, Color(2.4, 2.0, 0.9) if n >= 6 else Color(1.9, 1.9, 2.2))
 	FX.burst(body_center(), Color(2.2, 1.8, 0.8), mini(4 + n, 14), 90.0)
+	rig.flame_pop(0.4 + minf(n, 10) * 0.06)
 	Audio.play("chain_end", 0.0, -6.0, 1.0 + minf(n, 12) * 0.02)
 	if n >= 6:
 		emote.show_emote("spark", 0.8, true)
@@ -1543,6 +1545,7 @@ func _on_damaged(info: DamageInfo, amount: float) -> void:
 	invuln_time = HURT_IFRAMES
 	_set_duck(false)
 	rig.set_expression("closed", 0.35)
+	rig.flame_blow(info.direction.x)
 	if _recent_hits.size() >= 3:
 		emote.show_emote("anger", 1.0)
 		_recent_hits.clear()
@@ -1582,6 +1585,7 @@ func _hazard_respawn() -> void:
 	_fx_tween = tw
 	tw.tween_property(rig, "modulate:a", 0.0, 0.12)
 	tw.tween_callback(func():
+		rig.lit = 0.0
 		var back := hazard_spawn_override if hazard_spawn_override != Vector2.ZERO else last_safe_pos
 		global_position = back.round()
 		_prev_pos = global_position
@@ -1590,6 +1594,7 @@ func _hazard_respawn() -> void:
 		refill_dash()
 		if scarf:
 			scarf.reset_to(scarf_anchor()))
+	tw.tween_callback(rig.relight)
 	tw.tween_property(rig, "modulate:a", 1.0, 0.12)
 	tw.tween_callback(func():
 		_set_state(State.NORMAL)
@@ -1621,6 +1626,7 @@ func _on_death(_info: DamageInfo) -> void:
 	Audio.play("death")
 	rig.set_expression("dead")
 	rig.play("dead")
+	rig.extinguish()
 	emote.show_emote("skull", 1.5, true)
 	FX.burst(body_center(), Color(0.95, 0.93, 0.9), 12, 90.0)
 	if _fx_tween and _fx_tween.is_valid():
@@ -1651,6 +1657,8 @@ func revive(at: Vector2) -> void:
 	refill_dash()
 	rig.set_expression("normal")
 	rig.play("idle", true)
+	rig.relight()
+	FX.burst(rig.flame_tip_global(), Color(2.6, 1.6, 0.5), 6, 40.0, Vector2.UP, 50.0, 0.35)
 	_set_state(State.NORMAL)
 	if scarf:
 		scarf.reset_to(scarf_anchor())
@@ -1679,6 +1687,7 @@ func _st_heal(d: float) -> void:
 		FX.burst(body_center(), Color(2.2, 2.4, 2.8), 10, 70.0)
 		rig.bump(Vector2(0.85, 1.2))
 		rig.set_expression("happy", 0.5)
+		rig.flame_pop(0.8)
 		Audio.play("pickup", 0.05, -6.0, 1.2)
 		if hp >= max_hp() or focus < HEAL_COST:
 			heal_hold_t = 0.0
@@ -1691,6 +1700,8 @@ func rest() -> void:
 	velocity = Vector2.ZERO
 	rig.play("sit")
 	rig.set_expression("closed", 1.0)
+	rig.relight()
+	rig.flame_pop(0.6)
 
 
 func _st_rest(d: float) -> void:
@@ -2011,6 +2022,14 @@ func _animate(d: float) -> void:
 			else:
 				a = "idle"
 	rig.play(a)
+	rig.motion = velocity
+	rig.vitality = hp / maxf(max_hp(), 1.0)
+	if scarf:
+		rig.scarf_color = scarf.color.lerp(Color(2.0, 2.0, 2.0), scarf.flash)
+	if light:
+		# a luz do herói É a chama: acompanha a posição e tremula junto
+		light.position = rig.anchor("flame") + Vector2(0, -2)
+		light.energy = LIGHT_ENERGY * rig.lit * (0.85 + 0.15 * sin(Time.get_ticks_msec() / 60.0)) * (0.7 + 0.3 * rig.vitality)
 	# expressão base
 	var ratio := hp / maxf(max_hp(), 1.0)
 	var base := "normal"

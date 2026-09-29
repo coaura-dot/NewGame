@@ -22,7 +22,21 @@ func _ready() -> void:
 	top_level = true
 	global_position = Vector2.ZERO
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
-	z_index = -1
+	# top_level solta o z do pai: fixa o z absoluto logo atrás do herói
+	# (senão o cachecol some atrás do cenário)
+	z_as_relative = false
+	z_index = _absolute_z(host) - 1
+
+
+static func _absolute_z(n: Node) -> int:
+	var z := 0
+	while n is CanvasItem:
+		var ci := n as CanvasItem
+		z += ci.z_index
+		if not ci.z_as_relative:
+			break
+		n = n.get_parent()
+	return z
 
 
 func reset_to(anchor: Vector2) -> void:

@@ -106,9 +106,9 @@ func hide_boss() -> void:
 
 const SMALL := preload("res://assets/fonts/kenney_mini.ttf")
 const INK := Color(0.106, 0.082, 0.157)
-const MASK := Color(0.96, 0.94, 0.9)
-const MASK_EMPTY := Color(0.3, 0.27, 0.36)
-const HP_PER_MASK := 20.0
+const WAX := Color(0.96, 0.91, 0.78)
+const WAX_EMPTY := Color(0.3, 0.27, 0.36)
+const HP_PER_CANDLE := 20.0 ## cada velinha do HUD vale 20 de vida
 
 
 func _text(pos: Vector2, s: String, _size: int = 8, color: Color = Color(1, 1, 1), outline: bool = true) -> void:
@@ -129,23 +129,36 @@ func _bar(rect: Rect2, ratio: float, color: Color, ghost: float = -1.0) -> void:
 	d.draw_rect(Rect2(rect.position, Vector2(roundf(rect.size.x * clampf(ratio, 0, 1)), rect.size.y)), color)
 
 
-## Máscara de vida (7x8): cheia, parcial ou vazia.
-func _mask(pos: Vector2, fill: float) -> void:
+## Velinha de vida (um mini Pavio, 7x7 + chama): cheia, parcial ou vazia.
+## A cera "derrete" de cima para baixo; apagada, fecha os olhos.
+func _life_candle(pos: Vector2, fill: float, t: float) -> void:
 	var d := _draw_node
-	var rows := [[1, 5], [0, 7], [0, 7], [0, 7], [1, 5], [2, 3]]
-	for j in rows.size():
-		d.draw_rect(Rect2(pos + Vector2(rows[j][0] - 1, j), Vector2(rows[j][1] + 2, 1)), INK)
-	d.draw_rect(Rect2(pos + Vector2(0, -1), Vector2(7, 1)), INK)
-	d.draw_rect(Rect2(pos + Vector2(2, 6), Vector2(3, 1)), INK)
-	for j in rows.size():
-		var c := MASK_EMPTY
-		var level_y := 6.0 * (1.0 - fill)
+	d.draw_rect(Rect2(pos + Vector2(0, -1), Vector2(7, 8)), INK)
+	var level_y := 6.0 * (1.0 - fill)
+	for j in 6:
+		var c := WAX_EMPTY
 		if fill >= 0.999 or float(j) >= level_y:
-			c = MASK
-		d.draw_rect(Rect2(pos + Vector2(rows[j][0], j), Vector2(rows[j][1], 1)), c)
-	# olhinhos
-	d.draw_rect(Rect2(pos + Vector2(2, 2), Vector2(1, 2)), INK)
-	d.draw_rect(Rect2(pos + Vector2(4, 2), Vector2(1, 2)), INK)
+			c = WAX
+		d.draw_rect(Rect2(pos + Vector2(1, j), Vector2(5, 1)), c)
+	if fill >= 0.999:
+		d.draw_rect(Rect2(pos + Vector2(2, 0), Vector2(3, 1)), Color(1.0, 0.98, 0.93))
+	if fill > 0.0:
+		# pavio + chama (tremula; menor se a velinha está pela metade)
+		d.draw_rect(Rect2(pos + Vector2(3, -2), Vector2(1, 1)), INK)
+		var tall := fill >= 0.999
+		var sway := 1.0 if sin(t * 9.0 + pos.x) > 0.6 else 0.0
+		if tall:
+			d.draw_rect(Rect2(pos + Vector2(2, -4), Vector2(3, 2)), Color(1.0, 0.55, 0.15))
+			d.draw_rect(Rect2(pos + Vector2(3, -4), Vector2(1, 2)), Color(1.0, 0.9, 0.45))
+			d.draw_rect(Rect2(pos + Vector2(3 + sway, -5), Vector2(1, 1)), Color(1.0, 0.55, 0.15))
+		else:
+			d.draw_rect(Rect2(pos + Vector2(3, -3), Vector2(1, 1)), Color(1.0, 0.7, 0.25))
+		d.draw_rect(Rect2(pos + Vector2(2, 2), Vector2(1, 2)), INK)
+		d.draw_rect(Rect2(pos + Vector2(4, 2), Vector2(1, 2)), INK)
+	else:
+		d.draw_rect(Rect2(pos + Vector2(3, -2), Vector2(1, 1)), Color(0.45, 0.42, 0.5))
+		d.draw_rect(Rect2(pos + Vector2(2, 3), Vector2(1, 1)), INK)
+		d.draw_rect(Rect2(pos + Vector2(4, 3), Vector2(1, 1)), INK)
 
 
 func _draw_hud() -> void:
@@ -164,11 +177,12 @@ func _draw_hud() -> void:
 		d.draw_rect(Rect2(oc.x - half, oc.y - 8 + y, half * 2.0, 1), Color(0.85, 0.9, 1.0) if fr >= Player.HEAL_COST / player.max_focus() else Color(0.55, 0.62, 0.85))
 	if fr > 0.02:
 		d.draw_rect(Rect2(oc.x - 3, oc.y - 8 + 16 - fill_h, 2, 1), Color(1.6, 1.7, 2.0))
-	# máscaras de vida
-	var masks := int(ceil(player.max_hp() / HP_PER_MASK))
-	for i in masks:
-		var v: float = clampf((player.hp - i * HP_PER_MASK) / HP_PER_MASK, 0.0, 1.0)
-		_mask(Vector2(24 + i * 9, 5), v)
+	# velinhas de vida
+	var candles := int(ceil(player.max_hp() / HP_PER_CANDLE))
+	var now := Time.get_ticks_msec() / 1000.0
+	for i in candles:
+		var v: float = clampf((player.hp - i * HP_PER_CANDLE) / HP_PER_CANDLE, 0.0, 1.0)
+		_life_candle(Vector2(24 + i * 9, 6), v, now)
 	# dashes (losangos) e pulo duplo
 	var md: int = player.max_dashes()
 	for i in md:

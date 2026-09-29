@@ -1,146 +1,163 @@
 """Pavio: velinha viva de cera, com uma chama na cabeça, poncho azul-petróleo
 e cachecol (procedural). Quadros 16x16 olhando para a direita, pés na linha
-15. Os OLHOS e a CHAMA não fazem parte do quadro: o jogo desenha por cima
-usando as âncoras "eye" (x do olho de trás, y do topo dos olhos) e "flame"
-(base da chama, em cima do pavio). "neck" prende o cachecol e "hand" é onde
-a lâmina aparece.
+15, corpo centrado entre as colunas 7 e 8 (espelha certinho).
+
+Os OLHOS, as BOCHECHAS e a CHAMA não fazem parte do quadro: o jogo desenha
+por cima usando as âncoras
+  "eye"   x do olho de trás, y do topo dos olhos (o da frente fica em x+3);
+  "flame" base da chama (logo acima do pavio);
+  "neck"  onde o cachecol se prende;
+  "hand"  onde a lâmina aparece;
+  "cheeks" pixels das bochechas rosadas (só os que caem na cera);
+  "collar" [x0, x1, y] da gola, onde o jogo desenha a volta do cachecol.
+
+O corpo é uma vela de 8 px de largura com a borda de cima derretida (poça
+clara e um pingo escorrendo na frente), o rosto na cera e um poncho curto
+com barra costurada.
 """
 from px import Canvas, hexc
 
 OUT = hexc("1b1528")
-WAX = hexc("f7ecd2")
-WAX_SH = hexc("dcc39a")
-WAX_HI = hexc("fffbf2")
+WAX = hexc("f6e8c8")
+WAX_SH = hexc("d9bd92")
+WAX_DEEP = hexc("bf9f78")
+WAX_HI = hexc("fffaf0")
 PON = hexc("2f7f86")
-PON_SH = hexc("225b62")
-PON_HI = hexc("4aa7ab")
+PON_SH = hexc("215a61")
+PON_HI = hexc("5cb8b2")
 WICK = hexc("3a2a22")
-FOOT = hexc("5a3b2e")
+FOOT = hexc("4a3128")
 
 W = 16
 H = 16
 
 
-def candle(x, hy, body, poncho, legs, lean=None, poncho_off=None, drip=True, pstart=None):
-    """x = coluna esquerda do corpo de 8; hy = linha do topo.
-    body = larguras das linhas de cera (centradas em x+4, com 'lean' por linha);
-    poncho = larguras das linhas do poncho (começa em pstart)."""
+def pavio(x, top, wax, poncho, legs, lean=None, poff=None, drip=True, rim=6, w=8, wick_dx=0):
+    """x = coluna esquerda do corpo; top = linha da borda derretida;
+    wax = quantas linhas de cera (contando a borda);
+    poncho = lista de larguras, começando na última linha de cera;
+    lean = deslocamento x por linha de cera; poff = deslocamento x por linha do poncho.
+    Retorna (Canvas, coluna do pavio, linha do pavio)."""
     c = Canvas(W, H)
-    lean = lean or [0] * len(body)
-    for i, w in enumerate(body):
-        x0 = x + (8 - w) // 2 + lean[i]
-        c.hline(x0, x0 + w - 1, hy + i, WAX)
-    # sombra da cera no lado de trás (esquerda) e brilho no topo da frente
-    for i, w in enumerate(body):
-        x0 = x + (8 - w) // 2 + lean[i]
-        if i >= 2:
-            c.set(x0, hy + i, WAX_SH)
-    top_w = body[0]
-    tx0 = x + (8 - top_w) // 2 + lean[0]
-    c.set(tx0 + top_w - 1, hy, WAX_HI)
-    if len(body) > 1:
-        x1 = x + (8 - body[1]) // 2 + lean[1]
-        c.set(x1 + body[1] - 2, hy + 1, WAX_HI)
-    # pingo de cera escorrendo na frente
-    if drip and len(body) > 3:
-        x2 = x + (8 - body[2]) // 2 + lean[2]
-        c.set(x2 + body[2] - 1, hy + 2, WAX)
-        c.set(x2 + body[2] - 1, hy + 3, WAX_HI)
-    ps = pstart if pstart is not None else hy + len(body) - len(poncho) + 1
-    poff = poncho_off or [0] * len(poncho)
-    for i, w in enumerate(poncho):
-        x0 = x + (8 - w) // 2 + poff[i]
-        c.hline(x0, x0 + w - 1, ps + i, PON)
-    # barra do poncho mais escura + dobra clara
+    lean = lean or [0] * wax
+    poff = poff or [0] * len(poncho)
+    edges = []
+    for i in range(wax):
+        ww = rim if i == 0 else w
+        x0 = x + (w - ww) // 2 + lean[i]
+        c.hline(x0, x0 + ww - 1, top + i, WAX)
+        edges.append((x0, x0 + ww - 1))
+    # borda derretida (poça clara) e sombreado: lado de trás mais escuro,
+    # parte de baixo da cera um tom abaixo (a luz vem da chama, em cima)
+    x0, x1 = edges[0]
+    c.hline(x0 + 1, x1 - 1, top, WAX_HI)
+    for i in range(1, wax):
+        x0, x1 = edges[i]
+        c.set(x0, top + i, WAX_SH)
+        if i >= wax - 1:
+            c.hline(x0 + 1, x1, top + i, WAX_SH)
+            c.set(x0, top + i, WAX_DEEP)
+    # brilho vertical na frente
+    if wax >= 3:
+        x0, x1 = edges[1]
+        c.set(x1 - 1, top + 1, WAX_HI)
+    # pingo de cera escorrendo pela frente, a partir da borda
+    if drip and wax >= 4:
+        x0, x1 = edges[1]
+        c.set(x1, top + 1, WAX_HI)
+        c.set(x1, top + 2, WAX_HI)
+    # poncho: começa na última linha de cera e desce
+    ps = top + wax - 1
+    rows = []
+    for i, pw in enumerate(poncho):
+        px0 = x + (w - pw) // 2 + poff[i]
+        c.hline(px0, px0 + pw - 1, ps + i, PON)
+        rows.append((px0, px0 + pw - 1))
     if poncho:
-        last = len(poncho) - 1
-        x0 = x + (8 - poncho[last]) // 2 + poff[last]
-        c.hline(x0, x0 + poncho[last] - 1, ps + last, PON_SH)
-        x0 = x + (8 - poncho[0]) // 2 + poff[0]
-        c.set(x0 + poncho[0] - 2, ps, PON_HI)
+        # gola clara, costura pontilhada no meio, barra escura
+        px0, px1 = rows[0]
+        c.hline(px0 + 1, px1 - 1, ps, PON_HI)
+        if len(rows) >= 3:
+            px0, px1 = rows[len(rows) // 2]
+            for xx in range(px0 + 1, px1, 2):
+                c.set(xx, ps + len(rows) // 2, PON_HI)
+        px0, px1 = rows[-1]
+        c.hline(px0, px1, ps + len(rows) - 1, PON_SH)
+        c.set(rows[0][0], ps, PON_SH)
     c.outline(OUT)
     for p in legs:
         c.set(p[0], p[1], FOOT if p[1] >= 15 else OUT)
-    # pavio (sem contorno)
-    c.set(tx0 + top_w // 2, hy - 1, WICK)
-    return c, tx0 + top_w // 2, ps
+    wx = edges[0][0] + (edges[0][1] - edges[0][0] + 1) // 2 + wick_dx
+    c.set(wx, top - 1, WICK)
+    # volta do cachecol na gola (o jogo pinta com a cor dos dashes)
+    c.collar = [rows[0][0] + 1, rows[0][1] - 1, ps] if poncho else []
+    return c, wx, top - 1
 
 
 def build():
     F = []
 
     def add(name, cv, eye, neck, hand=(12, 11), flame=None):
-        c, fx, _ps = cv
-        F.append((name, c, {"eye": list(eye), "neck": list(neck), "hand": list(hand), "flame": list(flame) if flame else [fx, eye[1] - 5]}))
+        c, wx, wy = cv
+        fl = list(flame) if flame else [wx, wy - 1]
+        # bochechas: logo abaixo e por fora dos olhos, só onde houver cera
+        cheeks = []
+        for dy in (2, 1):
+            cheeks = []
+            for cx, cy in ((eye[0] - 1, eye[1] + dy), (eye[0] + 4, eye[1] + dy)):
+                if c.get(cx, cy)[:3] in (WAX[:3], WAX_SH[:3], WAX_HI[:3]):
+                    cheeks.append([cx, cy])
+            if len(cheeks) == 2:
+                break
+        F.append((name, c, {"eye": list(eye), "neck": list(neck), "hand": list(hand), "flame": fl, "cheeks": cheeks, "collar": c.collar}))
 
-    BODY = [4, 6, 8, 8, 8, 8, 8, 8]
-    PONCHO = [8, 9, 9, 8]
     STAND = [(6, 14), (6, 15), (9, 14), (9, 15)]
+    PON = [10, 10, 9]
 
-    def std(hy, x=4, body=BODY, poncho=PONCHO, legs=STAND, lean=None, poff=None, pstart=None):
-        return candle(x, hy, body, poncho, legs, lean, poff, pstart=pstart)
-
-    # idle (respira: afunda 1 px e alarga)
-    cv = std(6)
-    add("idle0", cv, (7, 9), (5, 10), flame=(cv[1], 5))
-    cv = std(7, body=[4, 6, 8, 8, 8, 8, 8], poncho=[9, 9, 9, 8])
-    add("idle1", cv, (7, 10), (5, 11), flame=(cv[1], 6))
-    # corrida: inclinado para a frente, poncho esvoaçando para trás
+    # Layout base: pavio na linha 5, borda derretida na 6, cera até a 11,
+    # poncho 11-13 e pés 14-15. Olhos nas linhas 8-9, bochechas na 10.
+    # --- idle (respira: afunda 1 px e o poncho alarga) ---
+    add("idle0", pavio(4, 6, 6, PON, STAND), (7, 8), (5, 11))
+    add("idle1", pavio(4, 7, 5, [10, 11, 10], STAND), (7, 8), (5, 11))
+    # --- corrida: corpo inclinado para a frente, poncho voando para trás ---
     run_legs = [
         [(6, 14), (5, 15), (9, 14), (10, 15)],
         [(6, 14), (6, 15), (9, 14), (9, 15)],
         [(7, 14), (7, 15), (9, 14), (10, 14)],
-        [(6, 14), (5, 15), (9, 14), (10, 15)],
+        [(9, 14), (10, 15), (6, 14), (5, 15)],
         [(9, 14), (9, 15), (6, 14), (6, 15)],
         [(8, 14), (8, 15), (6, 14), (5, 14)],
     ]
     bob = [0, -1, -1, 0, -1, -1]
     for i in range(6):
-        hy = 6 + bob[i]
-        lean = [1, 1, 1, 0, 0, 0, 0, 0]
-        poff = [-1, -1, -2, -2] if i % 3 else [-1, -2, -2, -2]
-        cv = std(hy, lean=lean, poncho=[8, 9, 10, 9], poff=poff, legs=run_legs[i])
-        add("run%d" % i, cv, (8, hy + 3), (4, hy + 5), flame=(cv[1], hy - 1))
-    # pulo: esticado
-    cv = std(4, body=[4, 6, 6, 6, 6, 6, 6, 6, 6], poncho=[7, 7, 7], legs=[(7, 14), (7, 15), (8, 14)], pstart=10)
-    add("jump", cv, (7, 7), (5, 10), flame=(cv[1], 3))
-    # queda: poncho abre como paraquedas
-    for i in range(2):
-        legs = [(6, 14), (6, 15), (9, 14)] if i == 0 else [(6, 14), (9, 14), (9, 15)]
-        cv = std(5, body=[4, 6, 8, 8, 8, 8, 8, 8], poncho=[10, 11, 11, 9], legs=legs)
-        add("fall%d" % i, cv, (7, 8), (4, 10), flame=(cv[1], 4))
-    # dash: achatado e comprido, inclinado
-    cv = candle(3, 8, [5, 8, 10, 10, 10], [10, 10], [(2, 14), (3, 14)], lean=[2, 1, 0, 0, 0], poncho_off=[-1, -1], drip=False, pstart=12)
-    add("dash", cv, (9, 10), (4, 12), (13, 12), flame=(cv[1] - 1, 7))
-    # parede (a parede fica à esquerda do quadro)
-    cv = std(6, x=5, legs=[(11, 13), (12, 13), (8, 14), (8, 15)], poncho=[8, 8, 8, 7])
-    add("wall", cv, (8, 9), (6, 10), flame=(cv[1], 5))
-    cv = std(5, x=5, legs=[(11, 12), (12, 12), (8, 14), (8, 15)], poncho=[8, 8, 8, 7])
-    add("climb0", cv, (8, 8), (6, 9), flame=(cv[1], 4))
-    cv = std(6, x=5, legs=[(11, 14), (12, 15), (8, 14)], poncho=[8, 8, 8, 7])
-    add("climb1", cv, (8, 9), (6, 10), flame=(cv[1], 5))
-    # agachado: baixinho e largo
-    cv = candle(4, 9, [6, 8, 8, 10, 10], [10, 10], [(6, 15), (9, 15)], pstart=12)
-    add("duck", cv, (7, 11), (4, 12), flame=(cv[1], 8))
-    # golpes (a lâmina é desenhada pelo jogo)
-    cv = std(6, x=3, lean=[1, 1, 1, 1, 1, 0, 0, 0], poncho=[8, 9, 9, 8], legs=[(5, 14), (4, 15), (10, 14), (11, 15)])
-    add("slash0", cv, (7, 9), (4, 10), (12, 10), flame=(cv[1], 5))
-    cv = std(6, x=5, lean=[-1, -1, 0, 0, 0, 0, 0, 0], poncho=[8, 9, 9, 8], legs=[(6, 14), (5, 15), (11, 14), (12, 15)])
-    add("slash1", cv, (8, 9), (6, 10), (13, 11), flame=(cv[1], 5))
-    cv = std(5, body=[4, 6, 6, 8, 8, 8, 8, 8, 8], legs=STAND)
-    add("slash_up", cv, (7, 8), (5, 10), (9, 3), flame=(cv[1], 4))
-    cv = candle(4, 4, [4, 6, 8, 8, 8, 8], [8, 8, 7], [(7, 13), (8, 13)], pstart=8)
-    add("slash_down", cv, (7, 7), (5, 8), (8, 14), flame=(cv[1], 3))
-    # conjurar / focar
-    cv = std(6, poncho=[10, 11, 11, 10], legs=[(6, 14), (5, 15), (9, 14), (10, 15)])
-    add("cast", cv, (7, 9), (4, 10), (13, 10), flame=(cv[1], 5))
-    cv = candle(4, 8, [4, 6, 8, 8, 8, 8], [10, 10, 10], [(6, 14), (9, 14)], pstart=11)
-    add("focus", cv, (7, 10), (4, 11), flame=(cv[1], 7))
-    # dano / morte (derrete numa poça) / sentado
-    cv = std(6, x=5, lean=[-1, -1, -1, 0, 0, 0, 0, 0], legs=[(7, 14), (6, 15), (11, 14), (12, 15)])
-    add("hurt", cv, (7, 9), (6, 10), flame=(cv[1], 5))
-    cv = candle(2, 12, [6, 10, 12], [], [], drip=False)
-    add("dead", cv, (6, 12), (4, 14), flame=(cv[1], 11))
-    cv = candle(4, 8, [4, 6, 8, 8, 8, 8], [9, 9, 9], [(10, 15), (11, 15)], pstart=11)
-    add("sit", cv, (7, 10), (4, 11), flame=(cv[1], 7))
+        t = 6 + bob[i]
+        poff = [-1, -2, -2] if i % 3 else [-1, -2, -3]
+        add("run%d" % i, pavio(4, t, 6, [10, 11, 10], run_legs[i], lean=[1, 1, 1, 1, 1, 0], poff=poff),
+            (8, t + 2), (4, t + 5))
+    # --- pulo: esticado, pernas juntas ---
+    add("jump", pavio(4, 4, 7, [8, 9, 8], [(7, 14), (7, 15), (8, 14)]), (7, 6), (5, 9))
+    # --- queda: poncho abre como paraquedas ---
+    add("fall0", pavio(4, 5, 6, [12, 13, 11], [(6, 14), (6, 15), (9, 14)]), (7, 7), (4, 10))
+    add("fall1", pavio(4, 5, 6, [12, 13, 11], [(6, 14), (9, 14), (9, 15)]), (7, 7), (4, 10))
+    # --- dash: achatado e comprido (a chama deita para trás no jogo) ---
+    add("dash", pavio(3, 8, 5, [11, 11, 10], [(2, 14), (3, 14)], lean=[2, 1, 1, 0, 0], poff=[-1, -1, -2], w=10, rim=7, drip=False),
+        (8, 9), (4, 12), (13, 12))
+    # --- parede (a parede fica à esquerda do quadro) ---
+    add("wall", pavio(5, 6, 6, [9, 9, 8], [(11, 13), (12, 13), (8, 14), (8, 15)]), (8, 8), (6, 11))
+    add("climb0", pavio(5, 5, 6, [9, 9, 8], [(11, 12), (12, 12), (8, 14), (8, 15)]), (8, 7), (6, 10))
+    add("climb1", pavio(5, 6, 6, [9, 9, 8], [(11, 14), (12, 15), (8, 14)]), (8, 8), (6, 11))
+    # --- agachado: baixinho e largo ---
+    add("duck", pavio(3, 9, 4, [12, 12, 11], [(6, 15), (9, 15)], w=10, rim=8), (7, 10), (4, 12))
+    # --- golpes (a lâmina é desenhada pelo jogo) ---
+    add("slash0", pavio(3, 6, 6, [10, 11, 10], [(5, 14), (4, 15), (10, 14), (11, 15)], lean=[1, 1, 1, 0, 0, 0]), (6, 8), (4, 11), (12, 10))
+    add("slash1", pavio(5, 6, 6, [10, 11, 10], [(6, 14), (5, 15), (11, 14), (12, 15)], lean=[-1, -1, 0, 0, 0, 0]), (8, 8), (6, 11), (13, 11))
+    add("slash_up", pavio(4, 5, 7, PON, STAND), (7, 7), (5, 11), (9, 3))
+    add("slash_down", pavio(4, 4, 6, [9, 9, 8], [(7, 12), (8, 12)]), (7, 6), (5, 8), (8, 14))
+    # --- conjurar / focar ---
+    add("cast", pavio(4, 6, 6, [11, 12, 11], [(6, 14), (5, 15), (9, 14), (10, 15)]), (7, 8), (4, 11), (13, 10))
+    add("focus", pavio(4, 8, 5, [11, 11, 10], [(6, 14), (9, 14)]), (7, 9), (4, 12))
+    # --- dano / morte (derrete numa poça) / sentado ---
+    add("hurt", pavio(5, 6, 6, [10, 10, 9], [(7, 14), (6, 15), (11, 14), (12, 15)], lean=[-1, -1, -1, 0, 0, 0]), (7, 8), (6, 11))
+    add("dead", pavio(2, 12, 3, [], [], drip=False, w=12, rim=8), (6, 13), (4, 14))
+    add("sit", pavio(4, 8, 5, [11, 11, 10], [(10, 15), (11, 15)]), (7, 9), (4, 12))
     return F
