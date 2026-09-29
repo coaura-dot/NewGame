@@ -215,8 +215,13 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
   Brasas-Mestras e de quem é o Sopro. Diário no menu de pausa (**Lembranças**).
 - **Lamparinas dos Veladores nas estradas do mapa-múndi**: acendem quando o Pavio passa, dão 1 brasa e ficam acesas
   para sempre (salvas) — as estradas vão ganhando pontos de luz conforme você explora.
-- Ferramentas: `python3 tools/pixel_art.py --world` (só tiles e fundos), `screenshot.gd` modo `sombria` (a sala
-  sombria do treino apagada e depois acesa).
+- **Os guardiões eram os zeladores da Lareira**: ao cair, cada um (e o Arquidemônio) volta a ser quem era e diz suas
+  últimas palavras.
+- **Bestiário** (menu de pausa): cada criatura derrotada ganha uma página com a história dela; com 3 abates aparece a
+  anotação de como lutar.
+- **Final** muda com as Lembranças encontradas (todas = epílogo verdadeiro) e mostra as lamparinas de estrada acesas.
+- Ferramentas: `python3 tools/pixel_art.py --world` (só tiles e fundos), `screenshot.gd` modos `sombria` (a sala
+  sombria do treino apagada e depois acesa) e `paineis` (últimas palavras, Bestiário, Lembranças).
 
 ## Testes
 `godot --headless --path . res://tests/test_runner.tscn` — 7800+ verificações (dados, balanceamento, mundo, fases,

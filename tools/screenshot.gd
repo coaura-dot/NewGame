@@ -11,6 +11,7 @@ extends SceneTree
 ## regiao [seed]: fase da região inicial (tábua de pedra com a inscrição);
 ## bichos: os inimigos novos (mariposa, Guarda de Cinzas, Sopro) em ação.
 ## sombria [seed] [bioma]: a sala sombria do treino apagada e depois acesa.
+## paineis: últimas palavras de um guardião, Bestiário e Lembranças.
 ## chefe <id>: um guardião duelando com o herói (vários quadros).
 ## loja [seed]: diálogo e painéis de loja/forja/estudo/venda na vila inicial.
 
@@ -74,6 +75,8 @@ func _process(_d: float) -> bool:
 		return _chefe()
 	if _mode == "sombria":
 		return _sombria()
+	if _mode == "paineis":
+		return _paineis()
 	if _mode != "menu":
 		if _n == 60:
 			Input.action_press("move_right")
@@ -537,5 +540,37 @@ func _sombria() -> bool:
 			l.light_up()
 	if _n == 320:
 		_save("2_todas_acesas")
+		quit()
+	return false
+
+
+func _paineis() -> bool:
+	if _level == null or _level.player == null:
+		return false
+	var game = root.get_node("Game")
+	if _n == 20:
+		for id in ["skeleton", "skeleton", "skeleton", "wax_spear", "moth", "raven_guardian"]:
+			Bestiary.record(game.profile, id)
+		game.profile["memories"] = [0, 1, 2]
+		_level._keeper_words("raven_guardian")
+	if _n == 260:
+		_save("0_zelador")
+		_level.hud.close_panel()
+		_level.pause_menu.open()
+	if _n == 270:
+		_level.pause_menu._show_bestiary()
+	if _n == 275:
+		for b in _level.pause_menu.find_children("*", "Button", true, false):
+			if b.text == "Esqueleto Errante":
+				b.pressed.emit()
+	if _n == 285:
+		_save("1_bestiario")
+		_level.pause_menu._show_memories()
+	if _n == 290:
+		for b in _level.pause_menu.find_children("*", "Button", true, false):
+			if b.text.begins_with("Lembrança II "):
+				b.pressed.emit()
+	if _n == 300:
+		_save("2_lembrancas")
 		quit()
 	return false

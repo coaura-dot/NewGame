@@ -55,7 +55,9 @@
    0.93,
    0.88,
    0.8
-  ]
+  ],
+  "lore": "Ossos de viajantes que se perderam quando as lamparinas das estradas apagaram. Ainda andam a rota antiga, procurando a próxima luz.",
+  "desc": "Golpe amarelo: apare no instante e puna. Martelar sem parar faz ele erguer a guarda — o golpe pesado quebra."
  },
  "hound": {
   "name": "Cão Infernal",
@@ -102,7 +104,9 @@
    1.0,
    0.55,
    0.25
-  ]
+  ],
+  "lore": "Cães de guarda das vilas. Sem dono e sem lareira, farejam qualquer calor — inclusive o seu.",
+  "desc": "Recua e dá o bote. A mordida comum é amarela (apare); a pesada brilha vermelho: pule por cima e castigue."
  },
  "hellcat": {
   "name": "Gato do Abismo",
@@ -151,7 +155,9 @@
    0.6,
    0.45,
    0.8
-  ]
+  ],
+  "lore": "Gatos pretos sempre souberam andar no escuro. Estes aprenderam a morar nele.",
+  "desc": "Pula para trás e volta com o bote assim que pousa. Espere o recuo e acerte na volta."
  },
  "ghost": {
   "name": "Espectro Encapuzado",
@@ -211,7 +217,9 @@
    0.85,
    0.8,
    1.0
-  ]
+  ],
+  "lore": "Um Apagado tão antigo que perdeu até a cera. Só sobrou o capuz e a vontade de esfriar tudo o que toca.",
+  "desc": "Flutua e lança magias. Amarelo dá para rebater; vermelho, esquive. Golpeie enquanto ele se recupera."
  },
  "wraith": {
   "name": "Lampadário",
@@ -271,7 +279,9 @@
    1.0,
    0.85,
    0.5
-  ]
+  ],
+  "lore": "Uma lamparina que o Sopro apagou mas não deixou cair. Flutua esperando uma chama que nunca vem — e se ofende com a sua.",
+  "desc": "Fica no alto lançando magias. Rebata as amarelas de volta e suba até ele pela parede."
  },
  "fire_skull": {
   "name": "Crânio Flamejante",
@@ -332,7 +342,9 @@
    1.0,
    0.6,
    0.25
-  ]
+  ],
+  "lore": "Brasas pequenas que caíram no lugar errado. Queimam sem aquecer, e riem.",
+  "desc": "Persegue pelo ar e, depois de brilhar, dá um rasante em linha reta. Pule o rasante — e use pogo nele para subir."
  },
  "hell_beast": {
   "name": "Besta do Inferno",
@@ -392,7 +404,9 @@
    0.35,
    0.3
   ],
-  "knockback_mult": 0.0
+  "knockback_mult": 0.0,
+  "lore": "Nasceu de uma brasa engolida por um lobo faminto: o fogo por dentro, a fome por fora.",
+  "desc": "Não sai do lugar e cospe fogo (vermelho): esquive ou pule o jato e castigue enquanto ela recarrega."
  },
  "nightmare": {
   "name": "Corcel do Pesadelo",
@@ -454,7 +468,9 @@
    0.7,
    0.45,
    1.0
-  ]
+  ],
+  "lore": "O cavalo que puxava a carroça dos Veladores. Correu a noite inteira do Sopro e nunca mais parou de correr.",
+  "desc": "Carrega e dispara numa investida vermelha: esquive para o lado ou por cima e castigue enquanto ele freia."
  },
  "archdemon": {
   "name": "Arquidemônio de Cinzas",
@@ -654,7 +670,9 @@
      "dmg": 1.3
     }
    }
-  ]
+  ],
+  "lore": "O primeiro que se apagou. Dizem que o Sopro é só um suspiro dele, cansado de ver os outros acesos.",
+  "desc": "Três fases. Garra amarela (apare), chamas em leque (rebata!), sopro e poço vermelhos (esquive). Castigue depois de cada mergulho."
  },
  "moth": {
   "name": "Mariposa de Cinza",
@@ -696,7 +714,8 @@
    0.8,
    0.9
   ],
-  "desc": "Atraída pela chama do Pavio: circula, avisa e mergulha para roubar o seu fogo."
+  "desc": "Atraída pela chama do Pavio: circula, avisa e mergulha para roubar o seu fogo.",
+  "lore": "Toda mariposa ama uma chama. Estas amam até apagá-la."
  },
  "ash_knight": {
   "name": "Guarda de Cinzas",
@@ -751,7 +770,8 @@
    0.7,
    0.82
   ],
-  "desc": "Escudo sempre erguido. Pesado quebra o escudo; por trás ou por cima também passa."
+  "desc": "Escudo sempre erguido. Pesado quebra o escudo; por trás ou por cima também passa.",
+  "lore": "Guardas da Lareira que juraram protegê-la do vento. Apagados, continuam de escudo erguido — contra tudo e contra todos."
  },
  "gust": {
   "name": "Sopro Errante",
@@ -794,7 +814,8 @@
    0.95,
    1.0
   ],
-  "desc": "Um fiapo do Sopro que apagou a Lareira: inspira e sopra rajadas que empurram e esfriam."
+  "desc": "Um fiapo do Sopro que apagou a Lareira: inspira e sopra rajadas que empurram e esfriam.",
+  "lore": "Um fiapo do Sopro que se perdeu do resto. Não é mau: só é frio."
  },
  "raven_guardian": {
   "boss": true,
@@ -926,7 +947,8 @@
    0.35,
    0.5
   ],
-  "desc": "Rasantes e leques de penas (amarelos: rebata as penas!). Na 2ª fase mergulha no chão (vermelho) e solta ondas: pule por cima e castigue enquanto ele se levanta."
+  "desc": "Rasantes e leques de penas (amarelos: rebata as penas!). Na 2ª fase mergulha no chão (vermelho) e solta ondas: pule por cima e castigue enquanto ele se levanta.",
+  "lore": "Zelador da Lareira que espantava o vento com as asas. Engoliu a Brasa-Mestra das Asas de Cinza para salvá-la."
  },
  "spider_guardian": {
   "boss": true,
@@ -1074,7 +1096,8 @@
    0.5,
    0.9
   ],
-  "desc": "Mordidas em dupla (amarelas) e teias que deixam lento. O bote é vermelho: esquive e castigue. Na 2ª fase chama filhotes e derruba casulos do teto."
+  "desc": "Mordidas em dupla (amarelas) e teias que deixam lento. O bote é vermelho: esquive e castigue. Na 2ª fase chama filhotes e derruba casulos do teto.",
+  "lore": "Tecia a rede que protegia a Lareira das faíscas perdidas. Guarda a Brasa-Mestra das Garras."
  },
  "hare_guardian": {
   "boss": true,
@@ -1197,7 +1220,8 @@
    0.9,
    1.0
   ],
-  "desc": "Rapidíssima. Três investidas seguidas: as duas primeiras dá para aparar, a terceira é vermelha — pule! Depois ela fica tonta: é a sua vez."
+  "desc": "Rapidíssima. Três investidas seguidas: as duas primeiras dá para aparar, a terceira é vermelha — pule! Depois ela fica tonta: é a sua vez.",
+  "lore": "A mensageira mais rápida de Candelária. Fugiu do Sopro levando a Brasa-Mestra do Coração do Vendaval."
  },
  "golem_guardian": {
   "boss": true,
@@ -1355,7 +1379,8 @@
    0.7,
    0.6
   ],
-  "desc": "Lento e pesado. A pancada é amarela (apare!). O tremor e a chuva de pedras são vermelhos. A brasa nas COSTAS é o ponto fraco — passe por trás durante a punição."
+  "desc": "Lento e pesado. A pancada é amarela (apare!). O tremor e a chuva de pedras são vermelhos. A brasa nas COSTAS é o ponto fraco — passe por trás durante a punição.",
+  "lore": "A pedra-base da Lareira, acordada pela própria brasa que engoliu: a da Queda Esmagadora."
  },
  "mirror_guardian": {
   "boss": true,
@@ -1481,7 +1506,8 @@
    0.85,
    1.0
   ],
-  "desc": "Some e reaparece pelas SUAS costas: vire-se e apare. As ilusões atiram estilhaços amarelos (rebata). O anel da 2ª fase é vermelho: passe pelos buracos."
+  "desc": "Some e reaparece pelas SUAS costas: vire-se e apare. As ilusões atiram estilhaços amarelos (rebata). O anel da 2ª fase é vermelho: passe pelos buracos.",
+  "lore": "Refletia a luz da Lareira pela vila inteira. No escuro, guarda a Brasa-Mestra do Passo Etéreo."
  },
  "wax_spear": {
   "name": "Lanceiro de Cera",
@@ -1615,7 +1641,8 @@
    0.8,
    0.6
   ],
-  "desc": "Alcance comprido: estocadas amarelas (apare) e a varrida baixa vermelha (pule). Entre por dentro da lança."
+  "desc": "Alcance comprido: estocadas amarelas (apare) e a varrida baixa vermelha (pule). Entre por dentro da lança.",
+  "lore": "Um Apagado da guarda da vila. A cera escorreu pela lança, mas o braço ainda lembra o treino."
  },
  "soot_archer": {
   "name": "Arqueira de Fuligem",
@@ -1716,7 +1743,8 @@
    0.52,
    0.62
   ],
-  "desc": "Mantém distância e atira flechas amarelas (rebata de volta!). A chuva de flechas é vermelha: saia do aviso."
+  "desc": "Mantém distância e atira flechas amarelas (rebata de volta!). A chuva de flechas é vermelha: saia do aviso.",
+  "lore": "Caçadora que estava do lado de fora quando o Sopro passou. Virou fuligem e mira em tudo o que brilha."
  },
  "coal_brute": {
   "name": "Bruto de Carvão",
@@ -1831,6 +1859,7 @@
    0.5,
    0.25
   ],
-  "desc": "Pesado e lento. Pancada amarela (apare para quebrar a postura), salto vermelho com ondas (pule)."
+  "desc": "Pesado e lento. Pancada amarela (apare para quebrar a postura), salto vermelho com ondas (pule).",
+  "lore": "Carvoeiro que alimentava os fornos da vila. Por dentro ainda há brasa — por isso tem tanto medo de água."
  }
 }

@@ -154,12 +154,15 @@ Sessão 8 — ESTÉTICA ESCURA (Hollow Knight/Ori) + LUZ COMO JOGABILIDADE:
   _setup_road_lamp/_check_road_lamps (acende a ROAD_LAMP_REACH px, +1 brasa,
   profile["ow_lamps"]).
 - Sons novos: lamp, room_lit (tools/sfx_gen.py).
+- Lore.KEEPER_WORDS: últimas palavras de cada guardião/Arquidemônio ao cair
+  (level._keeper_words, painel 1,8 s depois). Bestiário: scripts/core/bestiary.gd
+  (profile["bestiary"], "lore" e "desc" em data/enemies.json; dica com 3 abates),
+  página no menu de pausa. Final (ending.gd): epilogue(found, total) pelas
+  Lembranças + contagem de lamparinas de estrada.
 - Prints: screenshot.gd modo "sombria"; modo "sala <seed> <bioma> <tier> <sala>".
 
 6. O QUE FALTA / IDEIAS
 -----------------------
-- Últimas falas dos guardiões ao cair (eles eram os zeladores da Lareira — ver
-  Lembrança VI): painel curto depois da vitória.
 - Mais inimigos comuns no motor de duelo (é só dados + arte); chefes de horda,
   de puzzle e de parkour (perseguição em zigue-zague com espinhos).
 - Mapa-múndi: casas com interior, eventos à noite; mostrar lamparinas de estrada

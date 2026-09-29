@@ -65,6 +65,7 @@ func _show_main() -> void:
 	v.add_child(UIKit.button("Continuar", close))
 	v.add_child(UIKit.button("Equipamento", _show_equipment))
 	v.add_child(UIKit.button("Lembranças (%d/%d)" % [Game.profile.get("memories", []).size(), Lore.MEMORIES.size()], _show_memories))
+	v.add_child(UIKit.button("Bestiário (%d/%d)" % [Bestiary.entries(Game.profile, DB).size(), Bestiary.total(DB)], _show_bestiary))
 	v.add_child(UIKit.button("Opções", _show_options))
 	if level and not level.training:
 		v.add_child(UIKit.button("Voltar ao mapa-múndi", func():
@@ -105,6 +106,52 @@ func _show_memories() -> void:
 	v.add_child(body)
 	v.add_child(UIKit.button("Voltar", _show_main, 80))
 	_set_content(p, "memories")
+
+
+## Bestiário: criaturas derrotadas, a história delas e (com 3 abates) a dica.
+func _show_bestiary() -> void:
+	var p := UIKit.panel(Vector2(360, 0))
+	var v := UIKit.vbox(3)
+	p.add_child(v)
+	var list := Bestiary.entries(Game.profile, DB)
+	v.add_child(UIKit.title("Bestiário  %d/%d" % [list.size(), Bestiary.total(DB)], 20))
+	var row := UIKit.hbox(8)
+	v.add_child(row)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(130, 170)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	row.add_child(scroll)
+	var names := UIKit.vbox(2)
+	scroll.add_child(names)
+	var detail := UIKit.vbox(3)
+	detail.custom_minimum_size = Vector2(210, 0)
+	row.add_child(detail)
+	var head := UIKit.label("", 13, UIKit.GOLD)
+	var count := UIKit.label("", 10, UIKit.DIM)
+	var lore := UIKit.label("", 11)
+	lore.autowrap_mode = TextServer.AUTOWRAP_WORD
+	lore.custom_minimum_size = Vector2(210, 0)
+	var tip := UIKit.label("", 10, Color(0.75, 0.85, 1.0))
+	tip.autowrap_mode = TextServer.AUTOWRAP_WORD
+	tip.custom_minimum_size = Vector2(210, 0)
+	for n in [head, count, lore, tip]:
+		detail.add_child(n)
+	if list.is_empty():
+		lore.text = "Nenhuma criatura registrada ainda. Cada inimigo derrotado ganha uma página."
+	for e in list:
+		var ent: Dictionary = e
+		names.add_child(UIKit.button(str(ent["name"]), func():
+			head.text = str(ent["name"])
+			count.text = ("Guardião" if ent["boss"] else "Criatura") + " — derrotados: %d" % int(ent["kills"])
+			lore.text = str(ent["lore"])
+			if str(ent["tip"]) != "":
+				tip.text = "Anotação: " + str(ent["tip"])
+			elif int(ent["kills"]) < Bestiary.TIP_KILLS:
+				tip.text = "(derrote mais %d para anotar como lutar)" % (Bestiary.TIP_KILLS - int(ent["kills"]))
+			else:
+				tip.text = "", 124))
+	v.add_child(UIKit.button("Voltar", _show_main, 80))
+	_set_content(p, "bestiary")
 
 
 func _show_options() -> void:

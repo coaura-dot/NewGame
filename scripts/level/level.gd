@@ -728,6 +728,7 @@ func _mark_cleared(idx: int) -> void:
 
 func on_enemy_killed(en: Node) -> void:
 	result["kills"] = int(result["kills"]) + 1
+	Bestiary.record(Game.profile, str(en.enemy_id))
 	var pos: Vector2 = en.body_center()
 	for id in en.roll_drops():
 		spawn_pickup(id, pos, Vector2(rng.randf_range(-30, 30), -110))
@@ -740,6 +741,7 @@ func on_enemy_killed(en: Node) -> void:
 		result["boss_killed"] = true
 		FX.slowmo(0.2, 1.5)
 		Events.toast.emit(Lore.boss_fall(str(en.data.get("name", "Chefe")), str(region.get("grants", "")), en.enemy_id == "archdemon"))
+		_keeper_words(str(en.enemy_id))
 		_boss_awake = false
 		Audio.music(theme_track(), 3.0)
 		if hud and hud.has_method("hide_boss"):
@@ -753,6 +755,17 @@ func on_enemy_killed(en: Node) -> void:
 	elif room >= 0 and _alive_enemies(room) == 0:
 		_cleared.erase(room)
 		_mark_cleared(room)
+
+
+## O guardião caído volta a ser o zelador que era (Lore.KEEPER_WORDS): um
+## painel curto depois que a câmera lenta da vitória passa.
+func _keeper_words(enemy_id: String) -> void:
+	var words: Array = Lore.KEEPER_WORDS.get(enemy_id, [])
+	if words.is_empty():
+		return
+	get_tree().create_timer(1.8, false).timeout.connect(func():
+		if hud and is_instance_valid(hud) and hud.has_method("open_text"):
+			hud.open_text(str(words[0]), str(words[1])))
 
 
 ## Arenas que fecham: os inimigos vêm em ondas (2 no tier 1, até 3 depois).

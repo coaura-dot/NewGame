@@ -199,6 +199,18 @@ static func tablet_text(r: Dictionary, rng: RandomNumberGenerator) -> String:
 
 
 ## Fala quando um guardião aparece / cai.
+## Últimas palavras dos guardiões ao cair: eles eram os zeladores da Lareira
+## (Lembrança VI) — a escuridão sai e eles lembram quem eram.
+const KEEPER_WORDS := {
+	"raven_guardian": ["O Corvo desperta", "Eu voava sobre a Lareira para espantar o vento... Quando o Sopro chegou, engoli a brasa. Fiquei tanto tempo no escuro que esqueci de quem ela era.\n\nLeve-a para casa, pequeno. Minhas asas já lembram o calor."],
+	"spider_guardian": ["A Tecelã desperta", "Teci redes em volta da brasa para ninguém roubá-la. Depois não deixei mais ninguém chegar perto — nem eu mesma.\n\nVocê desfez os nós. Leve-a. E cuidado com o vento."],
+	"hare_guardian": ["A Lebre desperta", "Corri. Corri tanto para longe do Sopro que nunca mais consegui parar.\n\nObrigada por me alcançar. Agora eu posso descansar."],
+	"golem_guardian": ["O Golem desperta", "Eu era a pedra da base da Lareira. Engoli a brasa e endureci por fora para que ela não apagasse.\n\nPode levar. Ela ainda está quente — eu prometi que estaria."],
+	"mirror_guardian": ["O Espelho desperta", "Eu refletia a chama para que ela parecesse maior. No escuro, só sobrou reflexo de reflexo, e eu me perdi entre eles.\n\nOlhe: é você ali. Uma chama de verdade. Leve a brasa."],
+	"archdemon": ["O Sopro se cala", "...eu também já fui uma vela. A primeira a apagar. Ninguém veio me acender.\n\nVocê viria? ...Tarde demais. Passe adiante, pequena chama. Passe adiante."],
+}
+
+
 static func boss_wake(boss_name: String, is_final: bool) -> String:
 	if is_final:
 		return "%s! O Sopro nasce da boca dele." % boss_name

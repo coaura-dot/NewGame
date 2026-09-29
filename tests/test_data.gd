@@ -69,3 +69,44 @@ func test_trilha_sonora() -> void:
 	check(mp.stream is AudioStreamOggVorbis and mp.stream.loop, "a faixa toca em loop")
 	Audio.music("", 0.01)
 	eq(Audio.music_track, "", "silêncio")
+
+
+## História: todo inimigo tem uma página no Bestiário; todo guardião (e o
+## Arquidemônio) tem as últimas palavras do zelador; 10 Lembranças.
+func test_lore_das_criaturas() -> void:
+	for id in DB.enemies.keys():
+		if str(id).begins_with("_"):
+			continue
+		var e: Dictionary = DB.enemies[id]
+		check(str(e.get("lore", "")).length() > 30, "%s tem história no bestiário" % id)
+		if e.get("boss", false):
+			check(Lore.KEEPER_WORDS.has(str(id)), "%s tem últimas palavras" % id)
+	for gid in WorldGenerator.GUARDIAN_OF.values():
+		check(Lore.KEEPER_WORDS.has(str(gid)), "guardião %s fala ao cair" % gid)
+	check(Lore.MEMORIES.size() == 10, "10 Lembranças da Veladora")
+	check(Lore.memory_title(2).begins_with("Lembrança III"), "título em romano")
+	var prof := {}
+	check(Lore.next_memory(prof) == 0, "primeira lembrança é a 0")
+	prof["memories"] = [0, 1]
+	check(Lore.next_memory(prof) == 2, "segue em ordem")
+
+
+func test_bestiario() -> void:
+	var prof := {}
+	check(Bestiary.entries(prof, DB).is_empty(), "começa vazio")
+	Bestiary.record(prof, "skeleton")
+	var e: Array = Bestiary.entries(prof, DB)
+	check(e.size() == 1 and e[0]["id"] == "skeleton", "1 abate registra a criatura")
+	check(e[0]["lore"] != "" and e[0]["tip"] == "", "história já aparece; a dica ainda não")
+	Bestiary.record(prof, "skeleton")
+	Bestiary.record(prof, "skeleton")
+	e = Bestiary.entries(prof, DB)
+	check(int(e[0]["kills"]) == 3 and e[0]["tip"] != "" or str(DB.enemies["skeleton"].get("desc", "")) == "", "com 3 abates libera a anotação")
+	check(Bestiary.total(DB) >= 20, "20+ criaturas para registrar")
+
+
+func test_epilogo_pelas_lembrancas() -> void:
+	var E = load("res://scripts/ui/ending.gd")
+	check(E.epilogue(10, 10).contains("passa adiante"), "todas as lembranças: final verdadeiro")
+	check(E.epilogue(5, 10).contains("lembranças esperando"), "metade: pista de que faltam")
+	check(E.epilogue(0, 10).contains("Candelária"), "nenhuma: epílogo simples")
