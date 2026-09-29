@@ -213,3 +213,57 @@ func test_lamparinas_no_treino() -> void:
 	level.queue_free()
 	await _frames(2)
 	FX.clear_time_effects()
+
+
+## Sombra (sala sombria do treino): no escuro o golpe atravessa; perto da
+## chama do Pavio ou na luz de uma lamparina ela pode ser ferida.
+func test_sombra_so_na_luz() -> void:
+	Game.pending = {"training": true}
+	var level: Node = load("res://scenes/level.tscn").instantiate()
+	tree.root.add_child(level)
+	await _frames(10)
+	var p: Player = level.player
+	var shade: Enemy = null
+	for n in level.entities.get_children():
+		if n is Enemy and n.enemy_id == "shade":
+			shade = n
+	check(shade != null, "a sala sombria do treino tem uma Sombra")
+	if shade == null or p == null:
+		level.queue_free()
+		await _frames(2)
+		return
+	p.invuln_time = 999.0
+	var room: int = int(shade.get_meta("room", -1))
+	check(level.layout["rooms"][room].get("dark", false), "Sombra nasce em sala sombria")
+	# longe do herói e sem lamparina acesa: intocável
+	p.global_position = shade.global_position + Vector2(-120, 0)
+	p._prev_pos = p.global_position
+	shade.ai_state = "idle"
+	await _frames(2)
+	var info := DamageInfo.new()
+	info.amount = 5.0
+	info.team = p.team
+	info.source = p
+	check(not shade.shade_lit(), "no escuro a Sombra não está iluminada")
+	check(shade.take_hit(info) == DamageInfo.Result.INVULNERABLE, "no escuro o golpe atravessa")
+	# colada na chama do Pavio: fere
+	p.global_position = shade.global_position + Vector2(-12, 8)
+	p._prev_pos = p.global_position
+	check(shade.shade_lit(), "perto da chama ela fica na luz")
+	var hp0: float = shade.hp
+	var r := shade.take_hit(info)
+	check(r == DamageInfo.Result.HIT or r == DamageInfo.Result.KILLED, "na luz o golpe acerta (%d)" % r)
+	check(shade.hp < hp0, "a Sombra perde vida na luz")
+	# lamparina acesa perto dela também ilumina
+	p.global_position = shade.global_position + Vector2(-150, 0)
+	p._prev_pos = p.global_position
+	var lamp := Lamparina.new()
+	lamp.room_index = -1
+	level.entities.add_child(lamp)
+	lamp.global_position = shade.global_position + Vector2(20, 10)
+	check(not shade.shade_lit(), "lamparina apagada não ilumina")
+	lamp.light_up()
+	check(shade.shade_lit(), "lamparina acesa ilumina a Sombra")
+	level.queue_free()
+	await _frames(2)
+	FX.clear_time_effects()

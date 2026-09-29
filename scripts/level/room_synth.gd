@@ -1468,6 +1468,26 @@ static func place_lamps(g: Array, rng: RandomNumberGenerator, n: int) -> int:
 	return placed
 
 
+## Coloca `ch` flutuando no ar (a célula e as 8 vizinhas livres). Usado para
+## as Sombras das salas sombrias. Devolve quantas couberam.
+static func place_floaters(g: Array, rng: RandomNumberGenerator, ch: String, n: int) -> int:
+	var placed := 0
+	for attempt in 80:
+		if placed >= n:
+			break
+		var x := rng.randi_range(5, W - 6)
+		var y := rng.randi_range(4, H - 8)
+		var free := true
+		for dy in range(-1, 2):
+			for dx in range(-1, 2):
+				if at(g, x + dx, y + dy) != ".":
+					free = false
+		if free:
+			put(g, x, y, ch)
+			placed += 1
+	return placed
+
+
 static func _count(g: Array, ch: String) -> int:
 	var n := 0
 	for row in g:

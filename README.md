@@ -215,6 +215,9 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
   Brasas-Mestras e de quem é o Sopro. Diário no menu de pausa (**Lembranças**).
 - **Lamparinas dos Veladores nas estradas do mapa-múndi**: acendem quando o Pavio passa, dão 1 brasa e ficam acesas
   para sempre (salvas) — as estradas vão ganhando pontos de luz conforme você explora.
+- **Sombra** (inimigo das salas sombrias): no escuro é quase invisível — só os olhos — e nada a atinge. Espreita
+  longe da sua chama e dá um bote amarelo (apare!); depois do bote fica colada na luz do Pavio: castigue. Na luz de uma
+  lamparina fica atordoada, e com a sala toda acesa se desmancha fácil.
 - **Os guardiões eram os zeladores da Lareira**: ao cair, cada um (e o Arquidemônio) volta a ser quem era e diz suas
   últimas palavras.
 - **Bestiário** (menu de pausa): cada criatura derrotada ganha uma página com a história dela; com 3 abates aparece a
@@ -224,7 +227,7 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
   sombria do treino apagada e depois acesa) e `paineis` (últimas palavras, Bestiário, Lembranças).
 
 ## Testes
-`godot --headless --path . res://tests/test_runner.tscn` — 7800+ verificações (dados, balanceamento, mundo, fases,
+`godot --headless --path . res://tests/test_runner.tscn` — 8000+ verificações (dados, balanceamento, mundo, fases,
 combate, sigilos, inventário, social, save e um teste que joga o treino: anda, pula, dash, ataca, magia, aparo).
 Prints do jogo rodando: `godot --path . --script tools/screenshot.gd -- <prefixo> [treino|menu]`.
 

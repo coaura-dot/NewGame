@@ -153,4 +153,47 @@ def coal_brute():
             "tired": [brute_frame(0)]}, {"size": [22, 20], "feet": [10, 20], "fps": {"walk": 5, "idle": 2}}
 
 
-FOES = {"wax_spear": wax_spear, "soot_archer": soot_archer, "coal_brute": coal_brute}
+# ---------------------------------------------------------------------------
+# Sombra 16x16 — só existe no escuro: corpo de fumaça, olhos que brilham
+# ---------------------------------------------------------------------------
+SHADE = hexc("2c2645")
+SHADE_HI = hexc("4e4476")
+SHADE_SH = hexc("1c1830")
+SHADE_EYE = hexc("7af0ff")
+SHADE_MOUTH = hexc("ff5a78")
+
+
+def shade_frame(t=0, pose="idle"):
+    c = Canvas(16, 16)
+    sway = [0, 1, 0, -1][t % 4]
+    stretch = 1 if pose == "attack" else 0
+    # cabeça/capuz arredondado + corpo que se desfia embaixo
+    c.rows(4, 2, [4, 6, 8, 8, 8, 8, 7, 6], SHADE, offsets=[0, 0, 0, 0, 0, sway, sway, sway])
+    for k in range(4):
+        x = 5 + k * 2 + sway
+        c.vline(x, 10, 12 + (k + t) % 3 + stretch * 2, SHADE)
+    c.hline(5, 9, 3, SHADE_HI)
+    c.set(4, 4, SHADE_HI)
+    c.vline(11, 5, 8, SHADE_SH)
+    _fin(c)
+    # olhos (brilham) e boca que abre no bote
+    ey = 5 if pose != "windup" else 6
+    c.set(6, ey, SHADE_EYE)
+    c.set(9, ey, SHADE_EYE)
+    if pose == "windup":
+        c.set(6, ey - 1, SHADE_EYE)
+        c.set(9, ey - 1, SHADE_EYE)
+    if pose in ("windup", "attack"):
+        c.hline(6, 9, 8, SHADE_MOUTH)
+        if pose == "attack":
+            c.hline(7, 8, 9, SHADE_MOUTH)
+    return c
+
+
+def shade():
+    return {"idle": [shade_frame(i) for i in range(4)], "walk": [shade_frame(i) for i in range(4)],
+            "windup": [shade_frame(0, "windup")], "attack": [shade_frame(1, "attack")],
+            "tired": [shade_frame(2)]}, {"size": [16, 16], "feet": [8, 14], "fps": {"idle": 6, "walk": 8}}
+
+
+FOES = {"wax_spear": wax_spear, "soot_archer": soot_archer, "coal_brute": coal_brute, "shade": shade}

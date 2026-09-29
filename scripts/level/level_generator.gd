@@ -235,6 +235,8 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 			tg.append("dark")
 			room["tags"] = tg
 			RoomSynth.place_lamps(g, lrng, lrng.randi_range(3, 4))
+			# Sombras moram no escuro (no treino, uma só)
+			RoomSynth.place_floaters(g, lrng, "h", 1 if params.get("training", false) else lrng.randi_range(1, 2))
 		elif not room["type"] in ["boss", "entrance"] and lrng.randf() < LAMP_CHANCE:
 			RoomSynth.place_lamps(g, lrng, 1)
 		var origin := Vector2i((cell.x - min_c.x) * LevelConst.ROOM_W, (cell.y - min_c.y) * LevelConst.ROOM_H)
@@ -543,6 +545,8 @@ static func _make_entity(ch: String, x: int, y: int, room: Dictionary, rng: Rand
 			e["data"]["enemy"] = RngUtil.weighted_key(rng, pool["ground"])
 		"F":
 			e["data"]["enemy"] = RngUtil.weighted_key(rng, pool["flying"])
+		"h":
+			e["data"]["enemy"] = "shade"
 		"M":
 			e["data"]["enemy"] = params.get("boss", "nightmare") if params.get("boss", "") != "" else "nightmare"
 		"C":

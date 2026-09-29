@@ -599,6 +599,7 @@ const HINTS := {
 	"zigzag": "Chão de espinhos! Encadeie orbes, pogos e inimigos sem pousar.",
 	"dark": "Sala sombria! Passe raspando nas LAMPARINAS para acendê-las e devolver a luz.",
 	"lamp": "LAMPARINA apagada: encoste ou golpeie para acender (+brasas). Acenda todas da fase!",
+	"shade": "SOMBRA: no escuro nada a atinge. Castigue depois do bote (perto da sua chama) ou atraia-a para a luz de uma lamparina!",
 	"jump_feather": "PENA VERDE: encoste no ar e ganhe mais um pulo!",
 	"reset_bell": "SINO: golpeie para recarregar o dash e ganhar um pulo, sem perder a trajetória.",
 	"double_crystal": "CRISTAL ROSA: dois dashes seguidos!",

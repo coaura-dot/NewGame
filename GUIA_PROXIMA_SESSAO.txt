@@ -90,7 +90,7 @@ tools/   pixel_art.py (arte; --hero só o Pavio), pavio_art.py (Pavio lateral e 
    screenshot.gd (modos: treino menu salas sala heroi efeitos duelo mapa intro regiao
    chefe <id> loja).
    guardian_art.py / foe_art.py (guardiões e inimigos do motor de duelo).
-tests/   test_*.gd (~7800 verificações). test_overworld.gd garante que, com os
+tests/   test_*.gd (~8000 verificações). test_overworld.gd garante que, com os
    portões fechados, a pé só se alcança o que o grafo permite.
 
 4. COMANDOS ÚTEIS
@@ -154,6 +154,12 @@ Sessão 8 — ESTÉTICA ESCURA (Hollow Knight/Ori) + LUZ COMO JOGABILIDADE:
   _setup_road_lamp/_check_road_lamps (acende a ROAD_LAMP_REACH px, +1 brasa,
   profile["ow_lamps"]).
 - Sons novos: lamp, room_lit (tools/sfx_gen.py).
+- SOMBRA ("shade", ai "shade" em enemy.gd; arte em foe_art.py): shade_lit() =
+  sala toda acesa OU herói a < SHADE_HERO_LIGHT OU lamparina acesa (grupo
+  "lamps_lit") a < SHADE_LAMP_LIGHT; fora da luz _before_hit devolve INVULNERABLE.
+  Estados lurk -> windup (amarelo) -> dive -> recover (punição, perto da chama);
+  "stunned" na luz de lamparina. Char "h" (RoomSynth.place_floaters) só em salas
+  sombrias (1-2; 1 no treino).
 - Lore.KEEPER_WORDS: últimas palavras de cada guardião/Arquidemônio ao cair
   (level._keeper_words, painel 1,8 s depois). Bestiário: scripts/core/bestiary.gd
   (profile["bestiary"], "lore" e "desc" em data/enemies.json; dica com 3 abates),

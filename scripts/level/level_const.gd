@@ -30,7 +30,7 @@ const ENTITY_CHARS := {
 	"G": "gate", "T": "lever", "N": "npc", "H": "checkpoint", "O": "falling_platform",
 	"R": "relic", "Q": "quest_board", "Y": "rift", "A": "altar", "V": "ability_gate",
 	"I": "impulse_orb", "U": "moving_platform", "t": "turret", "s": "saw",
-	"j": "jump_feather", "b": "reset_bell", "d": "double_crystal", "l": "lamp",
+	"j": "jump_feather", "b": "reset_bell", "d": "double_crystal", "l": "lamp", "h": "flyer",
 }
 
 const ROOM_TYPES := ["entrance", "exit", "combat", "platforming", "corridor", "puzzle", "treasure",

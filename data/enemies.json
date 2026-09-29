@@ -1861,5 +1861,48 @@
   ],
   "desc": "Pesado e lento. Pancada amarela (apare para quebrar a postura), salto vermelho com ondas (pule).",
   "lore": "Carvoeiro que alimentava os fornos da vila. Por dentro ainda há brasa — por isso tem tanto medo de água."
+ },
+ "shade": {
+  "name": "Sombra",
+  "ai": "shade",
+  "sprite": "shade",
+  "flying": true,
+  "tier": 1,
+  "hp": 22,
+  "speed": 62,
+  "aggro": 170,
+  "attack_range": 60,
+  "contact_damage": 8,
+  "body": [
+   10,
+   11
+  ],
+  "currency": [
+   3,
+   7
+  ],
+  "drops": [],
+  "blood": [
+   0.3,
+   0.25,
+   0.45
+  ],
+  "loadout": {
+   "spells": [],
+   "weapon": ""
+  },
+  "weakness": {
+   "light": 2.0,
+   "fire": 1.5,
+   "blunt": 1.1
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "walk",
+   "windup": "windup",
+   "attack": "attack"
+  },
+  "desc": "No escuro nada a atinge. Depois do bote ela fica na luz da sua chama: castigue! Na luz de uma lamparina fica atordoada.",
+  "lore": "O que sobra quando até a fumaça de uma vela esquece que foi fogo. Mora nas salas onde ninguém acende nada — e odeia quem acende."
  }
 }

@@ -62,6 +62,7 @@ func light_up() -> void:
 	if lit:
 		return
 	lit = true
+	add_to_group("lamps_lit")
 	_pop = 1.0
 	_ember.visible = false
 	_glow = LightUtil.make_glow(Color(1.0, 0.6, 0.25, 0.4), 14.0)

@@ -12,6 +12,9 @@ extends Actor
 ##   moth     - mariposa: circula a chama do herói e mergulha (rouba foco)
 ##   shield   - guarda de escudo: bloqueia de frente, escudada + estocada
 ##   gust     - Sopro: inspira e sopra rajadas que empurram (rebatíveis)
+##   shade    - Sombra: no escuro nada a atinge; espreita e dá o bote (amarelo);
+##              depois do bote fica na luz da chama (castigue!); na luz de uma
+##              lamparina fica atordoada; com a sala toda acesa, se desmancha
 ##
 ## DUELO (Dead Cells + Hollow Knight): troca de golpes, não spam.
 ##   - Telegrafia: antes de cada golpe o inimigo brilha AMARELO (dá para
@@ -163,6 +166,8 @@ func _ready() -> void:
 		contact_hitbox.activate.call_deferred()
 		if ai == "moth":
 			contact_hitbox.hit.connect(_on_moth_hit)
+		elif ai == "shade":
+			contact_hitbox.hit.connect(_on_shade_hit)
 	var ld: Dictionary = data.get("light", {})
 	if not ld.is_empty():
 		var c: Array = ld.get("color", [1, 1, 1])
@@ -229,6 +234,7 @@ func _actor_physics(d: float, raw: float) -> void:
 		"moth": _ai_moth(d)
 		"shield": _ai_shield(d)
 		"gust": _ai_gust(d)
+		"shade": _ai_shade(d)
 		"guardian": brain.tick(d)
 		_: _ai_melee(d)
 	_gravity(d)
@@ -402,6 +408,12 @@ func _guard_blocks(info: DamageInfo) -> bool:
 func _before_hit(info: DamageInfo) -> int:
 	if ai == "shield":
 		return _shield_hit(info)
+	if ai == "shade" and not info.is_hazard and not shade_lit():
+		# no escuro o golpe atravessa a fumaça
+		FX.burst(body_center(), Color(0.5, 0.45, 0.8, 0.6), 4, 30.0)
+		if level and level.has_method("hint_once"):
+			level.hint_once("shade")
+		return DamageInfo.Result.INVULNERABLE
 	if not _guard_blocks(info):
 		return -1
 	if info.is_heavy:
@@ -1283,3 +1295,123 @@ func roll_drops(luck: float = 0.0) -> Array:
 		if rng.randf() < float(dd.get("chance", 0.0)) * (1.0 + luck):
 			out.append(dd["id"])
 	return out
+
+
+
+# ---------------------------------------------------------------------------
+# Sombra: só pode ser ferida na luz (chama do herói de perto, lamparina acesa
+# ou sala inteira iluminada). Espreita no escuro e dá o bote.
+# ---------------------------------------------------------------------------
+
+const SHADE_HERO_LIGHT := 34.0 ## a chama do Pavio alcança até aqui
+const SHADE_LAMP_LIGHT := 46.0 ## a luz de uma lamparina acesa
+const SHADE_LURK_DIST := 62.0 ## distância em que ela espreita
+var _shade_alpha: float = 0.35
+
+
+func shade_lit() -> bool:
+	if level and level.has_method("room_light_factor"):
+		var room := int(get_meta("room", -1))
+		if room >= 0 and level.room_light_factor(room) >= 0.999:
+			return true
+	if target and is_instance_valid(target) and body_center().distance_to(target.body_center()) < SHADE_HERO_LIGHT:
+		return true
+	return _near_lit_lamp()
+
+
+func _near_lit_lamp() -> bool:
+	for l in get_tree().get_nodes_in_group("lamps_lit"):
+		if (l as Node2D).global_position.distance_to(global_position) < SHADE_LAMP_LIGHT:
+			return true
+	return false
+
+
+func _ai_shade(d: float) -> void:
+	_bob += d * 4.0
+	var lit := shade_lit()
+	# visual: fumaça quase invisível no escuro, sólida na luz
+	_shade_alpha = move_toward(_shade_alpha, 1.0 if lit else 0.32, d * 4.0)
+	if sprite:
+		sprite.modulate.a = _shade_alpha
+	var valid := _target_valid()
+	match ai_state:
+		"spawn", "idle", "patrol":
+			var hover := home + Vector2(sin(_bob * 0.5) * 16.0, sin(_bob * 0.8) * 6.0)
+			velocity = velocity.move_toward((hover - global_position).limit_length(1.0) * speed * 0.5, 200.0 * d)
+			_anim("idle")
+			if valid:
+				ai_state = "lurk"
+				ai_t = rng.randf_range(1.0, 1.8)
+				_orbit = (global_position - target.body_center()).angle()
+		"lurk":
+			if not valid:
+				ai_state = "patrol"
+				return
+			if _near_lit_lamp() and level and level.has_method("room_light_factor") and level.room_light_factor(int(get_meta("room", -1))) < 0.999:
+				_shade_stun()
+				return
+			# ronda a chama de longe, sempre fora do alcance da luz
+			_orbit += d * 1.1
+			var c: Vector2 = target.body_center() + Vector2(0, -10)
+			var want := c + Vector2(cos(_orbit) * SHADE_LURK_DIST, sin(_orbit) * 20.0 - 12.0)
+			velocity = velocity.move_toward((want - global_position).limit_length(1.0) * speed, 300.0 * d)
+			facing = 1 if target.global_position.x > global_position.x else -1
+			_anim("idle")
+			if ai_t <= 0.0:
+				ai_state = "windup"
+				ai_t = maxf(_windup_time() + 0.12, 0.4)
+				_telegraph(false, ai_t)
+		"windup":
+			velocity = velocity.move_toward(Vector2.ZERO, 500.0 * d)
+			_face_target()
+			_anim("windup")
+			if ai_t <= 0.0 and target:
+				velocity = (target.body_center() - body_center()).normalized() * 200.0
+				ai_state = "dive"
+				ai_t = 0.45
+				_anim("attack")
+				Audio.play("dash", 0.1, -12.0, 0.7)
+		"dive":
+			if ai_t <= 0.0 or test_move(global_transform, velocity.normalized() * 2.0):
+				_shade_daze()
+		"recover":
+			# fica perto da chama (vulnerável) até recuperar
+			if target:
+				var near: Vector2 = target.body_center() + Vector2(-float(facing) * 14.0, -8.0)
+				velocity = velocity.move_toward((near - global_position).limit_length(1.0) * 20.0, 120.0 * d)
+			_anim("tired")
+			if ai_t <= 0.0:
+				ai_state = "lurk"
+				ai_t = rng.randf_range(1.4, 2.4)
+		"stunned":
+			velocity = velocity.move_toward(Vector2(0, 6.0), 150.0 * d)
+			_anim("tired")
+			if ai_t <= 0.0:
+				ai_state = "lurk"
+				ai_t = rng.randf_range(1.0, 1.6)
+				_orbit += PI
+
+
+func _shade_daze() -> void:
+	ai_state = "recover"
+	ai_t = rng.randf_range(0.8, 1.0)
+	_open_punish(ai_t)
+	velocity *= 0.15
+
+
+## Na luz de uma lamparina a Sombra se encolhe e fica atordoada.
+func _shade_stun() -> void:
+	ai_state = "stunned"
+	ai_t = 1.3
+	_open_punish(1.3)
+	velocity = Vector2.ZERO
+	emote.show_emote("dizzy", 1.2, true)
+	FX.burst(body_center(), Color(0.7, 0.6, 1.4), 6, 40.0)
+	Audio.play("guard", 0.1, -8.0, 0.6)
+
+
+func _on_shade_hit(t: Node, _info: DamageInfo, result: int) -> void:
+	if result != DamageInfo.Result.HIT or not (t is Player):
+		return
+	if ai_state == "dive":
+		_shade_daze()
