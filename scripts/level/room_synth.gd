@@ -14,6 +14,7 @@ const TRIES := 16
 
 ## Estatística (ferramentas/testes): quantas salas saíram "ricas" x reserva.
 static var stats := {"ok": 0, "fallback": 0, "tries": 0}
+static var dbg: Array = []
 
 ## Tipos que podem exigir dash para atravessar (plataforma/desafio).
 const DASH_TYPES := ["platforming", "challenge"]
@@ -45,8 +46,14 @@ static func _build(room_type: String, exits: String, rng: RandomNumberGenerator,
 	frame(g, exits)
 	match room_type:
 		"combat": _combat(g, rng, exits, opts)
-		"platforming": _parkour(g, rng, exits, false, int(opts.get("tier", 1)))
-		"challenge": _parkour(g, rng, exits, true, int(opts.get("tier", 1)))
+		"platforming", "challenge":
+			var hard: bool = room_type == "challenge"
+			var tier := int(opts.get("tier", 1))
+			var hunt := bool(opts.get("hunt", false))
+			if exits == "LR" and not opts.get("chase", false) and rng.randf() < SWITCHBACK_CHANCE:
+				_switchback(g, rng, exits, hard, tier, hunt)
+			else:
+				_parkour(g, rng, exits, hard, tier, hunt)
 		"corridor": _corridor(g, rng, exits)
 		"shaft": _shaft(g, rng, exits)
 		"puzzle": _puzzle(g, rng, exits, opts)
@@ -207,6 +214,20 @@ static func floor_top(g: Array, x: int, y0: int = 2) -> int:
 		if c == "#" or c == "-" or c == "^":
 			return y
 	return H
+
+
+## Coloca uma entidade em pé no primeiro apoio abaixo de (x, y0).
+static func _put_standing(g: Array, x: int, y0: int, ch: String) -> bool:
+	for y in range(y0, H - 1):
+		var c := at(g, x, y + 1)
+		if c == "#" or c == "-":
+			if at(g, x, y) == "." and at(g, x, y - 1) == ".":
+				put(g, x, y, ch)
+				return true
+			return false
+		if c == "^":
+			return false
+	return false
 
 
 ## Coloca uma entidade em pé no chão da coluna x.
@@ -428,19 +449,28 @@ static func _hits(res: Dictionary, x0: int, x1: int) -> bool:
 # Parkour em "batidas" (plataforma / desafio)
 # ---------------------------------------------------------------------------
 
-const BEATS_EASY := {"hop": 4.0, "leap": 2.0, "orb": 2.5, "crumble": 1.5, "mover": 1.2, "crystal": 1.5, "chimney": 1.0}
-const BEATS_HARD := {"hop": 1.5, "leap": 2.0, "orb": 3.0, "crumble": 2.0, "mover": 1.0, "crystal": 2.5, "chimney": 1.5, "saw": 2.0, "orbchain": 2.0}
+const BEATS_EASY := {"hop": 4.0, "leap": 2.0, "orb": 2.5, "crumble": 1.5, "mover": 1.2, "crystal": 1.5, "chimney": 1.0,
+	"thorns": 1.0, "sawgap": 1.0, "needle": 0.8}
+## Chance de uma sala LR de plataforma/desafio virar zigue-zague de 3 andares.
+const SWITCHBACK_CHANCE := 0.35
+
+## Batidas que mantêm a altura (evitadas quando o perfil pede subir).
+const FLAT_BEATS := ["needle", "saw", "crumble", "mover", "sawgap", "leap"]
+const BEATS_HARD := {"hop": 1.5, "leap": 2.0, "orb": 3.0, "crumble": 2.0, "mover": 1.0, "crystal": 2.5, "chimney": 1.5, "saw": 2.0, "orbchain": 2.0,
+	"thorns": 2.5, "sawgap": 1.5, "needle": 1.5}
 
 
 ## Plataforma/desafio: sequência de batidas da esquerda para a direita sobre
 ## um fosso de espinhos. hard = "caminho da dor" (vãos maiores, serras,
 ## cadeias de orbes, inimigos no meio do percurso e relíquia no fim).
-static func _parkour(g: Array, rng: RandomNumberGenerator, exits: String, hard: bool, tier: int) -> void:
+static func _parkour(g: Array, rng: RandomNumberGenerator, exits: String, hard: bool, tier: int, hunt: bool = false) -> void:
 	var res := _reserved(exits)
+	if exits.contains("U"):
+		res["U"] = true # marca (não é coluna): batidas com teto evitam a saída de cima
 	_pit(g, res, 4, W - 5)
 	# perfil do percurso: morro, vale, subida, descida ou zigue-zague
-	var shape: String = ["hill", "valley", "rise", "fall", "zigzag"][rng.randi() % 5]
-	var amp := rng.randi_range(8, 12)
+	var shape: String = ["hill", "plateau", "rise", "twin", "zigzag"][rng.randi() % 5]
+	var amp := rng.randi_range(9, 13)
 	var x := 3
 	var top := FLOOR
 	var guard := 0
@@ -455,14 +485,20 @@ static func _parkour(g: Array, rng: RandomNumberGenerator, exits: String, hard: 
 		# o perfil pede subir/descer: favorece batidas verticais
 		var t2 := table.duplicate()
 		var diff := top - want
-		if diff >= 3:
-			t2["climb"] = 5.0
-			t2["chimney"] = float(t2.get("chimney", 1.0)) * 2.0
+		if diff >= 2:
+			# precisa subir: escadinhas, chaminés, orbes e espinhos de pogo
+			t2["climb"] = 6.0
+			t2["chimney"] = float(t2.get("chimney", 1.0)) * 2.5
 			t2["orb"] = float(t2.get("orb", 1.0)) * 1.5
-		elif diff <= -3:
+			for k in FLAT_BEATS:
+				if t2.has(k):
+					t2[k] = float(t2[k]) * 0.25
+		elif diff <= -2:
 			t2["drop"] = 4.0
+			t2.erase("chimney")
 		var kind: String = RngUtil.weighted_key(rng, t2)
 		var r := _beat(g, rng, kind, x, top, hard, res, want)
+		dbg.append("%s@%d,%d->%d%s" % [kind, x, top, want, "" if not r.is_empty() else "X"])
 		if r.is_empty():
 			continue
 		var nx := int(r["x"])
@@ -479,7 +515,7 @@ static func _parkour(g: Array, rng: RandomNumberGenerator, exits: String, hard: 
 	if not exits.contains("R") and x < W - 5:
 		fill(g, W - 5, clampi(top, FLOOR - 4, FLOOR), W - 2, FLOOR + 1, "#")
 	# teto de caverna acompanhando o percurso (enquadra o parkour)
-	var clear := 10 + rng.randi_range(0, 1)
+	var clear := 8 + rng.randi_range(0, 1)
 	for xx in range(1, W - 1):
 		if exits.contains("U") and xx >= LevelConst.EXIT_UD_COLS[0] - 6 and xx <= LevelConst.EXIT_UD_COLS[-1] + 6:
 			continue
@@ -488,7 +524,7 @@ static func _parkour(g: Array, rng: RandomNumberGenerator, exits: String, hard: 
 		if bottom >= 1:
 			fill_empty(g, xx, 1, xx, bottom, "#")
 	# inimigos no meio do percurso: nas ilhas largas e voadores sobre os fossos
-	var n_ground := (1 if not hard else 2) + (tier - 1)
+	var n_ground := (1 if not hard else 2) + (tier - 1) + (2 if hunt else 0)
 	RngUtil.shuffle(rng, islands)
 	for isl in islands:
 		if n_ground <= 0:
@@ -506,6 +542,22 @@ static func _parkour(g: Array, rng: RandomNumberGenerator, exits: String, hard: 
 			if at(g, fx, fy) == "." and at(g, fx, fy + 1) == "." and at(g, fx, fy - 1) == ".":
 				put(g, fx, fy, "F")
 				break
+	var n_tur := (1 if tier >= 2 else 0) + (1 if hard else 0) + (1 if rng.randf() < 0.35 else 0)
+	_turrets(g, rng, mini(n_tur, 2), path, res)
+	if hunt:
+		# caçada: a sala fecha até derrotar todos (inimigos extras no percurso)
+		for i in 2:
+			for t in 10:
+				var fx := rng.randi_range(8, W - 9)
+				var fy := clampi(int(path.get(fx, FLOOR)) - rng.randi_range(3, 6), 3, FLOOR - 3)
+				if at(g, fx, fy) == "." and at(g, fx, fy + 1) == "." and at(g, fx, fy - 1) == ".":
+					put(g, fx, fy, "F")
+					break
+		for e in exits:
+			if e == "L":
+				put(g, 0, LevelConst.EXIT_LR_ROWS[0], "G")
+			elif e == "R":
+				put(g, W - 1, LevelConst.EXIT_LR_ROWS[0], "G")
 	if hard:
 		_put_on_floor(g, W - 3, "R")
 
@@ -515,10 +567,10 @@ static func _profile(shape: String, t: float, amp: int) -> int:
 	var k := 0.0
 	match shape:
 		"hill": k = sin(t * PI)
-		"valley": k = 1.0 - sin(t * PI)
-		"rise": k = t
-		"fall": k = 1.0 - t
-		"zigzag": k = 0.5 + 0.5 * sin(t * TAU * 1.5)
+		"plateau": k = clampf(minf(t, 1.0 - t) * 4.0, 0.0, 1.0) # sobe rápido, fica no alto, desce no fim
+		"rise": k = minf(t * 1.4, 1.0)
+		"twin": k = absf(sin(t * TAU)) # dois morros
+		"zigzag": k = 0.5 + 0.5 * sin(t * TAU * 1.5 - PI * 0.5)
 	return clampi(FLOOR - int(round(k * amp)), 8, FLOOR)
 
 
@@ -577,7 +629,7 @@ static func _beat(g: Array, rng: RandomNumberGenerator, kind: String, x: int, to
 			return {"x": nx + w - 1, "top": ntop, "island": [nx, w, ntop]}
 		"orb", "orbchain":
 			var n := 1 if kind == "orb" else rng.randi_range(2, 3)
-			var span := 4 + n * 5 + h * 2
+			var span := 3 + n * 4 + h * 2
 			var nx := x + span
 			var w := rng.randi_range(2, 4)
 			if nx + w > W - 4 or _hits(res, nx, nx + w - 1):
@@ -590,7 +642,7 @@ static func _beat(g: Array, rng: RandomNumberGenerator, kind: String, x: int, to
 				put(g, ox, oy, "I")
 			return {"x": nx + w - 1, "top": ntop, "island": [nx, w, ntop]}
 		"crystal":
-			var gap := rng.randi_range(8, 10) + h
+			var gap := rng.randi_range(7, 9) + h
 			var nx := x + gap
 			var w := rng.randi_range(2, 3)
 			if nx + w > W - 4 or _hits(res, nx, nx + w - 1):
@@ -643,7 +695,189 @@ static func _beat(g: Array, rng: RandomNumberGenerator, kind: String, x: int, to
 			fill(g, nx + 4, ntop, nx + 5, FLOOR + 1, "#") # parede da direita (vira o topo)
 			fill(g, nx, ntop + 3, nx, top - 1, "#") # parede da esquerda
 			return {"x": nx + 5, "top": ntop, "island": [nx + 4, 2, ntop]}
+		"thorns":
+			# espinhos de pogo sobre o fosso: golpe para baixo em cada um (HK)
+			var n := rng.randi_range(2, 3) if hard else rng.randi_range(1, 2)
+			var step := rng.randi_range(4, 5)
+			while n > 1 and x + step * (n + 1) + 2 > W - 4:
+				n -= 1
+			var bw := 1 if hard or rng.randf() < 0.4 else 2
+			var sy := clampi(top + rng.randi_range(-1, 1) + (1 if want > top else 0), 9, FLOOR - 1)
+			var cx := x
+			for k in n:
+				cx += step
+				if _hits(res, cx, cx + bw - 1):
+					return {}
+				for b in bw:
+					put(g, cx + b, sy, "^")
+					put(g, cx + b, sy + 1, "#")
+				# cada quique sobe até 2 tiles (ou desce) rumo ao perfil
+				sy = clampi(sy + clampi(want - sy, -1, 1) * rng.randi_range(1, 2), 9, FLOOR - 1)
+			var nx := cx + step
+			var w := rng.randi_range(2, 4)
+			if nx + w > W - 4 or _hits(res, nx, nx + w - 1):
+				return {}
+			var ntop := clampi(sy - rng.randi_range(0, 2), 8, FLOOR)
+			fill(g, nx, ntop, nx + w - 1, FLOOR + 1, "#")
+			return {"x": nx + w - 1, "top": ntop, "island": [nx, w, ntop]}
+		"sawgap":
+			# vão com serra subindo e descendo no meio: pule no compasso
+			var gap := rng.randi_range(4, 5) + h
+			var nx := x + gap + 1
+			var w := rng.randi_range(2, 4)
+			if nx + w > W - 4 or _hits(res, nx, nx + w - 1):
+				return {}
+			var ntop: int = toward.call(2, 2)
+			fill(g, nx, ntop, nx + w - 1, FLOOR + 1, "#")
+			put(g, x + 1 + gap / 2, mini(maxi(top, ntop) + 1, FLOOR - 1), "s")
+			return {"x": nx + w - 1, "top": ntop, "island": [nx, w, ntop]}
+		"needle":
+			# túnel baixo com espinhos no teto e buraco no chão: só passa de DASH
+			var ln := rng.randi_range(9, 12)
+			var nx := x + 1
+			if top < 9 or nx + ln > W - 4 or _hits(res, nx, nx + ln - 1):
+				return {}
+			if res.has("U") and nx <= LevelConst.EXIT_UD_COLS[-1] + 6 and nx + ln - 1 >= LevelConst.EXIT_UD_COLS[0] - 6:
+				return {}
+			var gw := rng.randi_range(2, 3) + h
+			var gx := nx + rng.randi_range(3, ln - gw - 3)
+			fill(g, nx, top, nx + ln - 1, FLOOR + 1, "#")
+			for xx in range(gx, gx + gw):
+				fill(g, xx, top, xx, FLOOR, ".")
+				put(g, xx, FLOOR + 1, "^")
+			fill(g, nx + 1, 1, nx + ln - 2, top - 4, "#")
+			for xx in range(nx + 1, nx + ln - 1):
+				put(g, xx, top - 3, "^")
+			return {"x": nx + ln - 1, "top": top}
 	return {}
+
+
+## Zigue-zague em 3 andares (usa a tela inteira): entra embaixo pela
+## esquerda, sobe no fim do andar de baixo, volta pelo do meio, sobe na
+## esquerda, cruza o de cima e desce pelo poço da direita até a saída. Cada
+## andar tem 5 tiles de altura (pulo cheio cabe) e o seu desafio: fossos,
+## espinhos no piso, tábuas que desabam, serras, torretas e inimigos.
+static func _switchback(g: Array, rng: RandomNumberGenerator, exits: String, hard: bool, tier: int, hunt: bool) -> void:
+	var s1 := 15 ## prateleira entre o andar de baixo e o do meio
+	var s2 := 9 ## prateleira entre o do meio e o de cima
+	var wx := W - 8 ## parede dupla (wx, wx+1) que separa o poço da saída
+	fill(g, 1, 1, W - 2, 3, "#")
+	fill(g, 1, s1, wx - 1, s1, "#")
+	fill(g, 1, s2, wx - 1, s2, "#")
+	fill(g, wx, s2, wx + 1, FLOOR - 1, "#")
+	# aberturas + degrau embaixo de cada uma
+	var o1 := rng.randi_range(wx - 7, wx - 4)
+	fill(g, o1, s1, o1 + 2, s1, ".")
+	fill(g, o1, s1 + 3, o1 + 2, FLOOR - 1, "#")
+	var o2 := rng.randi_range(3, 6)
+	fill(g, o2, s2, o2 + 2, s2, ".")
+	fill(g, o2, s2 + 3, o2 + 2, s1 - 1, "#")
+	# poço da direita: degraus one-way alternados até a saída
+	var left := true
+	for y in [FLOOR - 3, FLOOR - 6, FLOOR - 9]:
+		var x0 := wx + 2 if left else W - 4
+		fill(g, x0, y, x0 + 2, y, "-")
+		left = not left
+	var h := 1 if hard else 0
+	# --- andar de baixo (indo para a direita): fossos de espinho ---
+	var x := 5
+	while x < o1 - 6:
+		var pw := rng.randi_range(2, 3) + h
+		if x + pw >= o1 - 2:
+			break
+		for xx in range(x, x + pw):
+			fill(g, xx, FLOOR, xx, FLOOR, ".")
+			put(g, xx, FLOOR + 1, "^")
+		x += pw + rng.randi_range(3, 6)
+	_put_standing(g, rng.randi_range(8, o1 - 3), s1 + 1, "E")
+	if rng.randf() < 0.6 or hard:
+		put(g, o1 - 1, FLOOR - 2, "t") # na face do degrau, atira no corredor
+	# --- andar do meio (indo para a esquerda): espinhos no piso e tábuas ---
+	var mid_top := s1 - 1
+	x = o1 - 3
+	while x > o2 + 6:
+		var kind := rng.randi_range(0, 2 if not hard else 3)
+		var w := rng.randi_range(2, 3)
+		var xl := x - w
+		if xl <= o2 + 4:
+			break
+		match kind:
+			0, 3: # espinhos no piso: pule por cima (teto baixo!)
+				fill(g, xl, mid_top, x - 1, mid_top, "^")
+			1: # tábuas que desabam sobre um buraco (cair = voltar ao andar de baixo)
+				for xx in range(xl - 1, x + 1):
+					put(g, xx, s1, "O" if (xx - xl) % 2 == 0 else ".")
+			2: # serra no meio do corredor
+				put(g, x - 1, s1 - 3, "S")
+		x = xl - rng.randi_range(3, 5)
+	if rng.randf() < 0.5:
+		put(g, 1, s1 - 2, "t") # parede da esquerda atira no corredor do meio
+	_put_standing(g, rng.randi_range(o2 + 6, o1 - 4), s2 + 1, "E")
+	if tier >= 2 or hunt:
+		_put_standing(g, rng.randi_range(o2 + 4, wx - 3), 4, "E")
+	# --- andar de cima (indo para a direita): espinhos pendurados e voadores ---
+	x = o2 + 5
+	while x < wx - 5:
+		var w := rng.randi_range(2, 4)
+		if rng.randf() < 0.5:
+			fill(g, x, 4, x + w - 1, 4, "^") # pendurados: pulo baixo
+		else:
+			fill(g, x, s2 - 1, x + w - 1, s2 - 1, "^") # no piso: pule por cima
+		x += w + rng.randi_range(3, 5)
+	for i in rng.randi_range(1, 2) + (1 if hunt else 0):
+		for t in 10:
+			var fx := rng.randi_range(8, wx - 4)
+			var fy: int = [6, 12, 18][rng.randi() % 3]
+			if at(g, fx, fy) == "." and at(g, fx, fy - 1) == "." and at(g, fx, fy + 1) == ".":
+				put(g, fx, fy, "F")
+				break
+	if tier >= 2 or hard:
+		for t in 10:
+			var tx := rng.randi_range(o2 + 4, wx - 3)
+			if at(g, tx, 4) == "." and at(g, tx, 3) == "#":
+				put(g, tx, 4, "t") # no teto do andar de cima, atira para baixo
+				break
+	if hunt:
+		put(g, 0, LevelConst.EXIT_LR_ROWS[0], "G")
+		put(g, W - 1, LevelConst.EXIT_LR_ROWS[0], "G")
+	if hard:
+		_put_on_floor(g, W - 3, "R")
+
+
+## Torretas rítmicas no percurso: no teto atirando para baixo (cortina de
+## balas no meio do pulo) ou na lateral de pilares atirando através do vão.
+static func _turrets(g: Array, rng: RandomNumberGenerator, n: int, path: Dictionary, res: Dictionary) -> void:
+	if n <= 0:
+		return
+	var spots: Array = []
+	for x in range(7, W - 7):
+		if res.has(x):
+			continue
+		var pt: int = path.get(x, FLOOR)
+		for y in range(2, FLOOR - 1):
+			if at(g, x, y) != ".":
+				continue
+			# teto: atira para baixo, cruzando a altura do percurso
+			if at(g, x, y - 1) == "#" and at(g, x, y + 1) == "." and at(g, x, y + 2) == "." and pt - y >= 5:
+				spots.append(Vector2i(x, y))
+			# lateral de pilar, na altura do corpo acima do percurso
+			elif y >= pt - 4 and y <= pt - 2 and at(g, x, y + 1) != "^":
+				if at(g, x - 1, y) == "#" and at(g, x + 1, y) == "." and at(g, x + 2, y) == "." and at(g, x + 3, y) == ".":
+					spots.append(Vector2i(x, y))
+				elif at(g, x + 1, y) == "#" and at(g, x - 1, y) == "." and at(g, x - 2, y) == "." and at(g, x - 3, y) == ".":
+					spots.append(Vector2i(x, y))
+	RngUtil.shuffle(rng, spots)
+	var placed: Array = []
+	for sp in spots:
+		if placed.size() >= n:
+			break
+		var ok := true
+		for q in placed:
+			if absi(q.x - sp.x) < 8:
+				ok = false
+		if ok:
+			put(g, sp.x, sp.y, "t")
+			placed.append(sp)
 
 
 static func _corridor(g: Array, rng: RandomNumberGenerator, exits: String) -> void:

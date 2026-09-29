@@ -25,7 +25,8 @@ const CAPS := {
 
 ## Elementos que viram "nós aéreos" (dá para quicar/recarregar no ar):
 ##   I = Orbe de Impulso (golpear quica ~4 tiles), D = cristal de dash (só no
-##   modo dash: recarrega o dash), J = mola (no chão; lança ~5 tiles).
+##   modo dash: recarrega o dash), J = mola (no chão; lança ~5 tiles),
+##   ^ acima do fosso = espinho de pogo (golpe para baixo quica ~4 tiles).
 
 
 static func _ch(g: Array, x: int, y: int) -> String:
@@ -197,6 +198,7 @@ static func moves(gr: Grid, x: int, y: int, cap: Dictionary) -> Array:
 static func specials(g: Array, dash_mode: bool) -> Dictionary:
 	var orbs: Array = []
 	var springs := {}
+	var thorns: Array = []
 	for y in H:
 		for x in W:
 			var c: String = g[y][x]
@@ -204,7 +206,31 @@ static func specials(g: Array, dash_mode: bool) -> Dictionary:
 				orbs.append(Vector2i(x, y))
 			elif c == "J":
 				springs[Vector2i(x, y)] = true
-	return {"orbs": orbs, "springs": springs}
+			elif c == HAZARD and y < LevelConst.FLOOR_ROW and y >= 3 and _ch(g, x, y - 1) == "." and _ch(g, x, y - 2) == ".":
+				# espinho "de pé" acima do fosso: dá para quicar nele (pogo)
+				thorns.append(Vector2i(x, y))
+	return {"orbs": orbs, "springs": springs, "thorns": thorns}
+
+
+## Dá para cair em cima do espinho s (golpe para baixo = pogo) a partir de p?
+static func _can_reach_pogo(gr: Grid, p: Vector2i, s: Vector2i, cap: Dictionary) -> bool:
+	var n := Vector2i(s.x, s.y - 1) # pés no instante do quique
+	if not gr.f(n.x, n.y):
+		return false
+	var up: int = cap["up"]
+	var reach: Array = cap["reach"]
+	var rise := p.y - n.y + 1 # precisa passar 1 tile acima do espinho
+	if rise > up:
+		return false
+	var r: int
+	if rise >= 0:
+		r = int(reach[clampi(rise, 0, reach.size() - 1)]) + 1
+	else:
+		r = int(reach[0]) + mini(-rise / 2, 3)
+	if absi(n.x - p.x) > r:
+		return false
+	var apex := mini(n.y - 1, p.y - 1)
+	return gr.col(p.x, apex, p.y) and gr.row(p.x, n.x, apex) and gr.col(n.x, apex, n.y)
 
 
 ## Dá para golpear/tocar o orbe o a partir de p (pés em p)?
@@ -286,6 +312,7 @@ static func reachable_from(g: Array, start: Vector2i, cap: Dictionary, gr: Grid 
 		sp = specials(g, int(cap["up"]) >= int(CAPS["dash"]["up"]))
 	var orbs: Array = sp["orbs"]
 	var springs: Dictionary = sp["springs"]
+	var thorns: Array = sp.get("thorns", [])
 	var st := [start]
 	seen[start] = true
 	while not st.is_empty():
@@ -307,6 +334,11 @@ static func reachable_from(g: Array, start: Vector2i, cap: Dictionary, gr: Grid 
 			if not seen.has(node) and _can_reach_orb(gr, p, o, cap):
 				seen[node] = true
 				st.append(node)
+		for t in thorns:
+			var tn := Vector2i(t.x, t.y - 1)
+			if not seen.has(tn) and _can_reach_pogo(gr, p, t, cap):
+				seen[tn] = true
+				st.append(tn)
 	return seen
 
 

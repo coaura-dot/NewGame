@@ -143,3 +143,30 @@ func test_nota_da_fase() -> void:
 	eq(Level.rank_for({"time": 150.0, "deaths": 1, "hits": 2}, 10), "A", "uma morte = A")
 	eq(Level.rank_for({"time": 400.0, "deaths": 3, "hits": 10}, 10), "C", "lento e morrendo = C")
 	eq(Level.format_time(75.5), "1:15.50", "formato do tempo")
+
+
+func test_espinhos_de_pogo_no_validador() -> void:
+	# fosso largo demais para pular; só dá para cruzar quicando nos espinhos
+	var g := RoomSynth.blank()
+	RoomSynth.frame(g, "LR")
+	for x in range(4, 36):
+		RoomSynth.fill(g, x, 21, x, 22, ".")
+		RoomSynth.put(g, x, 22, "^")
+	var ok_before := RoomReach.check_room(g, "LR", "jump")
+	check(ok_before != "", "fosso de 32 tiles é intransponível sem ajuda")
+	for x in [7, 12, 17, 22, 27, 32]:
+		RoomSynth.put(g, x, 19, "^")
+		RoomSynth.put(g, x, 20, "#")
+	var ok_after := RoomReach.check_room(g, "LR", "jump")
+	check(ok_after == "", "espinhos flutuantes viram apoio de pogo (%s)" % ok_after)
+
+
+func test_zigue_zague_atravessavel() -> void:
+	var rng := RandomNumberGenerator.new()
+	for i in 20:
+		rng.seed = 900 + i
+		var g := RoomSynth.blank()
+		RoomSynth.frame(g, "LR")
+		RoomSynth._switchback(g, rng, "LR", i % 2 == 0, 2, i % 3 == 0)
+		var r := RoomReach.check_room(g, "LR", "dash")
+		check(r == "", "zigue-zague %d atravessável (%s)" % [i, r])

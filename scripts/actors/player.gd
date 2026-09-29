@@ -236,6 +236,7 @@ func _ready() -> void:
 		if not on_ground:
 			_pogo()
 			FX.hit_spark(global_position + Vector2(0, 6), Vector2.UP, Color(2.4, 2.4, 2.8)))
+	attack.hitbox.projectile_reflected.connect(_on_reflect)
 	caster = SpellCaster.new(self)
 	add_child(caster)
 	buffs = BuffSystem.new(self)
@@ -1149,6 +1150,10 @@ func build_attack_info(step: Dictionary, kind: String, charge: float, target: No
 		info.amount *= buffs.damage_mult(info, target)
 	if moveset.has("weak_point_bonus"):
 		info.tags.append("weak_bonus")
+	# golpe em alta velocidade (super, rasante, quique): mais forte — vale manter o embalo
+	if velocity.length() > MAX_RUN * 1.5:
+		mult *= 1.25
+		info.tags.append("speed")
 	info.amount *= mult
 	if slowmo_bonus():
 		info.amount *= 1.15
@@ -1197,13 +1202,34 @@ func _on_attack_landed(target: Node, info: DamageInfo, result: int) -> void:
 			var_jump_t = 0.0
 	if info.is_dash_attack:
 		dash_t = maxf(dash_t, 0.04)
-	Audio.play("hit_heavy" if info.is_heavy or info.is_crit else "hit", 0.1, -3.0)
+	if info.tags.has("speed"):
+		FX.hit_spark(info.hit_position, info.direction, Color(2.8, 2.4, 1.4), true)
+	Audio.play("hit_heavy" if info.is_heavy or info.is_crit or info.tags.has("speed") else "hit", 0.1, -3.0)
 	if result == DamageInfo.Result.KILLED:
 		Game.profile["kills"] = int(Game.profile.get("kills", 0)) + 1
 		refill_dash()
 		buffs.trigger("kill", ctx)
 		if rng.randf() < 0.35:
 			rig.set_expression("happy", 0.5)
+
+
+## Rebater uma bala (Katana Zero): recarrega o dash e, no ar, segura a queda
+## (ou quica, se foi o golpe para baixo) — dá para "pisar" em balas.
+func _on_reflect(_p: Node) -> void:
+	refill_dash()
+	gain_focus(4.0)
+	combo_count += 1
+	combo_timer = COMBO_TIMEOUT
+	Events.combo_changed.emit(combo_count)
+	if on_ground:
+		return
+	if attack.kind == "down_air":
+		_pogo()
+	elif _vy() > -AIR_STALL * 1.5:
+		_set_vy(-AIR_STALL * 1.5)
+		var_jump_t = 0.0
+	if rng.randf() < 0.4:
+		emote.show_emote("spark", 0.5, true)
 
 
 func _recoil(info: DamageInfo) -> void:

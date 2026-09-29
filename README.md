@@ -65,6 +65,27 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
 - Ferramentas: `tools/room_sheet.gd` (prancha de salas geradas), `tools/level_map.gd` (mapa da fase),
   `tools/screenshot.gd -- <prefixo> salas` (print de cada sala do treino).
 
+## Sessão 4 — salas complexas, combate rítmico e fugas
+- **Sala em zigue-zague de 3 andares** (usa a tela inteira): entra embaixo, sobe no fim do andar, volta pelo do
+  meio, sobe de novo e desce pelo poço da saída. Cada andar tem seu desafio (fossos, espinhos no piso e no teto,
+  tábuas que desabam sobre o andar de baixo, serras, torretas e inimigos).
+- **Novas batidas de parkour**: **espinhos de pogo** sobre o fosso (↓+golpe em cada um para atravessar),
+  **serra que sobe e desce** no meio do vão (pule no compasso) e **túnel de dash** (teto de espinhos + buraco:
+  só passa de dash). Percursos seguem perfis mais altos (morro, platô, subida, dois morros, zigue-zague) e o
+  teto da caverna fica mais perto — salas mais densas.
+- **Torreta rítmica**: presa em paredes/tetos, atira sempre no mesmo compasso (o olho acende antes do tiro).
+  **Golpeie a bala para rebatê-la**: rebater recarrega o dash, segura a queda no ar (↓+golpe quica) e a bala
+  volta sozinha para a torreta e a destrói. Vale para magias inimigas também.
+- **Caçada**: parte das salas de plataforma fecha as portas até você derrotar todos os inimigos espalhados
+  pelo percurso — combate obrigatório no meio do parkour.
+- **Fuga**: em algumas salas uma **muralha de espinhos** avança a partir da porta de entrada. Não pare! Se se
+  machucar, volta ao começo da sala e a muralha recomeça.
+- **Golpe em velocidade**: acertar enquanto se move muito rápido (super, rasante, quique) causa +25% de dano
+  com faísca dourada — manter o embalo compensa.
+- Validador entende espinhos de pogo; salas em andares/caçada/fuga não viram salas largas.
+- `tools/screenshot.gd -- <prefixo> salas <seed> <bioma> <tier>` tira print de cada sala com outra seed/bioma;
+  `tools/room_sheet.gd -- <png> <tipo> LR <tier> 8` gera prancha ampliada.
+
 ## Testes
 `godot --headless --path . res://tests/test_runner.tscn` — 5500+ verificações (dados, balanceamento, mundo, fases,
 combate, sigilos, inventário, social, save e um teste que joga o treino: anda, pula, dash, ataca, magia, aparo).

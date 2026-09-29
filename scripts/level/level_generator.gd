@@ -16,6 +16,10 @@ const OPP := {"R": "L", "L": "R", "U": "D", "D": "U"}
 ## Mistura frenética: muito parkour e combate, pouca pausa.
 const PATH_WEIGHTS := {"combat": 4.0, "platforming": 4.0, "corridor": 1.5, "puzzle": 0.7, "shaft": 1.2}
 const BRANCH_WEIGHTS := {"treasure": 3.0, "secret": 2.0, "challenge": 2.5, "puzzle": 0.8, "combat": 1.0}
+## Chance de uma sala de plataforma do caminho virar "caçada" (fecha até matar todos).
+const HUNT_CHANCE := 0.3
+## Chance de uma sala L-R do caminho (plataforma/corredor) virar fuga.
+const CHASE_CHANCE := 0.2
 
 
 static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dictionary:
@@ -169,11 +173,20 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 				room["template"] = tpl["id"]
 				room["tags"] = tpl["tags"]
 		if g.is_empty():
+			# caçada: sala de plataforma do caminho que fecha até matar todos
+			var hunt: bool = room["type"] == "platforming" and room.get("on_path", false) and rng.randf() < HUNT_CHANCE
+			# fuga: muralha de espinhos avança pela sala (só salas L-R do caminho)
+			var chase: bool = not hunt and room["type"] in ["platforming", "corridor"] and room["exits"] == "LR" \
+				and room.get("on_path", false) and rng.randf() < CHASE_CHANCE
 			g = RoomSynth.from_rows(RoomSynth.synth(room["type"], room["exits"], rng,
-				{"tier": tier, "entry": entry, "indoor": indoor}))
+				{"tier": tier, "entry": entry, "indoor": indoor, "hunt": hunt, "chase": chase}))
 			room["template"] = "synth:" + room["type"]
 			if room["type"] == "combat":
 				room["tags"] = PackedStringArray(["lock"])
+			elif hunt:
+				room["tags"] = PackedStringArray(["lock", "hunt"])
+			elif chase:
+				room["tags"] = PackedStringArray(["chase"])
 		# conexões especiais do lado desta sala (a sala-âncora do ramo)
 		var gate_conns := {}
 		for c in connections:
@@ -206,6 +219,9 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 							grid[wy][wx] = "."
 							continue
 						ent["data"]["npc"] = npc_ids.pop_front()
+					if ch == "t":
+						ent["data"]["dir"] = turret_dir(g, x, y)
+						ent["data"]["phase"] = 0.5 * float((x / 3 + y / 3) % 2)
 					if ch == "G":
 						if room["type"] == "puzzle":
 							ent["data"]["mode"] = "lever"
@@ -291,10 +307,18 @@ static func _merge_wide(rng: RandomNumberGenerator, path: Array, rooms: Dictiona
 			continue
 		if not (rooms[a]["type"] in WIDE_TYPES and rooms[b]["type"] in WIDE_TYPES):
 			continue
+		var ta := PackedStringArray(rooms[a].get("tags", []))
+		var tb := PackedStringArray(rooms[b].get("tags", []))
+		if ta.has("lock") or tb.has("lock") or ta.has("chase") or tb.has("chase"):
+			continue # caçada tem portões nas bordas; fuga é por sala
 		if rng.randf() > 0.6:
 			continue
 		var left: Vector2i = a if a.x < b.x else b
 		var right: Vector2i = b if a.x < b.x else a
+		var lx := (left.x - min_c.x) * LevelConst.ROOM_W + LevelConst.ROOM_W - 2
+		var ly := (left.y - min_c.y) * LevelConst.ROOM_H
+		if not _edge_clear(grid, lx, ly) or not _edge_clear(grid, lx + 3, ly):
+			continue # sala em andares (zigue-zague): a emenda abriria atalhos
 		used[a] = true
 		used[b] = true
 		var ox := (left.x - min_c.x) * LevelConst.ROOM_W
@@ -316,6 +340,15 @@ static func _merge_wide(rng: RandomNumberGenerator, path: Array, rooms: Dictiona
 		rooms[right]["wide"] = true
 		groups.append([int(rooms[left]["index"]), int(rooms[right]["index"])])
 	return groups
+
+
+## A coluna x é um vão contínuo do teto até o chão (sem andares no meio)?
+static func _edge_clear(grid: Array, x: int, oy: int) -> bool:
+	var top := _first_open(grid, x, oy)
+	for y in range(top, LevelConst.FLOOR_ROW):
+		if grid[oy + y][x] == "#":
+			return false
+	return true
 
 
 static func _first_open(grid: Array, x: int, oy: int) -> int:
@@ -441,6 +474,23 @@ static func _enemy_pool(params: Dictionary, db: Node, biome: Dictionary) -> Dict
 	return {"ground": ground, "flying": flying}
 
 
+## Torreta atira para o lado oposto da parede em que está presa.
+static func turret_dir(g: Array, x: int, y: int) -> String:
+	var solid := func(xx: int, yy: int) -> bool:
+		if yy < 0 or yy >= g.size() or xx < 0 or xx >= g[yy].size():
+			return true
+		return g[yy][xx] == "#"
+	if solid.call(x - 1, y) and not solid.call(x + 1, y):
+		return "R"
+	if solid.call(x + 1, y) and not solid.call(x - 1, y):
+		return "L"
+	if solid.call(x, y - 1):
+		return "D"
+	if solid.call(x, y + 1):
+		return "U"
+	return "L"
+
+
 static func _make_entity(ch: String, x: int, y: int, room: Dictionary, rng: RandomNumberGenerator, pool: Dictionary, db: Node, params: Dictionary, tier: int) -> Dictionary:
 	var t: String = LevelConst.ENTITY_CHARS.get(ch, "")
 	if ch == "B":
@@ -461,6 +511,8 @@ static func _make_entity(ch: String, x: int, y: int, room: Dictionary, rng: Rand
 			e["data"]["loot"] = roll_loot(rng, db, tier + 1, true, true)
 		"K":
 			e["data"]["item"] = "chave_ferro"
+		"s":
+			e["data"]["travel"] = [0, -5] # serra que sobe e desce no vão
 	return e
 
 

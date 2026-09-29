@@ -207,3 +207,69 @@ func test_pogo_nos_espinhos() -> void:
 	check(bounced, "golpe para baixo quica nos espinhos")
 	check(p.dashes >= 1, "pogo recarrega o dash")
 	await _teardown()
+
+
+func test_torreta_rebater() -> void:
+	var p := await _setup()
+	p.invuln_time = 99.0
+	await _frames(10)
+	p.facing = 1
+	var tu := Turret.new()
+	tu.dir = Vector2.LEFT
+	tu.period = 0.5
+	tu.phase = 0.9
+	tu.position = p.global_position + Vector2(60, -6)
+	_root.add_child(tu)
+	var count := [0]
+	p.attack.hitbox.projectile_reflected.connect(func(_pr): count[0] += 1)
+	# golpeia quando a bala chega perto
+	for i in 240:
+		await _frames(1)
+		var near := false
+		for n in _root.get_children():
+			if n is Projectile and n.team != p.team and n.global_position.x - p.global_position.x < 30.0:
+				near = true
+		if near:
+			Input.action_press("attack")
+			await _frames(2)
+			Input.action_release("attack")
+			await _frames(10)
+			break
+	check(count[0] >= 1, "golpe rebate a bala da torreta")
+	for i in 90:
+		await _frames(1)
+		if tu._broken:
+			break
+	check(tu._broken, "bala rebatida volta e quebra a torreta")
+	await _teardown()
+
+
+func test_muralha_da_fuga() -> void:
+	var p := await _setup()
+	await _frames(10)
+	var start := p.global_position
+	p.hazard_spawn_override = start
+	var wall := ChaseWall.new()
+	wall.rect = Rect2(start.x - 60.0, start.y - 150.0, 320.0, 180.0)
+	wall.dir = 1
+	wall.player = p
+	_root.add_child(wall)
+	var hp0: float = p.hp
+	var caught := false
+	for i in 480:
+		await _frames(1)
+		if p.state == Player.State.RESPAWN or p.hp < hp0:
+			caught = true
+			break
+	check(caught, "muralha alcança quem fica parado")
+	await _frames(60)
+	check(wall.front < start.x - 40.0, "muralha recomeça atrás do herói depois do tombo (%.0f)" % (wall.front - start.x))
+	# correndo, o herói escapa
+	wall.reset()
+	Input.action_press("move_right")
+	var hp1: float = p.hp
+	for i in 360:
+		await _frames(1)
+	Input.action_release("move_right")
+	check(p.hp >= hp1, "correndo sem parar, a muralha não alcança")
+	await _teardown()

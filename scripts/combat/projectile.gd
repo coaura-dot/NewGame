@@ -110,15 +110,26 @@ func _explode(impact: bool) -> void:
 
 
 func reflect(new_owner: Node) -> void:
+	var sender: Node = owner_actor
 	team = new_owner.team
 	owner_actor = new_owner
 	info.team = team
 	info.source = new_owner
 	info.amount *= 1.5
 	info.parryable = false
+	if not info.tags.has("reflected"):
+		info.tags.append("reflected")
 	var aim := Vector2(new_owner.facing, 0)
 	if new_owner.has_method("aim_direction"):
 		aim = new_owner.aim_direction()
+	# mira assistida: se o golpe aponta mais ou menos para quem atirou, a bala
+	# volta direto nele (torretas e magos)
+	if sender and is_instance_valid(sender) and sender is Node2D and not sender.get("dead"):
+		var to: Vector2 = sender.global_position - global_position
+		if sender.has_method("body_center"):
+			to = sender.body_center() - global_position
+		if to.length() > 1.0 and aim.dot(to.normalized()) > 0.2:
+			aim = to.normalized()
 	velocity = aim.normalized() * maxf(velocity.length() * 1.35, 130.0)
 	lifetime = maxf(lifetime, 1.2)
 	_hit.clear()

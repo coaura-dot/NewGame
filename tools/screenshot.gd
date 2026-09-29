@@ -1,6 +1,6 @@
 extends SceneTree
 ## Tira prints do jogo rodando (renderizador real). Uso:
-##   godot --path . --script tools/screenshot.gd -- <prefixo> [treino|menu|salas]
+##   godot --path . --script tools/screenshot.gd -- <prefixo> [treino|menu|salas] [seed] [bioma] [tier]
 ## treino: anda, pula e ataca; menu: menu principal; salas: um print por sala
 ## do treino (teleporta o herói para cada sala).
 
@@ -31,7 +31,15 @@ func _process(_d: float) -> bool:
 		if _mode == "menu":
 			change_scene_to_file("res://scenes/main_menu.tscn")
 		else:
-			root.get_node("Game").pending = {"training": true}
+			var pend := {"training": true}
+			var args := OS.get_cmdline_user_args()
+			if args.size() > 2:
+				pend["seed"] = int(args[2])
+			if args.size() > 3:
+				pend["biome"] = args[3]
+			if args.size() > 4:
+				pend["tier"] = int(args[4])
+			root.get_node("Game").pending = pend
 			_level = load("res://scenes/level.tscn").instantiate()
 			root.add_child(_level)
 	if _mode == "salas":

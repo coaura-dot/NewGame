@@ -74,11 +74,12 @@ func _resolve_params() -> void:
 	if training:
 		Game.setup_training_profile()
 		params = {
-			"seed": 20260926, "biome": "castelo", "tier": 1, "boss": "nightmare", "hub": "",
+			"seed": int(pending.get("seed", 20260926)), "biome": str(pending.get("biome", "castelo")),
+			"tier": int(pending.get("tier", 1)), "boss": "nightmare", "hub": "",
 			"dimension": "prima", "npcs": [], "abilities": Game.profile["abilities"],
 			"force_path": ["entrance", "platforming", "combat", "platforming", "shaft", "combat", "challenge", "corridor", "boss", "exit"],
 		}
-		region = {"name": "Salão de Treino", "biome": "castelo", "tier": 1}
+		region = {"name": "Salão de Treino", "biome": params["biome"], "tier": params["tier"]}
 		return
 	region_id = pending.get("region", Game.profile.get("region", Game.world.get("start", "")))
 	region = Game.world["regions"].get(region_id, {})
@@ -183,7 +184,11 @@ func _spawn_entities() -> void:
 			"saw":
 				var s := Saw.new()
 				s.position = _tile_center(e["tile"])
-				if rng.randf() < 0.5:
+				if data.has("travel"):
+					var tv: Array = data["travel"]
+					s.travel = Vector2(float(tv[0]) * T, float(tv[1]) * T)
+					s.period = 1.4
+				elif rng.randf() < 0.5:
 					s.travel = Vector2(rng.randf_range(-24, 24), rng.randf_range(-12, 12)).round()
 				node = s
 			"torch":
@@ -224,6 +229,13 @@ func _spawn_entities() -> void:
 				var orb := ImpulseOrb.new()
 				orb.position = _tile_center(e["tile"])
 				node = orb
+			"turret":
+				var tu := Turret.new()
+				tu.dir = {"L": Vector2.LEFT, "R": Vector2.RIGHT, "U": Vector2.UP, "D": Vector2.DOWN}.get(data.get("dir", "L"), Vector2.LEFT)
+				tu.phase = float(data.get("phase", 0.0))
+				tu.period = 1.6 if tier <= 2 else 1.3
+				tu.position = _tile_center(e["tile"])
+				node = tu
 			"moving_platform":
 				var mp := MovingPlatform.new()
 				var tr: Array = data.get("travel", [6, 0])
@@ -392,6 +404,11 @@ func _on_room_entered(idx: int) -> void:
 	if player:
 		player.hazard_spawn_override = room_spawn if room.get("type", "") == "challenge" else Vector2.ZERO
 	_hints_for_room(idx)
+	if room.get("type", "") != "boss" and hud and hud.has_method("hide_boss"):
+		hud.hide_boss()
+	_stop_chase()
+	if PackedStringArray(room.get("tags", [])).has("chase") and not _chase_done.has(idx) and player:
+		_start_chase(idx)
 	if _cleared.has(idx):
 		return
 	var alive := _alive_enemies(idx)
@@ -408,6 +425,35 @@ func _on_room_entered(idx: int) -> void:
 		_mark_cleared(idx)
 
 
+var _chase: ChaseWall = null
+var _chase_room: int = -1
+var _chase_done: Dictionary = {}
+
+
+## Sala de fuga: a muralha nasce atrás da porta por onde o herói entrou.
+func _start_chase(idx: int) -> void:
+	var r := room_rect(idx)
+	_chase = ChaseWall.new()
+	_chase.rect = r
+	_chase.dir = 1 if room_spawn.x < r.get_center().x else -1
+	_chase.player = player
+	entities.add_child(_chase)
+	_chase_room = idx
+	player.hazard_spawn_override = room_spawn
+	player.emote.show_emote("!", 0.9, true)
+	FX.shake(0.25)
+	Audio.play("explosion", 0.1, -10.0, 0.6)
+
+
+func _stop_chase() -> void:
+	if _chase and is_instance_valid(_chase):
+		_chase.queue_free()
+		if player and not player.dead:
+			_chase_done[_chase_room] = true
+	_chase = null
+	_chase_room = -1
+
+
 const HINTS := {
 	"impulse_orb": "Golpeie o ORBE DOURADO para quicar — recarrega dash e pulo!",
 	"dash_crystal": "Toque no CRISTAL no ar para recuperar o dash.",
@@ -416,6 +462,9 @@ const HINTS := {
 	"challenge": "Caminho da dor: tocar em espinho volta ao começo da sala.",
 	"pogo": "Golpe para baixo no ar QUICA em espinhos e inimigos.",
 	"waves": "Arena fechada: derrote todas as ondas para abrir.",
+	"hunt": "Caçada: a sala só abre quando todos os inimigos caírem!",
+	"chase": "FUJA! A muralha de espinhos avança — não pare de correr!",
+	"turret": "Torretas atiram no ritmo. GOLPEIE a bala para rebater: recarrega o dash e a devolve!",
 }
 
 
@@ -433,6 +482,10 @@ func _hints_for_room(idx: int) -> void:
 		want.append("pogo")
 	if _room_waves.has(idx):
 		want.append("waves")
+	if PackedStringArray(room.get("tags", [])).has("hunt"):
+		want.push_front("hunt")
+	if PackedStringArray(room.get("tags", [])).has("chase"):
+		want.push_front("chase")
 	for k in want:
 		if not seen.has(k):
 			seen[k] = true

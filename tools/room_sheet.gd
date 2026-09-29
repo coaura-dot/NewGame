@@ -12,6 +12,7 @@ const COL := {
 	"U": Color(0.25, 0.45, 1.0), "S": Color(1, 1, 1), "J": Color(0.2, 0.8, 0.3),
 	"R": Color(1.0, 0.9, 0.2), "C": Color(1.0, 0.8, 0.3), "B": Color(0.6, 0.5, 0.4),
 	"G": Color(0.4, 0.4, 0.4), "L": Color(0.95, 0.8, 0.6),
+	"s": Color(0.75, 0.75, 0.75), "t": Color(0.1, 0.9, 0.4),
 }
 var n := 0
 
@@ -25,14 +26,14 @@ func _process(_d: float) -> bool:
 	var t: String = args[1] if args.size() > 1 else "platforming"
 	var ex: String = args[2] if args.size() > 2 else "LR"
 	var tier := int(args[3]) if args.size() > 3 else 2
-	var S := 4
-	var cols := 3
-	var count := 9
+	var S := int(args[4]) if args.size() > 4 else 4
+	var cols := 3 if S <= 4 else 2
+	var count := 9 if S <= 4 else 4
 	var img := Image.create(cols * (40 * S + 4), (count / cols) * (24 * S + 4), false, Image.FORMAT_RGBA8)
 	img.fill(Color(0.1, 0.1, 0.12))
 	var rng := RandomNumberGenerator.new()
 	for i in count:
-		rng.seed = 100 + i * 31
+		rng.seed = (int(args[5]) if args.size() > 5 else 100) + i * 31
 		var rows := RoomSynth.synth(t, ex, rng, {"tier": tier})
 		var ox := (i % cols) * (40 * S + 4)
 		var oy := (i / cols) * (24 * S + 4)
