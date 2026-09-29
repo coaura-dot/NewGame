@@ -422,6 +422,7 @@ func _chefe() -> bool:
 		en.setup(gid, 2)
 		en.position = p.global_position + Vector2(60, -40 if DB_flying(gid) else -4)
 		en.level = _level
+		en.set_meta("room", _level._room_at(p.global_position))
 		p.get_parent().add_child(en)
 		_boss_en = en
 	if _n > 30:

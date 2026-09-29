@@ -98,7 +98,7 @@ func test_efeitos_por_escola() -> void:
 ## Guardiões: cada um roda o próprio padrão (prepara com telegrafia, ataca,
 ## fica exposto) sem travar, e a arena de quem anda não tem chão de espinhos.
 func test_guardioes_duelam() -> void:
-	for gid in ["raven_guardian", "spider_guardian", "hare_guardian", "golem_guardian", "mirror_guardian"]:
+	for gid in ["raven_guardian", "spider_guardian", "hare_guardian", "golem_guardian", "mirror_guardian", "archdemon"]:
 		check(not DB.enemy(gid).is_empty(), "guardião %s existe" % gid)
 		var root := Node2D.new()
 		tree.root.add_child(root)

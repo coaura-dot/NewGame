@@ -11,7 +11,7 @@ extends RefCounted
 ## duelo (brilho, guarda, aparo, punição).
 ##
 ## Tipos: lunge, swoop, combo, volley, slam, rockfall, teleport, dash_chain,
-## summon, decoys.
+## summon, decoys, cast (magia de spells.json pelo SpellCaster).
 
 const ShockwaveFx := preload("res://scripts/combat/shockwave.gd")
 const RockFx := preload("res://scripts/combat/falling_rock.gd")
@@ -26,6 +26,17 @@ var _dir: Vector2 = Vector2.ZERO
 var _left: float = 0.0 ## tempo restante da etapa ativa
 var _land_ok: bool = false
 var _follow: Dictionary = {}
+var hover_side: int = 1 ## voadores: de que lado do herói pairam (+1 = à direita)
+
+
+func _room_rect() -> Rect2:
+	var lvl: Node = e.level
+	if lvl == null or not is_instance_valid(lvl) or not lvl.has_method("room_rect"):
+		return Rect2()
+	var idx := int(e.get_meta("room", -1))
+	if idx < 0:
+		return Rect2()
+	return lvl.camera_rect(idx) if lvl.has_method("camera_rect") else lvl.room_rect(idx)
 
 
 func _init(enemy: Node) -> void:
@@ -67,6 +78,8 @@ func tick(d: float) -> void:
 			if e.ai_t <= 0.0:
 				sub = ""
 				e.ai_state = "approach"
+				if e.rng.randf() < 0.5:
+					hover_side = -hover_side # voadores trocam de lado entre os golpes
 				e.ai_t = e.rng.randf_range(0.3, 0.7) * (1.0 - 0.15 * e.phase_idx)
 		_:
 			e.ai_state = "approach"
@@ -88,7 +101,16 @@ func _approach(d: float, tgt: Node) -> void:
 	if e.flying:
 		var bob: float = sin(e._bob) * 8.0
 		e._bob += d * 1.8
-		var hover: Vector2 = tgt.body_center() + Vector2(-e.facing * pref, -36.0 + bob)
+		var hover: Vector2 = tgt.body_center() + Vector2(hover_side * pref, -36.0 + bob)
+		# fica dentro da sala: se o lado escolhido não cabe, vai para o outro
+		var room: Rect2 = _room_rect()
+		if room.size.x > 0.0:
+			var margin := 22.0
+			if hover.x < room.position.x + margin or hover.x > room.end.x - margin:
+				hover_side = -hover_side
+				hover.x = tgt.body_center().x + hover_side * pref
+			hover.x = clampf(hover.x, room.position.x + margin, room.end.x - margin)
+			hover.y = clampf(hover.y, room.position.y + margin, room.end.y - 30.0)
 		var to: Vector2 = hover - e.global_position
 		e.velocity = e.velocity.move_toward(to.limit_length(1.0) * e.speed * minf(to.length() / 20.0, 1.0), 260.0 * d)
 		e._anim("idle")
@@ -196,6 +218,10 @@ func _start(tgt: Node) -> void:
 			_decoys(tgt)
 			_left = 0.6
 			e._anim("cast")
+		"cast":
+			_cast(tgt)
+			_left = float(move.get("time", 0.45))
+			e._anim("cast")
 		_:
 			_left = 0.1
 
@@ -230,7 +256,7 @@ func _act(d: float, tgt: Node) -> void:
 					_left = float(move.get("interval", 0.25))
 		"slam":
 			_slam_tick(d, tgt)
-		"rockfall", "summon", "decoys":
+		"rockfall", "summon", "decoys", "cast":
 			_damp(d, 0.85)
 			if _left <= 0.0:
 				_recover()
@@ -437,6 +463,21 @@ func _teleport_tick(tgt: Node) -> void:
 		_follow = move.get("follow", {"kind": "lunge", "windup": 0.32, "time": 0.22, "speed": 170, "box": [0, -10, 18, 14], "recover": 0.8})
 		move = _follow
 		_windup(move)
+
+
+# --- magia do próprio chefe (usa o SpellCaster e os dados de spells.json) ---
+
+func _cast(tgt: Node) -> void:
+	var sp: String = str(move.get("spell", "chama"))
+	var aim: Vector2 = (tgt.body_center() - e.body_center()).normalized()
+	var fan: int = int(move.get("fan", 0)) + (int(move.get("fan_phase", 0)) * e.phase_idx)
+	e.caster.cooldowns.erase(sp)
+	e.caster.cast(sp, e.phase_idx, aim, tgt.body_center())
+	for k in fan:
+		var side := 1 if k % 2 == 0 else -1
+		var ang := side * 0.28 * float(k / 2 + 1)
+		e.caster.cooldowns.erase(sp)
+		e.caster.cast(sp, e.phase_idx, aim.rotated(ang), tgt.body_center())
 
 
 # --- invocação e ilusões ---
