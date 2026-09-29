@@ -267,3 +267,41 @@ func test_sombra_so_na_luz() -> void:
 	level.queue_free()
 	await _frames(2)
 	FX.clear_time_effects()
+
+
+## Mapa da fase: M abre (pausa), mostra as salas visitadas, M fecha.
+func test_mapa_da_fase() -> void:
+	Game.pending = {"training": true}
+	var level: Node = load("res://scenes/level.tscn").instantiate()
+	tree.root.add_child(level)
+	await _frames(10)
+	check(level.visited_rooms.has(level._current_room), "a sala atual conta como visitada")
+	level.hud.toggle_map()
+	await tree.process_frame
+	check(tree.paused, "mapa pausa o jogo")
+	var m: StageMap = level.hud._map
+	check(m != null and m.visible, "mapa aberto")
+	if m:
+		m.rebuild()
+		check(m._tex != null and m._tex.get_width() == int(level.layout["width"]), "imagem do mapa com 1 px por tile")
+		var o: Array = level.layout["rooms"][level._current_room]["origin"]
+		var img: Image = m._tex.get_image()
+		var drawn := false
+		for y in range(int(o[1]), int(o[1]) + LevelConst.ROOM_H):
+			for x in range(int(o[0]), int(o[0]) + LevelConst.ROOM_W):
+				if img.get_pixel(x, y).a > 0.0:
+					drawn = true
+		check(drawn, "a sala visitada aparece desenhada")
+		var hidden := true
+		for r in level.layout["rooms"]:
+			if not level.visited_rooms.has(int(r["index"])):
+				var ro: Array = r["origin"]
+				if img.get_pixel(int(ro[0]) + 5, int(ro[1]) + 5).a > 0.0:
+					hidden = false
+		check(hidden, "salas não visitadas ficam escondidas")
+	level.hud.toggle_map()
+	await tree.process_frame
+	check(not tree.paused and level.hud._map == null, "M de novo fecha o mapa")
+	level.queue_free()
+	await _frames(2)
+	FX.clear_time_effects()

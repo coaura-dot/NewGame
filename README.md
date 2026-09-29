@@ -19,7 +19,7 @@ seed, metroidvania, NPCs com afinidade/casamento, reputação e o Cerco final.
 |---|---|---|---|
 | Andar (8 direções) | WASD / setas | Correr | Shift / X |
 | Falar / entrar / ler placa | Espaço / Enter / J | Mapa 3D (viagem rápida, Cerco) | M / Tab |
-| Pausa (equipamento/opções) | Esc | | |
+| Pausa (equipamento, Lembranças, Bestiário, opções) | Esc | Mapa da fase | M / Tab |
 
 ## Controles (teclado)
 | Ação | Tecla | Ação | Tecla |
@@ -30,7 +30,7 @@ seed, metroidvania, NPCs com afinidade/casamento, reputação e o Cerco final.
 | Esquiva (invencível) | Ctrl / V | Magias | Q / E |
 | Sigilo (segure e desenhe com o mouse) | R / mouse meio | Foco: segure = cura / toque = poção | H |
 | Trocar arma | G | Interagir / sentar no banco | W / ↑ / Enter |
-| Pausa (equipamento/opções) | Esc | | |
+| Pausa (equipamento, Lembranças, Bestiário, opções) | Esc | Mapa da fase | M / Tab |
 
 Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo); pular durante dash no chão = **super**
 (dash diagonal para baixo + pulo = **hyper**); dash para cima + pulo encostado na parede = **wallbounce**;
@@ -215,6 +215,9 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
   Brasas-Mestras e de quem é o Sopro. Diário no menu de pausa (**Lembranças**).
 - **Lamparinas dos Veladores nas estradas do mapa-múndi**: acendem quando o Pavio passa, dão 1 brasa e ficam acesas
   para sempre (salvas) — as estradas vão ganhando pontos de luz conforme você explora.
+- **Mapa da fase** (M / Tab), estilo Hollow Knight: só as salas por onde você passou aparecem desenhadas (as vizinhas
+  ficam como "?"), com o Pavio piscando, a saída, o chefe, os bancos, as lamparinas acesas/apagadas e as salas
+  sombrias ainda escuras.
 - **Sombra** (inimigo das salas sombrias): no escuro é quase invisível — só os olhos — e nada a atinge. Espreita
   longe da sua chama e dá um bote amarelo (apare!); depois do bote fica colada na luz do Pavio: castigue. Na luz de uma
   lamparina fica atordoada, e com a sala toda acesa se desmancha fácil.

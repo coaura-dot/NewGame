@@ -36,6 +36,7 @@ var _ambient_tween: Tween
 var _room_lamps: Dictionary = {} ## sala -> [total, acesas]
 var _bg: BackgroundLayer
 var _memory_rooms: Dictionary = {}
+var visited_rooms: Dictionary = {} ## salas por onde o herói já passou (mapa da fase)
 ## Renascimento rápido (estilo Celeste): morrer volta para a entrada da sala.
 var room_spawn: Vector2 = Vector2.ZERO
 var timer_running: bool = true
@@ -527,6 +528,7 @@ func _physics_process(_delta: float) -> void:
 
 func _on_room_entered(idx: int) -> void:
 	var room: Dictionary = layout["rooms"][idx]
+	visited_rooms[idx] = true
 	Events.room_entered.emit(room)
 	apply_room_light(idx)
 	_update_room_spawn(idx)
@@ -599,6 +601,7 @@ const HINTS := {
 	"zigzag": "Chão de espinhos! Encadeie orbes, pogos e inimigos sem pousar.",
 	"dark": "Sala sombria! Passe raspando nas LAMPARINAS para acendê-las e devolver a luz.",
 	"lamp": "LAMPARINA apagada: encoste ou golpeie para acender (+brasas). Acenda todas da fase!",
+	"map": "Aperte M (ou Tab) para ver o MAPA da fase: salas visitadas, saída e lamparinas.",
 	"shade": "SOMBRA: no escuro nada a atinge. Castigue depois do bote (perto da sua chama) ou atraia-a para a luz de uma lamparina!",
 	"jump_feather": "PENA VERDE: encoste no ar e ganhe mais um pulo!",
 	"reset_bell": "SINO: golpeie para recarregar o dash e ganhar um pulo, sem perder a trajetória.",
@@ -645,6 +648,8 @@ func _hints_for_room(idx: int) -> void:
 		want.push_front("chase")
 	if room.get("dark", false):
 		want.push_front("dark")
+	if visited_rooms.size() >= 3:
+		want.append("map")
 	if room.get("type", "") == "zigzag":
 		want.push_front("zigzag")
 	for k in want:

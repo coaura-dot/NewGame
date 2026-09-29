@@ -12,6 +12,7 @@ extends SceneTree
 ## bichos: os inimigos novos (mariposa, Guarda de Cinzas, Sopro) em ação.
 ## sombria [seed] [bioma]: a sala sombria do treino apagada e depois acesa.
 ## paineis: últimas palavras de um guardião, Bestiário e Lembranças.
+## mapafase [seed] [bioma]: passa por metade das salas e abre o mapa da fase (M).
 ## chefe <id>: um guardião duelando com o herói (vários quadros).
 ## loja [seed]: diálogo e painéis de loja/forja/estudo/venda na vila inicial.
 
@@ -77,6 +78,8 @@ func _process(_d: float) -> bool:
 		return _sombria()
 	if _mode == "paineis":
 		return _paineis()
+	if _mode == "mapafase":
+		return _mapafase()
 	if _mode != "menu":
 		if _n == 60:
 			Input.action_press("move_right")
@@ -572,5 +575,28 @@ func _paineis() -> bool:
 				b.pressed.emit()
 	if _n == 300:
 		_save("2_lembrancas")
+		quit()
+	return false
+
+
+func _mapafase() -> bool:
+	if _level == null or _level.player == null:
+		return false
+	var p = _level.player
+	p.invuln_time = 999.0
+	var rooms: Array = _level.layout["rooms"]
+	var k := (_n - 20) / 6
+	if _n >= 20 and _n % 6 == 0 and k < rooms.size() * 2 / 3:
+		var r: Rect2 = _level.room_rect(int(rooms[k]["index"]))
+		p.global_position = r.get_center()
+		p._prev_pos = p.global_position
+		p.reset_physics_interpolation()
+		for n in _level.entities.get_children():
+			if n.get_script() and str(n.get_script().resource_path).ends_with("lamparina.gd") and n.room_index == k and k % 2 == 0:
+				n.light_up()
+	if _n == 20 + 6 * (rooms.size() * 2 / 3) + 10:
+		_level.hud.toggle_map()
+	if _n == 20 + 6 * (rooms.size() * 2 / 3) + 30:
+		_save("mapa")
 		quit()
 	return false

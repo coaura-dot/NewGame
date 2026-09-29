@@ -154,6 +154,9 @@ Sessão 8 — ESTÉTICA ESCURA (Hollow Knight/Ori) + LUZ COMO JOGABILIDADE:
   _setup_road_lamp/_check_road_lamps (acende a ROAD_LAMP_REACH px, +1 brasa,
   profile["ow_lamps"]).
 - Sons novos: lamp, room_lit (tools/sfx_gen.py).
+- MAPA DA FASE: scripts/ui/stage_map.gd (StageMap, desenho em 320x180, imagem de
+  1 px por tile só com level.visited_rooms). hud.toggle_map() com a ação "map"
+  (M/Tab) — só em fases (hud.level != null); pausa o jogo. Print: modo "mapafase".
 - SOMBRA ("shade", ai "shade" em enemy.gd; arte em foe_art.py): shade_lit() =
   sala toda acesa OU herói a < SHADE_HERO_LIGHT OU lamparina acesa (grupo
   "lamps_lit") a < SHADE_LAMP_LIGHT; fora da luz _before_hit devolve INVULNERABLE.

@@ -337,9 +337,37 @@ func close_panel() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _map and is_instance_valid(_map) and (event.is_action_pressed("pause") or event.is_action_pressed("map")):
+		toggle_map()
+		get_viewport().set_input_as_handled()
+		return
 	if _panel and event.is_action_pressed("pause"):
 		close_panel()
 		get_viewport().set_input_as_handled()
+		return
+	if level and not _panel and event.is_action_pressed("map") and not get_tree().paused:
+		toggle_map()
+		get_viewport().set_input_as_handled()
+
+
+var _map: StageMap = null
+
+
+## Mapa da fase (M/Tab): pausa o jogo enquanto está aberto.
+func toggle_map() -> void:
+	if _map and is_instance_valid(_map):
+		_map.queue_free()
+		_map = null
+		get_tree().paused = false
+		Audio.play("ui_back", 0.0, -10.0)
+		return
+	if level == null:
+		return
+	_map = StageMap.new()
+	_map.level = level
+	add_child(_map)
+	get_tree().paused = true
+	Audio.play("ui_move", 0.0, -8.0)
 
 
 ## Painel de leitura (tábuas de pedra, inscrições).
