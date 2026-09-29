@@ -1,14 +1,25 @@
 # NEWGAME — protótipo (Godot 4.7)
 
-Arcade de stages procedural em pixel art **320x180**: movimento de **Celeste** + combate de **Hollow Knight**
-(com toques de Katana Zero), mundo gerado por seed (estilo Dead Cells), metroidvania, NPCs com afinidade/casamento,
-reputação e o Cerco final.
+**Pavio, a última chama.** Arcade de stages procedural em pixel art **320x180**: movimento de **Celeste** + combate de
+**Hollow Knight/Dead Cells** (com toques de Katana Zero), um **mapa-múndi explorável** estilo Stardew Valley gerado por
+seed, metroidvania, NPCs com afinidade/casamento, reputação e o Cerco final.
+
+> Em Candelária, todo lar guardava uma chama acesa na **Grande Lareira**. O Sopro do Arquidemônio a apagou e o fogo se
+> partiu em brasas — as maiores, as **Brasas-Mestras**, viraram o coração dos guardiões das estradas. Você é o **Pavio**,
+> uma velinha nascida da última gota de cera quente do candelabro: junte as brasas, vença os guardiões e reacenda a Lareira.
 
 ## Como abrir e jogar
 1. Baixe o ZIP direto: https://github.com/coaura-dot/NewGame/archive/refs/heads/claude/awesome-cannon-s9w4t8.zip e extraia numa pasta NOVA (não por cima da antiga).
 2. Godot 4.7 (4.4+ funciona): extraia o zip do Godot em `C:\Users\igo\Downloads\godot` e rode o `.exe` (não precisa instalar).
 3. No Project Manager: **Import** → `project.godot` da pasta nova → **Import & Edit** → **F5**. O projeto certo aparece como **"NewGame 320 (v0.2)"** e o menu mostra "v0.2 (320x180)". Se aparecer só "NewGame", é a versão antiga.
-4. No menu: **Treino** (fase fixa com tudo liberado) ou **Novo jogo** (mapa-múndi por seed).
+4. No menu: **Treino** (fase fixa com tudo liberado) ou **Novo jogo** (introdução + mapa-múndi explorável por seed).
+
+## Controles no mapa-múndi
+| Ação | Tecla | Ação | Tecla |
+|---|---|---|---|
+| Andar (8 direções) | WASD / setas | Correr | Shift / X |
+| Falar / entrar / ler placa | Espaço / Enter / J | Mapa 3D (viagem rápida, Cerco) | M / Tab |
+| Pausa (equipamento/opções) | Esc | | |
 
 ## Controles (teclado)
 | Ação | Tecla | Ação | Tecla |
@@ -29,7 +40,7 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
 - **Resolução interna 320x180** (como Celeste), ampliada em escala inteira. O mundo é renderizado numa tela interna;
   a câmera anda em pixels inteiros e a fração vira deslocamento da imagem ampliada (rolagem suave sem tremer a pixel art).
   Câmera presa à sala atual, deslizando para a próxima ao atravessar (estilo Celeste). Renderizador GL Compatibility.
-- **Herói novo**: criaturinha de ~13 px (máscara clara, orelhas pontudas, manto) com **expressões**: olhos procedurais
+- **Herói novo** (substituído pelo Pavio na sessão 6): criaturinha de ~13 px (máscara clara, orelhas pontudas, manto) com **expressões**: olhos procedurais
   (piscar, feliz, bravo, cansado, olhar pra cima/baixo, susto, morto), **balões de emoção** (! ? !? … ♥ ♪ zzz raiva,
   suor, brilho, tontura), squash & stretch e **cachecol** com física cuja cor mostra os dashes (vermelho/azul/rosa).
   Parado muito tempo, ele senta e cochila.
@@ -110,8 +121,36 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
   pogo, cadeia (nota sobe a cada elo), golpes, abates, torreta, muralha, magias por escola etc.
 - Pendente: efeitos visuais novos em magias/golpes e personagens novos com seleção.
 
+## Sessão 6 — Pavio, mapa-múndi explorável, duelos e a história
+- **Herói novo: Pavio**, uma velinha de cera com poncho e cachecol. A **chama na cabeça** é procedural e mostra o humor:
+  tremula, deita contra o movimento (no dash fica quase na horizontal), cresce feliz/focando/na cadeia, encolhe ferido ou
+  com pouca vida, vira fumaça na morte e reacende ao renascer. Bochechas, boquinha, **gola na cor dos dashes** e a luz do
+  herói presa à chama. A vida no HUD virou **velinhas**. O cachecol voltou a aparecer (ficava atrás do cenário).
+- **Mapa-múndi explorável** (visão de cima): a ilha é gerada do grafo do mundo — territórios por bioma separados por mata
+  fechada, rochedos ou o vazio do céu; **estradas** (terra, ponte de luz, trilho de túnel, cristais de fenda) com pontes;
+  **portões rúnicos** que só abrem com o dom de um guardião; **vilas** com praça, casas, poço, postes e moradores que
+  passeiam e conversam; **entradas das fases** (portão de pedra, caverna, plataforma celeste, fenda); placas; pedras de
+  viagem; névoa no desconhecido; minimapa; **dia e noite** (postes, janelas e a chama do Pavio iluminam). Entrar numa fase
+  corta para ela; ao terminar você volta ao mesmo ponto.
+- **Combate de duelo** (Dead Cells + Hollow Knight): antes de cada golpe o inimigo brilha **amarelo** (dá para aparar) ou
+  **vermelho** (esquive), com "!"/"!!", som e a arma cintilando. Combos de 1-3 golpes com pausas variadas; depois do golpe
+  ele fica **exposto** (janela de punição). Bater sem parar faz o inimigo **erguer a guarda** e contra-atacar — golpe
+  **pesado quebra a guarda**, pogo e golpes pelas costas passam; feras recuam e dão o bote. **Aparo perfeito** = contra-golpe
+  crítico; **esquiva perfeita** = contra-ataque crítico. O combo do herói tem um respiro curto no fim.
+- **Efeitos**: dash com anel, riscos e **fita colorida**; cortes com gradiente e faíscas; **marca de corte** no alvo;
+  magias com partículas por escola (fogo = brasas, gelo = estilhaços, raio = zigue-zague, sombra = espiral, cura = cruzes,
+  terra = pedras, água = gotas, arcano = estrelas); status visíveis (queimando, congelado, eletrizado).
+- **Sons**: dash novo ("fwip" curto e brilhante, sem grave); golpes, dano e passos mais suaves, sem chiado; sons de
+  telegrafia (amarelo/vermelho) e de guarda.
+- **História**: introdução em cartões, a Grande Lareira reacende conforme os guardiões caem, frases por região, tábuas de
+  pedra com inscrições na entrada das fases, falas novas dos moradores (com pistas de onde estão os guardiões) e o final
+  "A Última Chama".
+- **Fontes** com acentos minúsculos corretos (antes "CandelÁria").
+- Ferramentas: `tools/overworld_art.py` (arte do mapa), `tools/fix_font_accents.py`, novos modos em
+  `tools/screenshot.gd` (`heroi`, `efeitos`, `duelo`, `mapa`, `intro`, `regiao`).
+
 ## Testes
-`godot --headless --path . res://tests/test_runner.tscn` — 5500+ verificações (dados, balanceamento, mundo, fases,
+`godot --headless --path . res://tests/test_runner.tscn` — 6000+ verificações (dados, balanceamento, mundo, fases,
 combate, sigilos, inventário, social, save e um teste que joga o treino: anda, pula, dash, ataca, magia, aparo).
 Prints do jogo rodando: `godot --path . --script tools/screenshot.gd -- <prefixo> [treino|menu]`.
 
