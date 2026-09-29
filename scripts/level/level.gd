@@ -144,18 +144,14 @@ static func region_theme(r: Dictionary) -> String:
 
 
 func _build_world() -> void:
-	# tela limpa: nada de escurecer a cena inteira. Só um leve tom em biomas
-	# escuros / regra de pouca luz (as luzes então aparecem de leve).
-	var dim_k := 1.0
-	if biome.get("tags", []).has("dark"):
-		dim_k = 0.9
-	if dimension.get("rules", []).has("low_light"):
-		dim_k *= 0.72
-	if dim_k < 0.999:
-		var cm := CanvasModulate.new()
-		cm.color = Color(dim_k, dim_k, dim_k * 1.04)
-		world.add_child(cm)
-	LevelBuilder.build(world, layout, biome, params["biome"])
+	# Estética escura: a penumbra do bioma cobre a cena e as luzes (a chama do
+	# Pavio, tochas, cristais, lanternas) abrem bolsões quentes. O fundo em
+	# parallax fica fora disso (já nasce escuro, com os próprios brilhos).
+	var cm := CanvasModulate.new()
+	cm.color = ambient_color(biome, dimension)
+	world.add_child(cm)
+	var built: Dictionary = LevelBuilder.build(world, layout, biome, params["biome"])
+	_spawn_lamps(built.get("lamps", []))
 	entities = Node2D.new()
 	entities.name = "Entities"
 	entities.z_index = 5
@@ -164,6 +160,38 @@ func _build_world() -> void:
 	for r in layout["rooms"]:
 		var o: Array = r["origin"]
 		_room_index_by_cell[Vector2i(int(o[0]) / LevelConst.ROOM_W, int(o[1]) / LevelConst.ROOM_H)] = int(r["index"])
+
+
+## Cor da penumbra (CanvasModulate) do bioma. "shade" em data/biomes.json;
+## a regra "low_light" da dimensão escurece mais; sem luzes dinâmicas a
+## penumbra é mais leve (senão ninguém enxergaria nada).
+static func ambient_color(b: Dictionary, dim: Dictionary) -> Color:
+	var a: Array = b.get("shade", [0.74, 0.74, 0.86])
+	var c := Color(float(a[0]), float(a[1]), float(a[2]))
+	if dim.get("rules", []).has("low_light"):
+		c = c * 0.72
+	if not bool(Settings.video("dynamic_lights")):
+		c = c.lerp(Color(1, 1, 1), 0.5)
+	c.a = 1.0
+	return c
+
+
+## Decorações grandes que brilham (lanterna, cristal, cogumelo, flor-lume)
+## ganham uma luzinha de verdade. Poucas por fase.
+func _spawn_lamps(lamps: Array) -> void:
+	if not bool(Settings.video("dynamic_lights")):
+		return
+	var n := 0
+	for l in lamps:
+		if n >= 40:
+			break
+		var k: int = int(l[1])
+		var col := TileSetBuilder.glow_color(params["biome"], TileSetBuilder.BIG_GLOW[k])
+		var lt := LightUtil.make_light(col, 0.55 if k == 0 else 0.4, 0.75 if k == 0 else 0.55)
+		if lt:
+			lt.position = l[0]
+			world.add_child(lt)
+			n += 1
 
 
 func _tile_feet(tile: Array) -> Vector2:

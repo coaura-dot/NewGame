@@ -47,6 +47,16 @@ var known: Dictionary = {}
 var interactables: Array = [] ## {pos, prompt, action: Callable, region, node}
 var focus: Dictionary = {}
 var night: float = 0.0 ## 0 = dia, 1 = noite fechada
+## objeto -> [cor, altura do brilho, força, 1 em N objetos brilha]
+const NATURE_GLOW := {
+	"mushroom_blue": [Color(0.4, 0.9, 1.0), -6, 0.5, 1],
+	"mushroom_red": [Color(1.0, 0.45, 0.7), -6, 0.4, 2],
+	"tree_crystal": [Color(0.6, 0.8, 1.0), -18, 0.9, 1],
+	"flowers_blue": [Color(0.5, 0.8, 1.0), -3, 0.15, 3],
+	"gravestone": [Color(0.55, 0.85, 1.0), -14, 0.3, 4],
+	"tree_gold": [Color(1.0, 0.8, 0.4), -16, 0.5, 2],
+	"stalagmite": [Color(0.7, 0.5, 1.0), -10, 0.3, 3],
+}
 var _region_here: String = ""
 var _fog_img: Image
 var _fog_tex: ImageTexture
@@ -105,7 +115,9 @@ func _ready() -> void:
 	world_root.add_child(camera)
 	camera.snap()
 	pixel_view.camera = camera
-	pixel_view.set_grade({}, true)
+	# cores mais contidas (penumbra); ganham saturação com as Brasas devolvidas
+	var pw := _hearth_power()
+	pixel_view.set_grade({"saturation": lerpf(0.8, 1.0, pw), "tint": [0.96, 0.98, 1.04]}, true)
 	hud = load("res://scripts/ui/hud.gd").new()
 	add_child(hud)
 	ui = OverworldUI.new()
@@ -282,6 +294,10 @@ func _build_objects() -> void:
 			"house":
 				_glow(at + Vector2(-8, -8), Color(1.0, 0.7, 0.35), 0.15)
 				_glow(at + Vector2(8, -8), Color(1.0, 0.7, 0.35), 0.15)
+		# pontos de luz da natureza (bioluminescência, cristais, fogos-fátuos)
+		var ng: Array = NATURE_GLOW.get(name, [])
+		if not ng.is_empty() and absi(int(at.x) * 7 + int(at.y) * 3) % int(ng[3]) == 0:
+			_glow(at + Vector2(0, float(ng[1])), ng[0], float(ng[2]))
 
 
 func _track(region: String, n: Node) -> void:
@@ -513,22 +529,23 @@ func _update_daylight(delta: float) -> void:
 	# 0 = meia-noite, 0.5 = meio-dia
 	var sun := 0.5 - 0.5 * cos(clock * TAU)
 	night = clampf(1.0 - sun * 1.6, 0.0, 1.0)
-	var day_c := Color(1, 1, 1)
-	var dusk_c := Color(1.0, 0.82, 0.72)
-	var night_c := Color(0.42, 0.46, 0.72)
-	var c := day_c.lerp(dusk_c, clampf(night * 2.0, 0.0, 1.0)).lerp(night_c, clampf(night * 2.0 - 1.0, 0.0, 1.0))
+	# Com a Grande Lareira apagada o mundo vive num crepúsculo eterno: o "dia"
+	# é azulado e sem cor. Cada Brasa-Mestra devolvida aquece e clareia o dia.
+	var c := daylight_color(night, _hearth_power())
 	_modulate.color = c
+	# as luzes (janelas, postes, runas) nunca se apagam de todo no crepúsculo
+	var dim := 1.0 - (c.r + c.g + c.b) / 3.0
 	for g in _glows:
 		if not is_instance_valid(g):
 			continue
 		var always: bool = g.get_meta("always", false)
-		var a := night if not always else maxf(night, 0.35)
+		var a := maxf(night, clampf(dim * 2.0, 0.0, 1.0)) if not always else maxf(maxf(night, dim * 2.0), 0.45)
 		a *= 0.75 + 0.25 * float(g.get_meta("strength", 1.0))
 		var col: Color = g.modulate
 		col.a = a * 0.8 * (0.9 + 0.1 * sin(Time.get_ticks_msec() / 90.0 + g.position.x))
 		g.modulate = col
 	if hero:
-		hero.set_night(night)
+		hero.set_night(maxf(night, dim * 1.1))
 
 
 ## Trilha do mapa: valsa da Lareira nas vilas, Candelária de dia, Noite à noite.
@@ -620,6 +637,15 @@ func _read_sign(region: String, to: String) -> void:
 	elif r.get("boss", "") != "":
 		extra = " — perigo!"
 	Events.toast.emit("→ %s  (%s, tier %d)%s" % [r["name"], DB.biome(r["biome"]).get("name", r["biome"]), int(r["tier"]), extra])
+
+
+## Cor do CanvasModulate do mapa. night 0..1; power = fração das Brasas
+## devolvidas (0 = Lareira apagada: crepúsculo azul; 1 = dia quente de novo).
+static func daylight_color(n: float, power: float) -> Color:
+	var day_c := Color(0.6, 0.64, 0.84).lerp(Color(1.0, 0.97, 0.92), power * 0.85)
+	var dusk_c := Color(0.62, 0.52, 0.66).lerp(Color(1.0, 0.8, 0.7), power * 0.6)
+	var night_c := Color(0.28, 0.31, 0.54).lerp(Color(0.42, 0.46, 0.72), power * 0.5)
+	return day_c.lerp(dusk_c, clampf(n * 2.0, 0.0, 1.0)).lerp(night_c, clampf(n * 2.0 - 1.0, 0.0, 1.0))
 
 
 func _hearth_power() -> float:

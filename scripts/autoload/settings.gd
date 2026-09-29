@@ -22,7 +22,7 @@ const DEFAULTS := {
 		"dynamic_lights": true,
 		"shadows": false,
 		"chromatic_aberration": false,
-		"vignette": false,
+		"vignette": true,
 		"screen_flash": true,
 		"afterimages": true,
 		"particles": 1, # 0 = mínimo, 1 = normal, 2 = muitas

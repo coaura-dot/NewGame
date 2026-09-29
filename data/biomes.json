@@ -1,5 +1,5 @@
 {
- "_doc": "Biomas. tileset = atlas em assets/art/tilesets. tint = cor multiplicada nos tiles (permite reaproveitar placeholders). ambient = CanvasModulate. background = pasta em assets/art/backgrounds. particles = clima/ambiente. layers = variações céu/superfície/subterrâneo. enemies = pool ponderado. hub = tipo de assentamento que pode existir no bioma.",
+ "_doc": "Biomas. tileset = atlas em assets/art/tilesets. tint = cor multiplicada nos tiles (permite reaproveitar placeholders). ambient = CanvasModulate. background = pasta em assets/art/backgrounds. particles = clima/ambiente. layers = variações céu/superfície/subterrâneo. enemies = pool ponderado. hub = tipo de assentamento que pode existir no bioma. shade = penumbra (CanvasModulate) da fase: a estética é escura e as luzes abrem bolsões.",
  "cemiterio": {
   "name": "Cemitério Esquecido",
   "tileset": "cemetery",
@@ -38,6 +38,11 @@
   "tags": [
    "outdoor",
    "dark"
+  ],
+  "shade": [
+   0.62,
+   0.64,
+   0.84
   ]
  },
  "castelo": {
@@ -71,6 +76,11 @@
   },
   "tags": [
    "indoor"
+  ],
+  "shade": [
+   0.66,
+   0.68,
+   0.82
   ]
  },
  "catacumbas": {
@@ -105,6 +115,11 @@
    "indoor",
    "underground",
    "dark"
+  ],
+  "shade": [
+   0.6,
+   0.55,
+   0.52
   ]
  },
  "cidade_gotica": {
@@ -145,6 +160,11 @@
   "tags": [
    "outdoor",
    "urban"
+  ],
+  "shade": [
+   0.64,
+   0.64,
+   0.84
   ]
  },
  "templo_dourado": {
@@ -178,6 +198,11 @@
   "tags": [
    "indoor",
    "puzzle"
+  ],
+  "shade": [
+   0.78,
+   0.68,
+   0.56
   ]
  },
  "ruinas": {
@@ -212,6 +237,11 @@
   },
   "tags": [
    "outdoor"
+  ],
+  "shade": [
+   0.74,
+   0.7,
+   0.84
   ]
  },
  "floresta": {
@@ -250,6 +280,11 @@
   "tags": [
    "outdoor",
    "nature"
+  ],
+  "shade": [
+   0.6,
+   0.76,
+   0.78
   ]
  },
  "deserto": {
@@ -288,6 +323,11 @@
   "tags": [
    "outdoor",
    "hot"
+  ],
+  "shade": [
+   0.68,
+   0.66,
+   0.88
   ]
  },
  "pantano": {
@@ -322,6 +362,11 @@
   "tags": [
    "outdoor",
    "wet"
+  ],
+  "shade": [
+   0.6,
+   0.72,
+   0.58
   ]
  },
  "cidade_ceu": {
@@ -361,6 +406,11 @@
   "tags": [
    "sky",
    "urban"
+  ],
+  "shade": [
+   0.78,
+   0.82,
+   1.0
   ]
  },
  "cidade_subterranea": {
@@ -393,6 +443,11 @@
   "tags": [
    "underground",
    "urban"
+  ],
+  "shade": [
+   0.6,
+   0.55,
+   0.78
   ]
  },
  "cidade_magos": {
@@ -427,6 +482,11 @@
   "tags": [
    "indoor",
    "magic"
+  ],
+  "shade": [
+   0.66,
+   0.6,
+   0.88
   ]
  },
  "fortaleza_orc": {
@@ -461,6 +521,11 @@
   "tags": [
    "outdoor",
    "war"
+  ],
+  "shade": [
+   0.8,
+   0.6,
+   0.52
   ]
  },
  "acampamento_barbaro": {
@@ -494,6 +559,11 @@
   "tags": [
    "outdoor",
    "war"
+  ],
+  "shade": [
+   0.72,
+   0.76,
+   0.9
   ]
  },
  "toca_goblin": {
@@ -526,6 +596,11 @@
   "tags": [
    "underground",
    "trap"
+  ],
+  "shade": [
+   0.6,
+   0.66,
+   0.5
   ]
  }
 }

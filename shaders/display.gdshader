@@ -18,12 +18,16 @@ uniform float ray_strength = 0.2;
 
 uniform float chroma = 0.0;
 uniform bool vignette_on = false;
-uniform float vignette = 0.22;
+uniform float vignette = 0.32;
 
 uniform vec3 grade_tint = vec3(1.0);
 uniform float saturation = 1.0;
 uniform float contrast = 1.0;
 uniform float hue_shift = 0.0;
+// estética escura: o preto não é morto — as sombras puxam para uma cor
+// (azul-noite por padrão) e as luzes ficam levemente quentes.
+uniform vec3 shadow_tint = vec3(0.035, 0.04, 0.075);
+uniform vec3 highlight_tint = vec3(1.04, 1.0, 0.94);
 
 uniform float flash = 0.0;
 uniform vec4 flash_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
@@ -77,6 +81,9 @@ void fragment() {
 	float l = dot(col, vec3(0.299, 0.587, 0.114));
 	col = mix(vec3(l), col, saturation);
 	col = max((col - 0.45) * contrast + 0.45, vec3(0.0));
+	float lum = dot(col, vec3(0.299, 0.587, 0.114));
+	col += shadow_tint * (1.0 - smoothstep(0.0, 0.3, lum));
+	col *= mix(vec3(1.0), highlight_tint, smoothstep(0.45, 1.0, lum));
 	if (abs(hue_shift) > 0.001) {
 		col = max(hue_rotate(col, hue_shift * 6.2831853), vec3(0.0));
 	}

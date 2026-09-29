@@ -119,6 +119,8 @@ func apply_settings() -> void:
 	mat.set_shader_parameter("saturation", float(grade.get("saturation", 1.0)))
 	mat.set_shader_parameter("contrast", float(grade.get("contrast", 1.0)))
 	mat.set_shader_parameter("hue_shift", float(grade.get("hue_shift", 0.0)))
+	var sh: Array = grade.get("shadow", [0.035, 0.04, 0.075])
+	mat.set_shader_parameter("shadow_tint", Vector3(sh[0], sh[1], sh[2]))
 
 
 func _process(delta: float) -> void:

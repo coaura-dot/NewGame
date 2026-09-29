@@ -171,3 +171,62 @@ func test_zigue_zague_atravessavel() -> void:
 		RoomSynth._switchback(g, rng, "LR", i % 2 == 0, 2, i % 3 == 0)
 		var r := RoomReach.check_room(g, "LR", "dash")
 		check(r == "", "zigue-zague %d atravessável (%s)" % [i, r])
+
+
+## Estética escura: rocha escurece com a distância do ar, pixels que emitem
+## luz vão para a camada "Glow" (aditiva, HDR) e cada bioma tem os 4 fundos.
+func test_estetica_escura() -> void:
+	var biomes: Dictionary = DB.biomes
+	for bid in biomes.keys():
+		var art: String = str(bid)
+		if art.begins_with("_"):
+			continue
+		check(ResourceLoader.exists("res://assets/art/tiles/%s_glow.png" % art), "%s: atlas de brilho" % art)
+		for layer in ["0_sky", "1_far", "2_mid", "3_near"]:
+			check(ResourceLoader.exists("res://assets/art/bg/%s/%s.png" % [art, layer]), "%s: fundo %s" % [art, layer])
+		check(biomes[bid].has("shade"), "%s: penumbra definida" % art)
+	# fase montada: rocha funda sem colisão, brilho só onde o atlas tem luz
+	var rows := PackedStringArray([
+		"##########",
+		"#........#",
+		"#........#",
+		"#...-----#",
+		"#........#",
+		"##########",
+		"##########",
+		"##########",
+		"##########",
+	])
+	var root := Node2D.new()
+	var built: Dictionary = LevelBuilder.build(root, {"rows": rows, "width": 10, "height": 9, "rooms": []}, {"art": "floresta"}, "floresta")
+	var terrain: TileMapLayer = built["terrain"]
+	check(terrain.get_cell_atlas_coords(Vector2i(4, 7)) in TileSetBuilder.DEEPER, "rocha a 3 tiles do ar é quase preta")
+	check(terrain.get_cell_atlas_coords(Vector2i(4, 6)) in TileSetBuilder.DEEP, "rocha a 2 tiles do ar é funda")
+	check(terrain.get_cell_atlas_coords(Vector2i(4, 5)) == TileSetBuilder.mask_tile(2 | 4 | 8), "chão exposto usa tile de borda")
+	var glow: TileMapLayer = built["glow"]
+	check(glow != null, "camada de brilho existe")
+	if glow:
+		check(glow.material is CanvasItemMaterial and (glow.material as CanvasItemMaterial).blend_mode == CanvasItemMaterial.BLEND_MODE_ADD, "brilho é aditivo")
+		check(glow.modulate.r > 1.0, "brilho em HDR (vira bloom)")
+		var cells := TileSetBuilder.glow_cells("floresta")
+		var ok := true
+		for c in glow.get_used_cells():
+			if not cells.has(glow.get_cell_atlas_coords(c)):
+				ok = false
+		check(ok, "só tiles com pixels de luz entram no brilho")
+	root.free()
+	# penumbra: mais escura com pouca luz; mais leve sem luzes dinâmicas
+	var base := Level.ambient_color({"shade": [0.7, 0.7, 0.8]}, {})
+	var low := Level.ambient_color({"shade": [0.7, 0.7, 0.8]}, {"rules": ["low_light"]})
+	check(low.r < base.r and base.r < 1.0, "regra low_light escurece a fase")
+
+
+## O mapa-múndi vive em crepúsculo; cada Brasa devolvida clareia o dia.
+func test_crepusculo_da_lareira() -> void:
+	var OW = load("res://scripts/world/overworld.gd")
+	var apagada: Color = OW.daylight_color(0.0, 0.0)
+	var acesa: Color = OW.daylight_color(0.0, 1.0)
+	var noite: Color = OW.daylight_color(1.0, 0.0)
+	check(apagada.r < 0.8 and apagada.b > apagada.r, "Lareira apagada: dia azulado e escuro")
+	check(acesa.r > apagada.r + 0.2, "com as Brasas o dia esquenta e clareia")
+	check(noite.r < apagada.r, "a noite é mais escura que o crepúsculo")

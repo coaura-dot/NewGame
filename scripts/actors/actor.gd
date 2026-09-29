@@ -9,6 +9,7 @@ signal damaged(info: DamageInfo, amount: float)
 signal health_changed(current: float, maximum: float)
 
 const SPRITE_FX := preload("res://shaders/sprite_fx.gdshader")
+const GLOW_HDR := Color(1.8, 1.8, 1.8)
 
 var team: int = Layers.Team.ENEMY
 var stats: StatBlock = StatBlock.new()
@@ -27,6 +28,7 @@ var invuln_time: float = 0.0
 var ward_charges: int = 0
 var ward_time: float = 0.0
 var sprite: AnimatedSprite2D
+var glow_sprite: AnimatedSprite2D ## olhos/brasas que brilham (folha <id>_glow.png)
 var sprite_meta: Dictionary = {}
 var sprite_faces: int = 1 ## 1 = arte olha para a direita
 var attack: AttackRunner
@@ -67,6 +69,34 @@ func setup_sprite(char_name: String, sprite_scale: float = 1.0) -> void:
 	add_child(sprite)
 	if sprite.sprite_frames.get_animation_names().size() > 0:
 		sprite.play(sprite.sprite_frames.get_animation_names()[0])
+	# olhos e brasas brilham no escuro (camada aditiva HDR, segue o quadro)
+	var gf := SpriteLib.enemy_glow(char_name)
+	if gf:
+		glow_sprite = AnimatedSprite2D.new()
+		glow_sprite.name = "Glow"
+		glow_sprite.sprite_frames = gf
+		glow_sprite.centered = false
+		glow_sprite.offset = sprite.offset
+		glow_sprite.modulate = GLOW_HDR
+		var gm := CanvasItemMaterial.new()
+		gm.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		gm.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+		glow_sprite.material = gm
+		sprite.add_child(glow_sprite)
+		sprite.frame_changed.connect(_sync_glow)
+		sprite.animation_changed.connect(_sync_glow)
+		_sync_glow()
+
+
+func _sync_glow() -> void:
+	if glow_sprite == null or sprite == null:
+		return
+	if glow_sprite.sprite_frames.has_animation(sprite.animation):
+		if glow_sprite.animation != sprite.animation:
+			glow_sprite.animation = sprite.animation
+		glow_sprite.frame = sprite.frame
+	glow_sprite.flip_h = sprite.flip_h
+	glow_sprite.offset = sprite.offset
 
 
 func play_anim(anim: String, restart: bool = false) -> void:
@@ -158,6 +188,8 @@ func _update_visuals(delta: float) -> void:
 		elif not sprite.centered:
 			sprite.offset.x = -float(sprite_meta.get("feet", [8, 16])[0])
 		sprite.speed_scale = local_time
+		if glow_sprite and (glow_sprite.flip_h != sprite.flip_h or glow_sprite.offset != sprite.offset):
+			_sync_glow()
 
 
 func set_dissolve(v: float) -> void:

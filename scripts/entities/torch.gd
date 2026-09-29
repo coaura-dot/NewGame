@@ -13,7 +13,7 @@ var _t: float = 0.0
 func _ready() -> void:
 	z_index = -5
 	_t = randf() * 10.0
-	_light = LightUtil.make_light(Color(color.r, color.g, color.b).clamp(), 0.7, 1.0, true)
+	_light = LightUtil.make_light(Color(color.r, color.g, color.b).clamp(), 0.7, 1.35, true)
 	if _light:
 		_light.position = Vector2(0, -3)
 		add_child(_light)
@@ -26,7 +26,7 @@ func _process(delta: float) -> void:
 	_t += delta
 	var f := 1.0 + 0.1 * sin(_t * 11.0) + 0.06 * sin(_t * 23.0)
 	if _light:
-		_light.energy = 0.42 * f
+		_light.energy = 0.6 * f
 	_glow.scale = Vector2.ONE * (18.0 / 64.0) * f
 	queue_redraw()
 

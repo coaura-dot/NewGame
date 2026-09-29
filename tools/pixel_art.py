@@ -3,14 +3,15 @@
 
     python3 tools/pixel_art.py            # gera em assets/art/
     python3 tools/pixel_art.py --hero     # só o herói (Pavio)
+    python3 tools/pixel_art.py --world    # só tiles e fundos dos biomas
     python3 tools/pixel_art.py --preview DIR   # também salva prévias ampliadas
 
 Saídas:
   assets/art/hero/hero.png + hero.json        quadros do Pavio + âncoras (olhos, chama, pescoço, mão)
   assets/art/enemies/<id>.png + <id>.json     folhas dos inimigos + animações
   assets/art/npcs/<espécie>.png + npcs.json   9 papéis x 3 quadros por espécie
-  assets/art/tiles/<bioma>.png                atlas 8x8 (ver tools/world_art.py)
-  assets/art/bg/<bioma>/0_sky.png 1_far.png 2_mid.png
+  assets/art/tiles/<bioma>.png (+ _glow.png)  atlas 8x8 (ver tools/world_art.py)
+  assets/art/bg/<bioma>/0_sky 1_far 2_mid 3_near (+ _glow de cada)
   assets/art/props/*.png                      baú, porta, banco, mola, mural, altar...
   assets/art/items/items.png                  ícones 9x9 (categoria x raridade)
 
@@ -81,10 +82,33 @@ def enemies():
             frames += fl
         im, cols = sheet(frames)
         save(im, os.path.join(ART, "enemies", eid + ".png"))
+        _save_glow(im, os.path.join(ART, "enemies", eid + "_glow.png"))
         with open(os.path.join(ART, "enemies", eid + ".json"), "w") as f:
             json.dump({"size": meta["size"], "feet": meta["feet"], "cols": cols, "anims": info}, f, indent=1)
         out.append(im)
     return out
+
+
+def _save_glow(im, path):
+    """Pixels que emitem luz (olhos, brasas, rachaduras): claros e saturados.
+    O jogo soma essa folha por cima com cor HDR => brilham no escuro."""
+    import colorsys
+    g = Image.new("RGBA", im.size, (0, 0, 0, 0))
+    src, dst = im.load(), g.load()
+    n = 0
+    for y in range(im.height):
+        for x in range(im.width):
+            r, gg, b, a = src[x, y]
+            if a == 0:
+                continue
+            _h, sat, val = colorsys.rgb_to_hsv(r / 255, gg / 255, b / 255)
+            if val >= 0.93 and sat >= 0.48:
+                dst[x, y] = (r, gg, b, 255)
+                n += 1
+    if n:
+        save(g, path)
+    elif os.path.exists(path):
+        os.remove(path)
 
 
 def npcs():
@@ -129,12 +153,18 @@ def items():
 
 def world():
     for b in world_art.BIOMES:
-        save(world_art.tileset(b).im, os.path.join(ART, "tiles", b + ".png"))
+        L = world_art.tileset(b)
+        save(L.c.im, os.path.join(ART, "tiles", b + ".png"))
+        save(L.g.im, os.path.join(ART, "tiles", b + "_glow.png"))
         for name, c in world_art.background(b).items():
             save(c.im, os.path.join(ART, "bg", b, name + ".png"))
 
 
 def main():
+    if "--world" in sys.argv:
+        world()
+        print("tiles e fundos gerados em", ART)
+        return
     if "--hero" in sys.argv:
         hero()
         hero_overworld()

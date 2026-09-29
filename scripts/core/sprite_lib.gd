@@ -30,12 +30,30 @@ static func tex(path: String) -> Texture2D:
 	return _tex[path]
 
 
+## SpriteFrames da camada de brilho do inimigo (<id>_glow.png: olhos,
+## brasas), com as mesmas animações. null se ele não tem nada que brilhe.
+static func enemy_glow(id: String) -> SpriteFrames:
+	if _frames.has("glow:" + id):
+		return _frames["glow:" + id]
+	var out: SpriteFrames = null
+	if ResourceLoader.exists(ENEMY_DIR + id + "_glow.png"):
+		out = _build_frames(json(ENEMY_DIR + id + ".json"), tex(ENEMY_DIR + id + "_glow.png"))
+	_frames["glow:" + id] = out
+	return out
+
+
 ## SpriteFrames de um inimigo (anims do JSON) + meta {size, feet}.
 static func enemy(id: String) -> Array:
 	if _frames.has("enemy:" + id):
 		return _frames["enemy:" + id]
 	var meta := json(ENEMY_DIR + id + ".json")
 	var t := tex(ENEMY_DIR + id + ".png")
+	var out := [_build_frames(meta, t), meta]
+	_frames["enemy:" + id] = out
+	return out
+
+
+static func _build_frames(meta: Dictionary, t: Texture2D) -> SpriteFrames:
 	var sf := SpriteFrames.new()
 	if sf.has_animation("default"):
 		sf.remove_animation("default")
@@ -53,9 +71,7 @@ static func enemy(id: String) -> Array:
 				at.atlas = t
 				at.region = Rect2(Vector2(idx % cols, idx / cols) * size, size)
 				sf.add_frame(anim, at)
-	var out := [sf, meta]
-	_frames["enemy:" + id] = out
-	return out
+	return sf
 
 
 ## Região (Rect2) do quadro de um NPC: espécie, papel, quadro 0-2.

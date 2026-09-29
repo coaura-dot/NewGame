@@ -10,7 +10,7 @@ static var _soft: GradientTexture2D
 
 static func radial() -> GradientTexture2D:
 	if _radial == null:
-		_radial = _make(128, [0.0, 0.3, 1.0], [Color(1, 1, 1, 1), Color(1, 1, 1, 0.4), Color(1, 1, 1, 0)])
+		_radial = _make(128, [0.0, 0.18, 0.45, 0.75, 1.0], [Color(1, 1, 1, 1), Color(1, 1, 1, 0.72), Color(1, 1, 1, 0.34), Color(1, 1, 1, 0.1), Color(1, 1, 1, 0)])
 	return _radial
 
 
@@ -59,6 +59,7 @@ static func make_glow(color: Color, radius: float = 12.0) -> Sprite2D:
 	s.modulate = color
 	var m := CanvasItemMaterial.new()
 	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	m.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED ## brilho é emissivo: luz não soma nele
 	s.material = m
 	s.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	return s

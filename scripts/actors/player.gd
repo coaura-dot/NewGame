@@ -109,7 +109,8 @@ const HEAL_TIME := 0.85
 const HEAL_COST := 33.0
 const HEAL_AMOUNT := 20.0 ## uma velinha de vida no HUD
 # --- Corpo ---
-const LIGHT_ENERGY := 0.4 ## luz da chama do Pavio
+const LIGHT_ENERGY := 0.8 ## luz da chama do Pavio (a principal luz do mundo escuro)
+const HALO_COLOR := Color(1.0, 0.62, 0.3, 0.24) ## halo quente em volta do Pavio
 const BODY := Vector2(8, 11)
 const DUCK_BODY := Vector2(8, 6)
 const HURT_SIZE := Vector2(6, 9)
@@ -207,6 +208,7 @@ var _cast_pose_t := 0.0
 # nós
 var interact_area: Area2D
 var light: PointLight2D
+var halo: Sprite2D ## brilho quente em volta da chama (soma por cima do fundo escuro)
 var rig: HeroRig
 var scarf: Scarf
 var emote: EmoteBubble
@@ -261,10 +263,15 @@ func _ready() -> void:
 	caster = SpellCaster.new(self)
 	add_child(caster)
 	buffs = BuffSystem.new(self)
-	light = LightUtil.make_light(Color(1.0, 0.82, 0.58), LIGHT_ENERGY, 0.85)
+	light = LightUtil.make_light(Color(1.0, 0.8, 0.55), LIGHT_ENERGY, 1.6)
 	if light:
 		light.position = Vector2(0, -14)
 		add_child(light)
+	# o Pavio é a última chama: um halo quente que clareia até o fundo
+	halo = LightUtil.make_glow(HALO_COLOR, 44.0)
+	halo.position = Vector2(0, -14)
+	halo.z_index = -1
+	add_child(halo)
 	apply_profile()
 	hp = max_hp()
 	focus = 30.0
@@ -2068,10 +2075,17 @@ func _animate(d: float) -> void:
 	rig.vitality = hp / maxf(max_hp(), 1.0)
 	if scarf:
 		rig.scarf_color = scarf.color.lerp(Color(2.0, 2.0, 2.0), scarf.flash)
+	var flick := 0.85 + 0.15 * sin(Time.get_ticks_msec() / 60.0)
 	if light:
 		# a luz do herói É a chama: acompanha a posição e tremula junto
 		light.position = rig.anchor("flame") + Vector2(0, -2)
-		light.energy = LIGHT_ENERGY * rig.lit * (0.85 + 0.15 * sin(Time.get_ticks_msec() / 60.0)) * (0.7 + 0.3 * rig.vitality)
+		light.energy = LIGHT_ENERGY * rig.lit * flick * (0.7 + 0.3 * rig.vitality)
+	if halo:
+		# com pouca vida a chama encolhe (o mundo fica mais escuro em volta)
+		halo.position = rig.anchor("flame") + Vector2(0, -2)
+		var k := rig.lit * (0.55 + 0.45 * rig.vitality) * (0.92 + 0.08 * flick)
+		halo.modulate = Color(HALO_COLOR.r, HALO_COLOR.g, HALO_COLOR.b, HALO_COLOR.a * k)
+		halo.scale = Vector2.ONE * (44.0 * 2.0 / 64.0) * (0.75 + 0.25 * rig.vitality)
 	# expressão base
 	var ratio := hp / maxf(max_hp(), 1.0)
 	var base := "normal"
