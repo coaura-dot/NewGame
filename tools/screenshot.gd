@@ -7,7 +7,8 @@ extends SceneTree
 ## efeitos: dash, golpe e os efeitos de cada escola de magia;
 ## duelo: esqueleto telegrafando (amarelo/vermelho), guarda e janela de punição;
 ## mapa [seed]: mapa-múndi explorável (vila inicial, entradas, noite);
-## intro: os cartões da introdução do novo jogo.
+## intro: os cartões da introdução do novo jogo;
+## regiao [seed]: fase da região inicial (tábua de pedra com a inscrição).
 
 var _out := "user://shot"
 var _mode := "treino"
@@ -34,6 +35,8 @@ func _process(_d: float) -> bool:
 	_n += 1
 	if _mode in ["mapa", "intro"]:
 		return _mapa()
+	if _mode == "regiao":
+		return _regiao()
 	if _n == 2:
 		if _mode == "menu":
 			change_scene_to_file("res://scenes/main_menu.tscn")
@@ -337,4 +340,25 @@ func _mapa() -> bool:
 			quit()
 	if k >= 0 and k % 25 == 20 and k / 25 < 6:
 		_save("regiao%d" % (k / 25))
+	return false
+
+
+func _regiao() -> bool:
+	var game = root.get_node("Game")
+	if _n == 2:
+		var args := OS.get_cmdline_user_args()
+		game.new_game(int(args[2]) if args.size() > 2 else 12345)
+		game.pending = {"region": game.world["start"]}
+		_level = load("res://scenes/level.tscn").instantiate()
+		root.add_child(_level)
+		return false
+	if _n == 40:
+		_save("entrada")
+	if _n == 45:
+		for n in _level.entities.get_children():
+			if n.get_script() and str(n.get_script().resource_path).ends_with("lore_tablet.gd"):
+				n.interact(_level.player)
+	if _n == 60:
+		_save("tabua")
+		quit()
 	return false

@@ -336,7 +336,29 @@ func _make_enemy(id: String, tier: int, pos: Vector2, room: int) -> Enemy:
 	return en
 
 
+## Tábua de pedra com a inscrição da região, no chão perto da entrada.
+func _place_tablet() -> void:
+	if training or region.is_empty() or spawn_pos == Vector2.ZERO:
+		return
+	var rows: PackedStringArray = layout["rows"]
+	var tx0 := int(spawn_pos.x / T)
+	var ty := int((spawn_pos.y - 1.0) / T)
+	for dx in [-3, 3, -5, 5, -7, 7, -2, 2]:
+		var tx: int = tx0 + dx
+		if ty + 1 >= rows.size() or tx < 1 or tx >= rows[ty].length() - 1:
+			continue
+		if rows[ty][tx] == "." and rows[ty - 1][tx] == "." and rows[ty + 1][tx] == "#":
+			var tab := LoreTablet.new()
+			tab.position = Vector2(tx * T + 4, (ty + 1) * T)
+			tab.level = self
+			tab.title = "Inscrição — %s" % str(region.get("name", ""))
+			tab.text = Lore.tablet_text(region, rng)
+			entities.add_child(tab)
+			return
+
+
 func _spawn_player() -> void:
+	_place_tablet()
 	player = Player.new()
 	player.level = self
 	player.position = spawn_pos
@@ -627,7 +649,7 @@ func on_enemy_killed(en: Node) -> void:
 		boss_defeated = true
 		result["boss_killed"] = true
 		FX.slowmo(0.2, 1.5)
-		Events.toast.emit("%s derrotado!" % en.data.get("name", "Chefe"))
+		Events.toast.emit(Lore.boss_fall(str(en.data.get("name", "Chefe")), str(region.get("grants", "")), en.enemy_id == "archdemon"))
 		if hud and hud.has_method("hide_boss"):
 			hud.hide_boss()
 	var room: int = int(en.get_meta("room", -1))

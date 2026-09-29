@@ -1,46 +1,474 @@
 {
-  "_doc": "NPCs gerados por seed para cada hub. archetypes definem papel, serviços, gostos e falas. cultures definem nomes. hubs definem quantos/quais papéis aparecem. Afinidade 0..100 (10 corações). Casamento exige afinidade >= 80, romanceable e Anel de Compromisso.",
-  "archetypes": {
-    "ferreira": {"title": "Ferreira", "services": ["upgrade_weapon", "upgrade_armor"], "likes": ["calice", "queijo"], "dislikes": ["vela"], "romanceable": true, "assist": "repair",
-      "lines": {"greet": ["O aço canta quando é bem cuidado.", "Trouxe algo pra eu forjar?"], "friend": ["Guardei a melhor liga pra você."], "love": ["Fica mais um pouco. A forja esquenta melhor com você aqui."]}},
-    "mercador": {"title": "Mercador", "services": ["shop"], "likes": ["calice", "pergaminho"], "dislikes": ["ovo"], "romanceable": true, "assist": "supplies",
-      "lines": {"greet": ["Tudo tem preço, amigo.", "Vendo, compro, troco!"], "friend": ["Desconto especial pra quem salvou minha caravana."], "love": ["Eu venderia tudo... menos o que sinto."]}},
-    "curandeira": {"title": "Curandeira", "services": ["heal", "shop_potions"], "likes": ["maca", "vela"], "dislikes": ["calice"], "romanceable": true, "assist": "revive",
-      "lines": {"greet": ["Deixe-me ver esses cortes.", "A luz ainda te protege."], "friend": ["Rezo por você toda noite."], "love": ["Se cair, eu te levanto. Sempre."]}},
-    "sabio": {"title": "Sábio", "services": ["upgrade_spell", "lore"], "likes": ["pergaminho", "vela"], "dislikes": ["torta"], "romanceable": true, "assist": "ward",
-      "lines": {"greet": ["As estrelas mudaram quando você chegou.", "Magia é só matemática com alma."], "friend": ["Te ensino o sigilo que nunca ensinei a ninguém."], "love": ["Todas as minhas equações terminam em você."]}},
-    "capita": {"title": "Capitã da Guarda", "services": ["quests_official", "training"], "likes": ["torta", "queijo"], "dislikes": ["pergaminho"], "romanceable": true, "assist": "fight",
-      "lines": {"greet": ["O rei precisa de lâminas como a sua.", "Mantenha a espada limpa e a honra também."], "friend": ["Meus soldados cantam suas vitórias."], "love": ["Luto ao seu lado até o último amanhecer."]}},
-    "receptador": {"title": "Receptador", "services": ["quests_shady", "fence"], "likes": ["calice", "ovo"], "dislikes": ["vela"], "romanceable": true, "assist": "smuggle",
-      "lines": {"greet": ["Psiu. Tenho um trabalho... discreto.", "Ninguém precisa saber."], "friend": ["Você é o único em quem confio neste buraco."], "love": ["Roubei muita coisa. Nunca pensei que roubariam meu coração."]}},
-    "bardo": {"title": "Bardo", "services": ["rumors", "buff_song"], "likes": ["torta", "maca"], "dislikes": ["queijo"], "romanceable": true, "assist": "inspire",
-      "lines": {"greet": ["Uma canção pela sua jornada?", "Cada cicatriz é um verso."], "friend": ["Compus uma balada sobre você!"], "love": ["Minha melhor canção tem o seu nome."]}},
-    "anciao": {"title": "Ancião", "services": ["lore", "quests_official"], "likes": ["pergaminho", "maca"], "dislikes": ["ovo"], "romanceable": false, "assist": "ward",
-      "lines": {"greet": ["Já vi este mundo acabar duas vezes.", "Sente-se, jovem."], "friend": ["Você me lembra quem eu fui."], "love": ["..."]}},
-    "crianca": {"title": "Criança", "services": ["rumors"], "likes": ["maca", "torta"], "dislikes": ["pergaminho"], "romanceable": false, "assist": "none",
-      "lines": {"greet": ["Você é um herói de verdade?", "Me ensina a usar espada?"], "friend": ["Quando eu crescer quero ser igual a você!"], "love": ["..."]}}
+ "_doc": "NPCs gerados por seed para cada hub. archetypes definem papel, serviços, gostos e falas. cultures definem nomes. hubs definem quantos/quais papéis aparecem. Afinidade 0..100 (10 corações). Casamento exige afinidade >= 80, romanceable e Anel de Compromisso.",
+ "archetypes": {
+  "ferreira": {
+   "title": "Ferreira",
+   "services": [
+    "upgrade_weapon",
+    "upgrade_armor"
+   ],
+   "likes": [
+    "calice",
+    "queijo"
+   ],
+   "dislikes": [
+    "vela"
+   ],
+   "romanceable": true,
+   "assist": "repair",
+   "lines": {
+    "greet": [
+     "O aço canta quando é bem cuidado.",
+     "Trouxe algo pra eu forjar?",
+     "Minha forja esfriou na noite do Sopro. Acendi de novo com um fósforo e teimosia.",
+     "Uma velinha empunhando espada. Já vi de tudo nesta vida."
+    ],
+    "friend": [
+     "Guardei a melhor liga pra você.",
+     "Temperei essa lâmina na sua chama. Ficou com um brilho diferente.",
+     "Se a Lareira voltar a arder, forjo um candelabro digno de você."
+    ],
+    "love": [
+     "Fica mais um pouco. A forja esquenta melhor com você aqui.",
+     "Nunca tive medo do fogo. Do seu, então, nem se fala."
+    ]
+   }
   },
-  "cultures": {
-    "humano": {"first": ["Elara", "Bento", "Iara", "Tomás", "Lívia", "Caio", "Marta", "Otávio", "Helena", "Rui", "Selene", "Davi"], "last": ["da Ponte", "Ferraz", "Vale", "Lume", "Moura", "Castelo"]},
-    "orc": {"first": ["Grukka", "Mazhra", "Torg", "Uzza", "Brakk", "Shagra"], "last": ["Presa-Rubra", "Punho-de-Ferro", "Crânio-Partido"]},
-    "goblin": {"first": ["Nix", "Skab", "Pipa", "Grit", "Zazz", "Mirk"], "last": ["Engrenagem", "Dedo-Leve", "Faísca"]},
-    "mago": {"first": ["Aurelion", "Vesna", "Oráculo", "Ilyria", "Thessaly", "Morwen"], "last": ["do Sétimo Círculo", "Astral", "Vitralis"]},
-    "barbaro": {"first": ["Ragna", "Hald", "Sigrun", "Vorn", "Eira", "Bjarke"], "last": ["Filha-do-Inverno", "Quebra-Escudos", "Lobo-Cinzento"]},
-    "celeste": {"first": ["Aeris", "Nimbus", "Zéfira", "Altair", "Cirro"], "last": ["das Nuvens", "Alvorada", "Asa-Clara"]}
+  "mercador": {
+   "title": "Mercador",
+   "services": [
+    "shop"
+   ],
+   "likes": [
+    "calice",
+    "pergaminho"
+   ],
+   "dislikes": [
+    "ovo"
+   ],
+   "romanceable": true,
+   "assist": "supplies",
+   "lines": {
+    "greet": [
+     "Tudo tem preço, amigo.",
+     "Vendo, compro, troco!",
+     "Brasas valem mais que ouro desde o Sopro. Quer trocar?",
+     "Pavio, é? Tenho óleo bom pra chama, cera de primeira..."
+    ],
+    "friend": [
+     "Desconto especial pra quem salvou minha caravana.",
+     "As estradas estão mais seguras com você nelas. Meu lucro agradece.",
+     "Guardei um lote de brasas raras pro meu cliente favorito."
+    ],
+    "love": [
+     "Eu venderia tudo... menos o que sinto.",
+     "Fechei o melhor negócio da vida no dia em que te conheci."
+    ]
+   }
   },
-  "biome_culture": {
-    "fortaleza_orc": "orc", "toca_goblin": "goblin", "cidade_magos": "mago", "acampamento_barbaro": "barbaro", "cidade_ceu": "celeste"
+  "curandeira": {
+   "title": "Curandeira",
+   "services": [
+    "heal",
+    "shop_potions"
+   ],
+   "likes": [
+    "maca",
+    "vela"
+   ],
+   "dislikes": [
+    "calice"
+   ],
+   "romanceable": true,
+   "assist": "revive",
+   "lines": {
+    "greet": [
+     "Deixe-me ver esses cortes.",
+     "A luz ainda te protege.",
+     "Sua chama está baixa. Descanse perto de um banco antes de seguir.",
+     "Cera se remenda, pequeno. Coração é mais difícil."
+    ],
+    "friend": [
+     "Rezo por você toda noite.",
+     "Separei unguento de mel pra sua cera rachada.",
+     "Quando você passa, os doentes dormem melhor. Deve ser o calor."
+    ],
+    "love": [
+     "Se cair, eu te levanto. Sempre.",
+     "Minha oração mais longa é a que peço pra sua chama nunca apagar."
+    ]
+   }
   },
-  "hubs": {
-    "vila": {"name": "Vila", "count": [2, 3], "roles": ["curandeira", "mercador", "ferreira", "crianca", "bardo", "receptador"]},
-    "cidade": {"name": "Cidade", "count": [3, 4], "roles": ["capita", "mercador", "ferreira", "receptador", "bardo", "sabio"]},
-    "templo": {"name": "Templo", "count": [2, 3], "roles": ["sabio", "curandeira", "anciao", "capita"]}
+  "sabio": {
+   "title": "Sábio",
+   "services": [
+    "upgrade_spell",
+    "lore"
+   ],
+   "likes": [
+    "pergaminho",
+    "vela"
+   ],
+   "dislikes": [
+    "torta"
+   ],
+   "romanceable": true,
+   "assist": "ward",
+   "lines": {
+    "greet": [
+     "As estrelas mudaram quando você chegou.",
+     "Magia é só matemática com alma.",
+     "O Sopro não é vento: é fome. O Arquidemônio come luz.",
+     "Uma chama que pensa... fascinante. Posso anotar?"
+    ],
+    "friend": [
+     "Te ensino o sigilo que nunca ensinei a ninguém.",
+     "Calculei: cada Brasa-Mestra devolvida empurra a Noite Longa três léguas.",
+     "Os portões rúnicos respondem aos dons dos guardiões. Vença-os e eles se abrem."
+    ],
+    "love": [
+     "Todas as minhas equações terminam em você.",
+     "Desisti de explicar o que sinto. Algumas coisas só se sente."
+    ]
+   }
   },
-  "relationship_stages": [
-    {"min": 0, "name": "Desconhecido"},
-    {"min": 15, "name": "Conhecido"},
-    {"min": 35, "name": "Amigo"},
-    {"min": 60, "name": "Confidente"},
-    {"min": 80, "name": "Íntimo"}
-  ]
+  "capita": {
+   "title": "Capitã da Guarda",
+   "services": [
+    "quests_official",
+    "training"
+   ],
+   "likes": [
+    "torta",
+    "queijo"
+   ],
+   "dislikes": [
+    "pergaminho"
+   ],
+   "romanceable": true,
+   "assist": "fight",
+   "lines": {
+    "greet": [
+     "O rei precisa de lâminas como a sua.",
+     "Mantenha a espada limpa e a honra também.",
+     "Brilho amarelo, apare. Vermelho, pule fora. Regra de quartel.",
+     "Meus guardas perderam as tochas no Sopro. Você é a única luz da ronda."
+    ],
+    "friend": [
+     "Meus soldados cantam suas vitórias.",
+     "Não ataque feito louco: espere o golpe, puna a abertura. É assim que se vence um duelo.",
+     "Se o Cerco vier, quero você no portão comigo."
+    ],
+    "love": [
+     "Luto ao seu lado até o último amanhecer.",
+     "Juro pela minha espada: nenhum vento apaga você enquanto eu respirar."
+    ]
+   }
+  },
+  "receptador": {
+   "title": "Receptador",
+   "services": [
+    "quests_shady",
+    "fence"
+   ],
+   "likes": [
+    "calice",
+    "ovo"
+   ],
+   "dislikes": [
+    "vela"
+   ],
+   "romanceable": true,
+   "assist": "smuggle",
+   "lines": {
+    "greet": [
+     "Psiu. Tenho um trabalho... discreto.",
+     "Ninguém precisa saber.",
+     "Brasa roubada queima a mão. Mas paga bem.",
+     "Os goblins escondem brasas nas tocas. Eu sei onde. Por um preço."
+    ],
+    "friend": [
+     "Você é o único em quem confio neste buraco.",
+     "Ouvi dizer que o Arquidemônio guarda a última brasa no próprio coração.",
+     "Te devo uma. E eu nunca devo nada a ninguém."
+    ],
+    "love": [
+     "Roubei muita coisa. Nunca pensei que roubariam meu coração.",
+     "Larguei o ofício. Quer dizer... quase. Por você."
+    ]
+   }
+  },
+  "bardo": {
+   "title": "Bardo",
+   "services": [
+    "rumors",
+    "buff_song"
+   ],
+   "likes": [
+    "torta",
+    "maca"
+   ],
+   "dislikes": [
+    "queijo"
+   ],
+   "romanceable": true,
+   "assist": "inspire",
+   "lines": {
+    "greet": [
+     "Uma canção pela sua jornada?",
+     "Cada cicatriz é um verso.",
+     "Pequena chama, não se apague... Gostou? Fiz agora pra você.",
+     "A história da Grande Lareira tem mil versos. O seu ainda está sendo escrito."
+    ],
+    "friend": [
+     "Compus uma balada sobre você!",
+     "Na taverna só pedem a Canção do Pavio. Estou ficando rico!",
+     "Quando a Lareira acender, vou tocar a noite inteira em volta dela."
+    ],
+    "love": [
+     "Minha melhor canção tem o seu nome.",
+     "Desafinei no refrão. Foi você que sorriu."
+    ]
+   }
+  },
+  "anciao": {
+   "title": "Ancião",
+   "services": [
+    "lore",
+    "quests_official"
+   ],
+   "likes": [
+    "pergaminho",
+    "maca"
+   ],
+   "dislikes": [
+    "ovo"
+   ],
+   "romanceable": false,
+   "assist": "ward",
+   "lines": {
+    "greet": [
+     "Já vi este mundo acabar duas vezes.",
+     "Sente-se, jovem.",
+     "Eu acendi a Lareira quando era menino. Você nasceu do candelabro dela, sabia?",
+     "O Sopro vem do mar, sempre à meia-noite. Não deixe sua chama sozinha no escuro."
+    ],
+    "friend": [
+     "Você me lembra quem eu fui.",
+     "As Brasas-Mestras são pedaços da mesma chama. Juntas, fazem a noite recuar.",
+     "Quando a Lareira arder inteira, o Arquidemônio virá em pessoa. Esteja pronto para escolher."
+    ],
+    "love": [
+     "...",
+     "Obrigado por deixar um velho ver a luz de novo."
+    ]
+   }
+  },
+  "crianca": {
+   "title": "Criança",
+   "services": [
+    "rumors"
+   ],
+   "likes": [
+    "maca",
+    "torta"
+   ],
+   "dislikes": [
+    "pergaminho"
+   ],
+   "romanceable": false,
+   "assist": "none",
+   "lines": {
+    "greet": [
+     "Você é um herói de verdade?",
+     "Me ensina a usar espada?",
+     "Sua cabeça tá pegando fogo! Não dói?",
+     "Minha mãe disse que você é a última vela do mundo."
+    ],
+    "friend": [
+     "Quando eu crescer quero ser igual a você!",
+     "Fiz um desenho seu! A chama ficou maior que você, desculpa.",
+     "Guardei uma brasa de verdade no bolso. Toma, é sua!"
+    ],
+    "love": [
+     "...",
+     "Você é meu melhor amigo."
+    ]
+   }
+  }
+ },
+ "cultures": {
+  "humano": {
+   "first": [
+    "Elara",
+    "Bento",
+    "Iara",
+    "Tomás",
+    "Lívia",
+    "Caio",
+    "Marta",
+    "Otávio",
+    "Helena",
+    "Rui",
+    "Selene",
+    "Davi"
+   ],
+   "last": [
+    "da Ponte",
+    "Ferraz",
+    "Vale",
+    "Lume",
+    "Moura",
+    "Castelo"
+   ]
+  },
+  "orc": {
+   "first": [
+    "Grukka",
+    "Mazhra",
+    "Torg",
+    "Uzza",
+    "Brakk",
+    "Shagra"
+   ],
+   "last": [
+    "Presa-Rubra",
+    "Punho-de-Ferro",
+    "Crânio-Partido"
+   ]
+  },
+  "goblin": {
+   "first": [
+    "Nix",
+    "Skab",
+    "Pipa",
+    "Grit",
+    "Zazz",
+    "Mirk"
+   ],
+   "last": [
+    "Engrenagem",
+    "Dedo-Leve",
+    "Faísca"
+   ]
+  },
+  "mago": {
+   "first": [
+    "Aurelion",
+    "Vesna",
+    "Oráculo",
+    "Ilyria",
+    "Thessaly",
+    "Morwen"
+   ],
+   "last": [
+    "do Sétimo Círculo",
+    "Astral",
+    "Vitralis"
+   ]
+  },
+  "barbaro": {
+   "first": [
+    "Ragna",
+    "Hald",
+    "Sigrun",
+    "Vorn",
+    "Eira",
+    "Bjarke"
+   ],
+   "last": [
+    "Filha-do-Inverno",
+    "Quebra-Escudos",
+    "Lobo-Cinzento"
+   ]
+  },
+  "celeste": {
+   "first": [
+    "Aeris",
+    "Nimbus",
+    "Zéfira",
+    "Altair",
+    "Cirro"
+   ],
+   "last": [
+    "das Nuvens",
+    "Alvorada",
+    "Asa-Clara"
+   ]
+  }
+ },
+ "biome_culture": {
+  "fortaleza_orc": "orc",
+  "toca_goblin": "goblin",
+  "cidade_magos": "mago",
+  "acampamento_barbaro": "barbaro",
+  "cidade_ceu": "celeste"
+ },
+ "hubs": {
+  "vila": {
+   "name": "Vila",
+   "count": [
+    2,
+    3
+   ],
+   "roles": [
+    "curandeira",
+    "mercador",
+    "ferreira",
+    "crianca",
+    "bardo",
+    "receptador"
+   ]
+  },
+  "cidade": {
+   "name": "Cidade",
+   "count": [
+    3,
+    4
+   ],
+   "roles": [
+    "capita",
+    "mercador",
+    "ferreira",
+    "receptador",
+    "bardo",
+    "sabio"
+   ]
+  },
+  "templo": {
+   "name": "Templo",
+   "count": [
+    2,
+    3
+   ],
+   "roles": [
+    "sabio",
+    "curandeira",
+    "anciao",
+    "capita"
+   ]
+  }
+ },
+ "relationship_stages": [
+  {
+   "min": 0,
+   "name": "Desconhecido"
+  },
+  {
+   "min": 15,
+   "name": "Conhecido"
+  },
+  {
+   "min": 35,
+   "name": "Amigo"
+  },
+  {
+   "min": 60,
+   "name": "Confidente"
+  },
+  {
+   "min": 80,
+   "name": "Íntimo"
+  }
+ ]
 }

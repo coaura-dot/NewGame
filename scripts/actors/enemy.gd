@@ -172,7 +172,7 @@ func _ready() -> void:
 		ai_t = 0.8
 		play_anim(spawn_anim, true)
 	if boss:
-		Events.toast.emit(data.get("name", "Chefe"))
+		Events.toast.emit(Lore.boss_wake(str(data.get("name", "Chefe")), enemy_id == "archdemon"))
 
 
 func body_center() -> Vector2:

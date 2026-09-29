@@ -332,6 +332,20 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+## Painel de leitura (tábuas de pedra, inscrições).
+func open_text(title_text: String, body: String) -> void:
+	var p := UIKit.panel(Vector2(300, 0))
+	var v := UIKit.vbox(5)
+	p.add_child(v)
+	v.add_child(UIKit.label(title_text, 14, UIKit.GOLD))
+	var l := UIKit.label(body, 11)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD
+	l.custom_minimum_size = Vector2(280, 0)
+	v.add_child(l)
+	v.add_child(UIKit.button("Fechar", close_panel, 80))
+	_open_panel(p)
+
+
 func open_dialogue(npc_id: String) -> void:
 	var npc: Dictionary = Game.social.get("npcs", {}).get(npc_id, {})
 	if npc.is_empty():
