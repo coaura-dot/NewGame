@@ -1,0 +1,156 @@
+GUIA PARA A PRÓXIMA SESSÃO — NewGame (Godot 4.7, pixel art 320x180)
+=====================================================================
+
+1. O QUE É O JOGO
+-----------------
+Plataforma 2D de ação com fases geradas por seed:
+- Movimento no estilo Celeste: dash em 8 direções, super/hyper, salto e chute
+  de parede, correção de quina, embalo/inércia.
+- Combate no estilo Hollow Knight/Dead Cells: golpes direcionais, pogo, recuo,
+  aparo, rebater balas e hit-stall no ar.
+- Mapa-múndi gerado por seed (metroidvania), NPCs com afinidade e casamento,
+  reputação, missões e um Cerco final.
+Foco pedido pelo usuário: jogo rápido, frenético, fluido e perfeccionista,
+com parkour misturado a combate e salas complexas.
+
+O usuário fala português. Godot do usuário: C:\Users\igo\Downloads\godot.
+Ele baixa o ZIP da branch:
+https://github.com/coaura-dot/NewGame/archive/refs/heads/claude/awesome-cannon-s9w4t8.zip
+
+2. REGRAS DE TRABALHO
+---------------------
+- Branch: claude/awesome-cannon-s9w4t8. Só faça push nela e não abra PR sem pedido.
+- Toda mensagem de commit termina com:
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01FTTpYr4Nrvs32nF6M4x88R
+  Se a sessão nova tiver outro link, use o link dela.
+- Antes de cada commit, rode os testes (o comando está na seção 4).
+- Depois de criar uma class_name nova, rode: godot --headless --path . --import
+- Armadilhas do GDScript neste projeto:
+  * Evite inferência de tipo com Variant; escreva "var x: int = ...".
+  * Não repita nomes de variável num mesmo escopo, nem dentro de match/for.
+- Scripts de ferramenta (--script) não enxergam autoloads na compilação:
+  use root.get_node("Game") e rode depois de 3 frames.
+
+3. ARQUITETURA (arquivos principais)
+------------------------------------
+project.godot         Viewport 320x180, física a 120 Hz com interpolação, GL Compatibility.
+scripts/core/pixel_view.gd    Mundo em SubViewport 320x180, bloom e shader de exibição.
+scripts/actors/player.gd      Herói. Constantes de "feel" no topo do arquivo.
+   - Física Celeste; dash com chute de parede (WALL_KICK_*).
+   - A parede recarrega o dash uma vez por toque (_wall_refill_ready).
+   - Pena/Sino dão pulo extra (bonus_jumps); cristal duplo dá dashes acima do máximo (grant_dashes).
+   - Cadeia aérea: add_chain/end_chain, com recompensa ao pousar e HUD.
+   - Pogo, hit-stall (AIR_STALL), golpe em alta velocidade (+25%), quique ao abater no ar.
+   - Morte e renascer usam _fx_tween. O bug do herói invisível foi corrigido.
+scripts/actors/hero_rig.gd    Desenha o herói (hero.png + hero.json): olhos procedurais, lâmina, squash.
+scripts/actors/enemy.gd       IAs: melee, lunger, caster, turret, charger, diver, boss_demon.
+scripts/level/room_synth.gd   Gerador de salas 40x24 (tiles de 8 px). Tipos:
+   - platforming/challenge: "batidas" = hop, leap, climb, drop, orb, orbchain,
+     crystal, crumble, mover, saw, chimney, thorns, sawgap, needle, bells, kickwalls.
+   - _switchback: zigue-zague de 3 andares.
+   - _zigzag: chão todo de espinhos.
+   - _tower: poço de escalada.
+   - _combat: arenas suspensa/torre/chão.
+   - Também: boss, corridor, shaft, puzzle, treasure, secret, hub, entrance, exit.
+   Toda sala passa pelo RoomReach; se falhar, é refeita.
+scripts/level/room_reach.gd   Validador de travessia com as capacidades reais do herói.
+   - CAPS jump/dash/spring.
+   - Entende: orbes (I), sino (b), pena (j), cristais (D, d), espinhos de pogo (^
+     acima do fosso), molas, chaminés, plataformas móveis/que caem e nós de
+     parede (modo dash).
+scripts/level/level_generator.gd  Caminho, ramos e salas.
+   - Tema "frenesi": FRENESI_WEIGHTS.
+   - Caçada (HUNT_CHANCE), fuga (CHASE_CHANCE), salas largas (_merge_wide).
+scripts/level/level.gd        A fase em execução.
+   - Spawn de entidades; ondas e caçada (portões).
+   - Fuga: ChaseWall.
+   - Dicas (HINTS), nota S/A/B/C, cronômetro, renascer rápido.
+   - region_theme(): cerca de 40% das regiões são "frenesi".
+scripts/entities/  turret, chase_wall, impulse_orb, reset_bell, jump_feather,
+   dash_crystal (double), moving/falling_platform, saw, gate etc.
+Caracteres de entidade nas salas: scripts/level/level_const.gd (ENTITY_CHARS).
+   Exemplos: t=torreta, s=serra vertical, j=pena, b=sino, d=cristal duplo.
+scripts/autoload/audio.gd     Tabela EVENTS (evento -> prefixo de som) e VOL.
+   Sons gerados ficam em assets/audio/gen (g_*.wav), criados por tools/sfx_gen.py.
+scripts/autoload/fx.gd        Efeitos: hitstop, slowmo, shake, burst, hit_spark, ring (novo),
+   speed_lines (novo, ainda não usado), slash, text.
+scripts/ui/hud.gd, world_map.gd (hoje é um mapa-menu, não explorável), main_menu.gd, options_menu.gd.
+tools/   pixel_art.py (gera toda a arte; herói via hero_art.py), sfx_gen.py,
+   room_sheet.gd (prancha de salas), screenshot.gd (prints no jogo; modos
+   treino/menu/salas/sala com seed, bioma e tier), level_map.gd.
+tests/   test_*.gd rodados por tests/test_runner.tscn (cerca de 5900 verificações).
+
+4. COMANDOS ÚTEIS
+-----------------
+Testes:  godot --headless --path . res://tests/test_runner.tscn
+   Só um arquivo:  TEST_ONLY=movimento godot --headless --path . res://tests/test_runner.tscn
+Prints:  xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 \
+         --script tools/screenshot.gd -- <prefixo> salas <seed> <bioma> <tier>
+   Uma sala só (fica parado):  ... -- <prefixo> sala <seed> <bioma> <tier> <indice_sala>
+Prancha de salas:  godot --headless --path . --script tools/room_sheet.gd -- saida.png zigzag LR 2 8 [seed]
+Sons:  python3 tools/sfx_gen.py      Arte:  python3 tools/pixel_art.py
+
+5. ESTADO ATUAL (sessão 5)
+--------------------------
+Pronto e enviado:
+- A parede recarrega o dash e o chute de parede funciona.
+- Salas adaptadas à parede: paredes suspensas, chaminé larga, espinhos nas faces.
+- 96 sons sintetizados.
+- Bug do herói invisível ao renascer corrigido.
+- Zigue-zague sobre espinhos, fases Frenesi, torretas rebatíveis, caçada, fuga, torre.
+- Cadeia aérea, resets (pena, sino, cristal duplo) e inércia no ar.
+
+Em andamento (NÃO integrado):
+- tools/pavio_art.py: novo herói "PAVIO", uma velinha de cera fofa com chama na
+  cabeça, poncho azul-petróleo e o cachecol já existente. Tem os mesmos nomes de
+  quadro e âncoras do herói atual, mais a âncora "flame".
+  Para integrar:
+  1) Em tools/pixel_art.py, trocar hero_art.build() por pavio_art.build() e
+     gerar só o hero(). Isso regrava assets/art/hero/hero.png e hero.json.
+     Confira a arte com preview() ou com prints.
+  2) Em hero_rig.gd, desenhar a chama procedural na âncora "flame":
+     - tremula; cresce quando feliz, encolhe quando ferido ou com HP baixo;
+     - vira fumaça na morte; inclina para trás no dash; brilho HDR.
+     Ajustar os olhos à cabeça redonda.
+  3) Atualizar os textos que falam em "máscara"/"orelhas" (README, dicas).
+
+6. PEDIDOS DO USUÁRIO AINDA PENDENTES (em ordem)
+------------------------------------------------
+a) UM personagem bom e fofo (não precisa de vários nem de tela de seleção):
+   terminar o Pavio (seção 5).
+b) Efeitos visuais:
+   - dash: anel, riscos de velocidade (FX.speed_lines), rastro colorido;
+   - golpes: rastro melhor e impactos;
+   - magias com efeito por escola: fogo = brasas; gelo = estilhaços; raio = zigue-zague;
+     sombra = espiral; cura = cruzes; terra = pedras.
+     Arquivos: scripts/combat/spell_caster.gd e scripts/fx/*.
+c) Sons refeitos: o usuário NÃO gostou do som do dash. Refazer g_dash em
+   tools/sfx_gen.py: mais limpo e curto, tipo "fwip" agudo e brilhante, sem a
+   batida grave. Revisar os outros também (mais suaves, menos "ruído").
+d) Combate estilo Dead Cells + Hollow Knight: troca de golpes, não spam.
+   - Inimigos com telegrafia clara antes de atacar (brilho, pose, "!") e janela
+     de punição depois do golpe.
+   - Postura/guarda: se o jogador spammar, o inimigo defende e contra-ataca.
+   - Ataques que dá para aparar (amarelo) e ataques que não dá (vermelho, esquivar).
+   - Combos de inimigos em 2-3 golpes; poucos inimigos por sala, mas duelos interessantes.
+   - No jogador: recuperação no fim do combo; aparo/esquiva recompensados.
+   Arquivos: enemy.gd (IAs), player.gd, data/enemies.json, data/weapon_classes.json.
+e) Mapa-múndi explorável estilo Stardew Valley:
+   - Top-down, andando com o herói, vilas e NPCs.
+   - Entradas de estágio (cavernas/portais); ao entrar, corta para a fase 2D.
+     Ao terminar, volta ao mesmo ponto.
+   - Gerar o mapa a partir de Game.world (regiões, arestas, biomas, portões de habilidade).
+   - Hoje o mundo é um menu (scripts/ui/world_map.gd). Criar uma cena Overworld nova.
+f) Lore: história do mundo (ideia: o Pavio junta "brasas" para reacender a
+   Grande Lareira que apagou), textos das regiões, NPCs, placas/tábuas nas
+   fases e uma introdução no novo jogo.
+g) Continuar desenvolvendo mapas e gameplay, sempre testando e mandando prints.
+
+7. PENDÊNCIAS ANTIGAS
+---------------------
+- Menus e diálogos ainda estão desenhados em 480x270 (reduzidos); refazer para 320x180.
+- Templates antigos em data/rooms/core.txt estão na escala velha; o gerador é o principal.
+- Mais animações para inimigos, mais tipos de inimigo e de chefe, loja/forja, música.
+- Ajustar o feel com o retorno do usuário. Os números estão no topo de player.gd,
+  e as velocidades da muralha e da torreta ficam nos scripts delas.
