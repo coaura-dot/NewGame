@@ -52,7 +52,8 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 			elif types.size() > 0 and types[-1] == t and t != "combat":
 				t = "combat"
 			types.append(t)
-		types.append("exit")
+		# mundo contínuo: não há porta de saída (sai-se pelos portões das bordas)
+		types.append("exit" if not params.has("ports") else "treasure")
 		if params.get("boss", "") != "" and length >= 3:
 			types[length - 2] = "boss"
 	for i in path.size():
@@ -117,11 +118,21 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 				connections.append({"a": anchor2, "b": n, "kind": "ability", "data": {"ability": "dimension_shift"}})
 				break
 
+	# 3b) portões da região (mundo contínuo): um corredor até ALÉM da borda
+	# da grade na direção de cada vizinho; a última sala ("passage") tem a
+	# saída que dá para fora da fase — andar por ela leva à região vizinha
+	for pt in params.get("ports", []):
+		_add_port(rooms, connections, path, pt, rng)
+
 	# 4) saídas por sala
 	for c in connections:
 		var d := _dir(c["a"], c["b"])
 		rooms[c["a"]]["exits"] += d
 		rooms[c["b"]]["exits"] += OPP[d]
+	for cell in rooms.keys():
+		var pt: Dictionary = rooms[cell].get("port", {})
+		if not pt.is_empty():
+			rooms[cell]["exits"] += pt["dir"]
 
 	# 5) carimbar tudo numa grade única
 	var min_c := Vector2i(1 << 20, 1 << 20)
@@ -170,6 +181,10 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 			RoomSynth.ladder(g, rng)
 		# conexões especiais do lado desta sala (a sala-âncora do ramo)
 		var gate_conns := {}
+		var port: Dictionary = room.get("port", {})
+		if not port.is_empty() and str(port.get("requires", "")) != "":
+			_mark_gate(g, port["dir"], "V")
+			gate_conns[port["dir"]] = {"kind": "ability", "data": {"ability": port["requires"]}}
 		for c in connections:
 			if c["kind"] == "open" or c["a"] != cell:
 				continue
@@ -239,7 +254,9 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 		var o0: Array = rooms[path[0]]["origin"]
 		spawn = Vector2i(o0[0] + 6, o0[1] + LevelConst.FLOOR_ROW - 1)
 		entities.append({"type": "spawn", "tile": [spawn.x, spawn.y], "room": 0, "data": {}})
-	if exit_tile.x < 0:
+	if exit_tile.x < 0 and params.has("ports"):
+		exit_tile = spawn # mundo contínuo: sai-se pelos portões
+	elif exit_tile.x < 0:
 		var o1: Array = rooms[path[-1]]["origin"]
 		exit_tile = Vector2i(o1[0] + 28, o1[1] + LevelConst.FLOOR_ROW - 1)
 		entities.append({"type": "exit", "tile": [exit_tile.x, exit_tile.y], "room": rooms[path[-1]]["index"], "data": {}})
@@ -247,6 +264,11 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 	var rows := PackedStringArray()
 	for row in grid:
 		rows.append("".join(row))
+	var ports_out: Array = []
+	for r in room_list:
+		if r.has("port"):
+			ports_out.append({"dir": r["port"]["dir"], "to": r["port"]["to"], "requires": r["port"].get("requires", ""),
+				"room": r["index"], "origin": r["origin"]})
 	var cells_out := []
 	for cell in path:
 		cells_out.append([cell.x - min_c.x, cell.y - min_c.y])
@@ -265,6 +287,7 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 		"key_placed": key_placed or not key_needed,
 		"indoor": indoor,
 		"sky_rooms": sky_rooms,
+		"ports": ports_out,
 	}
 
 
@@ -376,6 +399,42 @@ static func _dissolve_column_pair(grid: Array, gx: int, y0: int, y1: int) -> voi
 				grid[y0 + k][gx] = "."
 				grid[y0 + k][gx + 1] = "."
 		i = j
+
+
+## Liga um corredor da sala do caminho mais "extrema" na direção do portão
+## até uma célula além de todas as salas; a última é a sala de passagem.
+static func _add_port(rooms: Dictionary, connections: Array, path: Array, pt: Dictionary, rng: RandomNumberGenerator) -> void:
+	var d: String = pt["dir"]
+	var step: Vector2i = DIRS[d]
+	# alvo: primeira linha/coluna livre além de todas as salas
+	var ext := -(1 << 20)
+	for cell in rooms.keys():
+		ext = maxi(ext, cell.x * step.x + cell.y * step.y)
+	var target := ext + 1
+	# candidatas: salas do caminho, da mais extrema para a menos
+	var cands: Array = path.duplicate()
+	cands.sort_custom(func(a, b): return a.x * step.x + a.y * step.y > b.x * step.x + b.y * step.y)
+	for c in cands:
+		var chain: Array[Vector2i] = []
+		var cur: Vector2i = c + step
+		var ok := true
+		while cur.x * step.x + cur.y * step.y <= target:
+			if rooms.has(cur):
+				ok = false
+				break
+			chain.append(cur)
+			cur += step
+		if not ok or chain.is_empty():
+			continue
+		var prev: Vector2i = c
+		for i in chain.size():
+			var cell: Vector2i = chain[i]
+			var last := i == chain.size() - 1
+			rooms[cell] = _room(cell, "passage" if last else ("shaft" if d in ["U", "D"] else "corridor"), false, -1)
+			connections.append({"a": prev, "b": cell, "kind": "open", "data": {}})
+			prev = cell
+		rooms[chain[-1]]["port"] = pt.duplicate()
+		return
 
 
 static func _room(cell: Vector2i, t: String, on_path: bool, idx: int) -> Dictionary:

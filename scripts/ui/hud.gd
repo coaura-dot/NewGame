@@ -668,7 +668,7 @@ func open_quests(region_id: String, only_npc: String = "") -> void:
 	_open_panel(p)
 
 
-func show_summary(result: Dictionary, quests_done: Array) -> void:
+func show_summary(result: Dictionary, quests_done: Array, leave: bool = true) -> void:
 	var p := UIKit.panel(Vector2(280, 0))
 	var v := UIKit.vbox(4)
 	p.add_child(v)
@@ -685,8 +685,9 @@ func show_summary(result: Dictionary, quests_done: Array) -> void:
 		gained.append(region["grants"])
 	for g in gained:
 		v.add_child(UIKit.label("Habilidade: " + str(DB.abilities.get(g, {}).get("name", g)), 12, Color(0.8, 1.6, 2.0)))
-	v.add_child(UIKit.label("Esta região agora é ponto de viagem rápida.", 10, UIKit.DIM))
+	v.add_child(UIKit.label("Santuários desta região viram viagem rápida (mapa: M).", 10, UIKit.DIM))
 	v.add_child(UIKit.button("Continuar", func():
 		close_panel()
-		level.leave_level(), 120))
+		if leave:
+			level.leave_level(), 120))
 	_open_panel(p)

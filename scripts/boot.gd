@@ -11,6 +11,6 @@ func _ready() -> void:
 	elif args.has("--map"):
 		if not Game.load_game(0):
 			Game.new_game()
-		Game.goto(Game.SCENE_MAP)
+		Game.enter_region(str(Game.profile.get("region", Game.world.get("start", ""))))
 	else:
 		Game.goto(Game.SCENE_MENU)

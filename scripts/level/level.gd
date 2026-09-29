@@ -14,6 +14,14 @@ var biome: Dictionary = {}
 var dimension: Dictionary = {}
 var training: bool = false
 var siege: bool = false
+## Mundo contínuo: a fase tem portões nas bordas que levam às vizinhas
+var world_mode: bool = false
+var came_from: String = ""
+var arrive_at: String = ""
+var _ports: Array = [] ## [{dir, to, requires, rect (gatilho), room_rect}]
+var _leaving: bool = false
+var _entry_boost: bool = false
+var map_screen: Node = null
 
 var player: Player
 var camera: GameCamera
@@ -58,7 +66,12 @@ func _ready() -> void:
 	_make_viewport()
 	_build_world()
 	_spawn_entities()
+	_setup_ports()
 	_spawn_player()
+	if _entry_boost:
+		player.velocity.y = -Player.JUMP_SPEED * 1.2
+	if world_mode:
+		Game.record_map(region_id, layout)
 	_build_layers()
 	Events.player_died.connect(_on_player_died)
 	Music.play_ambience(str(biome.get("ambience", "")))
@@ -102,7 +115,13 @@ func _resolve_params() -> void:
 	for e in Game.world.get("edges", []):
 		if e["kind"] == "rift" and e["a"] == region_id:
 			rift = e["b"]
+		elif e["kind"] == "rift" and e["b"] == region_id:
+			rift = e["a"] # mundo paralelo: fenda de volta
+	world_mode = true
+	came_from = str(pending.get("from", ""))
+	arrive_at = str(pending.get("at", ""))
 	params = {
+		"ports": WorldGenerator.ports(Game.world, region_id),
 		"seed": int(region.get("level_seed", 1)),
 		"biome": region.get("biome", "castelo"),
 		"tier": int(region.get("tier", 1)) + (1 if siege else 0),
@@ -369,6 +388,66 @@ func _next_wave(room: int) -> void:
 				FX.burst(en.body_center(), Color(2.4, 0.8, 1.8), 8, 90.0))
 
 
+## Gatilhos dos portões (fora da borda da sala de passagem) e ponto de
+## chegada: vindo da região X, nasce no portão que leva a X.
+func _setup_ports() -> void:
+	for pt in layout.get("ports", []):
+		var r := room_rect(int(pt["room"]))
+		var trig := Rect2()
+		match str(pt["dir"]):
+			"L": trig = Rect2(r.position.x - 400.0, r.position.y, 400.0 + 1.0, r.size.y)
+			"R": trig = Rect2(r.end.x - 1.0, r.position.y, 400.0, r.size.y)
+			"U": trig = Rect2(r.position.x, r.position.y - 400.0, r.size.x, 400.0 + 4.0)
+			"D": trig = Rect2(r.position.x, r.end.y + 2.0, r.size.x, 400.0)
+		_ports.append({"dir": pt["dir"], "to": pt["to"], "requires": pt.get("requires", ""), "rect": trig, "room_rect": r})
+		if came_from != "" and pt["to"] == came_from:
+			spawn_pos = _port_spawn(str(pt["dir"]), r)
+			_entry_boost = str(pt["dir"]) == "D"
+	if came_from == "" and arrive_at == "shrine":
+		# santuário preferido: entrada > vila > passagem > qualquer um
+		var best := -1
+		var best_rank := 99
+		for e in layout["entities"]:
+			if e["type"] == "checkpoint":
+				var rank := ["entrance", "hub", "passage"].find(_room_type(int(e.get("room", 0))))
+				rank = 50 if rank < 0 else rank
+				if rank < best_rank:
+					best_rank = rank
+					best = layout["entities"].find(e)
+		if best >= 0:
+			spawn_pos = _tile_feet(layout["entities"][best]["tile"]) + Vector2(10, 0)
+	elif came_from == "" and arrive_at == "rift":
+		for e in layout["entities"]:
+			if e["type"] == "rift":
+				spawn_pos = _tile_feet(e["tile"]) + Vector2(14, 0)
+				break
+
+
+func _port_spawn(dir: String, r: Rect2) -> Vector2:
+	match dir:
+		"L": return Vector2(r.position.x + 3 * T, r.position.y + LevelConst.FLOOR_ROW * T)
+		"R": return Vector2(r.end.x - 3 * T, r.position.y + LevelConst.FLOOR_ROW * T)
+		"U": return Vector2(r.position.x + 20 * T, r.position.y + 4 * T)
+		"D": return Vector2(r.position.x + 20 * T, r.position.y + 23 * T)
+	return spawn_pos
+
+
+## Saiu por um portão: escurece e carrega a região vizinha.
+func _leave_by(pt: Dictionary) -> void:
+	if _leaving:
+		return
+	_leaving = true
+	player.set_physics_process(false)
+	# região sem chefe fica concluída ao ser atravessada
+	if not region.get("cleared", false) and str(region.get("boss", "")) == "" and pt["to"] != came_from:
+		complete_level()
+	Game.save()
+	var tw := create_tween()
+	tw.set_ignore_time_scale(true)
+	tw.tween_property(postfx, "fade", 1.0, 0.25)
+	tw.tween_callback(func(): Game.travel(str(pt["to"]), region_id))
+
+
 func _shaft_height(tile: Array) -> float:
 	var x := int(tile[0])
 	var y := int(tile[1]) + 1
@@ -427,6 +506,10 @@ func _build_layers() -> void:
 	pause_menu = load("res://scripts/ui/pause_menu.gd").new()
 	pause_menu.level = self
 	add_child(pause_menu)
+	if world_mode:
+		map_screen = load("res://scripts/ui/map_screen.gd").new()
+		map_screen.level = self
+		add_child(map_screen)
 
 
 # ---------------------------------------------------------------------------
@@ -441,6 +524,12 @@ func _process(_delta: float) -> void:
 func _physics_process(_delta: float) -> void:
 	if player == null or player.dead:
 		return
+	if world_mode and not _leaving:
+		var pp: Vector2 = player.global_position
+		for pt in _ports:
+			if (pt["rect"] as Rect2).has_point(pp):
+				_leave_by(pt)
+				return
 	var idx := room_at(player.global_position)
 	if idx != _current_room and idx >= 0:
 		var prev := _current_room
@@ -457,6 +546,8 @@ func _physics_process(_delta: float) -> void:
 
 func _on_room_entered(idx: int) -> void:
 	var room: Dictionary = layout["rooms"][idx]
+	if world_mode:
+		Game.mark_explored(region_id, idx)
 	Events.room_entered.emit(room)
 	Music.play(_music_for_room(room))
 	if _cleared.has(idx):
@@ -597,6 +688,8 @@ func on_enemy_killed(en: Node) -> void:
 	if en == boss_node:
 		boss_defeated = true
 		result["boss_killed"] = true
+		if world_mode and not training:
+			get_tree().create_timer(2.0, true, false, true).timeout.connect(complete_level)
 		FX.slowmo(0.2, 1.5)
 		Events.toast.emit("%s derrotado!" % en.data.get("name", "Chefe"))
 		Music.play(_music_for_room(layout["rooms"][maxi(_current_room, 0)]), 3.0)
@@ -637,6 +730,8 @@ func set_checkpoint(cp: Node) -> void:
 		checkpoint.deactivate()
 	checkpoint = cp
 	Events.checkpoint_reached.emit(cp.global_position)
+	if world_mode:
+		Game.add_shrine(region_id)
 
 
 # ---------------------------------------------------------------------------
@@ -702,6 +797,11 @@ func complete_level() -> void:
 		Game.complete_region(region_id)
 		quests_done = SocialSystem.resolve_quests_for_region(Game.social, region_id, Game.profile, result)
 		Game.save()
+	if world_mode and not siege:
+		# mundo contínuo: continua jogando (sem sair da fase)
+		if hud and hud.has_method("show_summary"):
+			hud.show_summary(result, quests_done, false)
+		return
 	if hud and hud.has_method("show_summary"):
 		hud.show_summary(result, quests_done)
 	else:
@@ -715,7 +815,7 @@ func leave_level() -> void:
 	elif siege:
 		Game.goto("res://scenes/ending.tscn")
 	else:
-		Game.goto(Game.SCENE_MAP)
+		Game.enter_region(region_id)
 
 
 func open_quest_board() -> void:

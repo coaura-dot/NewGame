@@ -35,52 +35,46 @@ static func generate(seed_value: int, db: Node = null) -> Dictionary:
 		"abilities_order": [],
 	}
 
-	# 1) posições (amostragem com distância mínima)
-	var points: Array[Vector2] = []
-	var tries := 0
-	while points.size() < main_count and tries < 5000:
-		tries += 1
-		var p := Vector2(rng.randf_range(-48, 48), rng.randf_range(-34, 34))
-		var ok := true
-		for q in points:
-			if q.distance_to(p) < 15.0:
-				ok = false
-				break
-		if ok:
-			points.append(p)
-	var n := points.size()
+	# 1) MUNDO EM GRADE (corte lateral, explorável a pé): a superfície é uma
+	# faixa de regiões lado a lado; cidades do céu ficam ACIMA de algumas
+	# delas e regiões subterrâneas ABAIXO. Andando até a borda de uma região
+	# você entra na vizinha (esquerda/direita/cima/baixo).
+	var surf_n := rng.randi_range(9, 11)
+	var grid: Array[Vector2i] = []
+	for x in surf_n:
+		grid.append(Vector2i(x, 0))
+	var cols: Array = range(surf_n)
+	RngUtil.shuffle(rng, cols)
+	var sky_n := rng.randi_range(3, 4)
+	for k in sky_n:
+		grid.append(Vector2i(cols[k], -1))
+	RngUtil.shuffle(rng, cols)
+	var under_n := rng.randi_range(4, 5)
+	for k in under_n:
+		grid.append(Vector2i(cols[k], 1))
+	var n := grid.size()
+	var index_of := {}
+	for i in n:
+		index_of[grid[i]] = i
 
-	# 2) arestas: árvore geradora mínima (Prim) + alguns atalhos para ciclos
+	# 2) arestas: vizinhos na grade. Superfície sempre ligada em fila; céu e
+	# subsolo ligados à superfície; vizinhos no céu/subsolo às vezes (ciclos)
 	var edges := {} # "i-j" -> true
-	var in_tree := {0: true}
-	while in_tree.size() < n:
-		var best := Vector3i(-1, -1, 0)
-		var best_d := INF
-		for i in in_tree.keys():
-			for j in n:
-				if in_tree.has(j):
-					continue
-				var d := points[i].distance_to(points[j])
-				if d < best_d:
-					best_d = d
-					best = Vector3i(i, j, 0)
-		in_tree[best.y] = true
-		edges[_ekey(best.x, best.y)] = true
 	for i in n:
-		var nearest := []
-		for j in n:
-			if j != i:
-				nearest.append([points[i].distance_to(points[j]), j])
-		nearest.sort()
-		for k in 2:
-			if rng.randf() < 0.3 and nearest[k][0] < 40.0:
-				edges[_ekey(i, nearest[k][1])] = true
+		var c := grid[i]
+		if c.y == 0 and index_of.has(c + Vector2i(1, 0)):
+			edges[_ekey(i, index_of[c + Vector2i(1, 0)])] = true
+		if c.y != 0:
+			edges[_ekey(i, index_of[Vector2i(c.x, 0)])] = true
+			var right: Vector2i = c + Vector2i(1, 0)
+			if index_of.has(right) and rng.randf() < (0.7 if c.y > 0 else 0.55):
+				edges[_ekey(i, index_of[right])] = true
+	var points: Array[Vector2] = []
+	for c in grid:
+		points.append(Vector2(c.x * 20.0 - surf_n * 10.0, c.y * -18.0))
 
-	# 3) início = o mais próximo do centro
-	var start_idx := 0
-	for i in n:
-		if points[i].length() < points[start_idx].length():
-			start_idx = i
+	# 3) início = superfície do meio
+	var start_idx := int(surf_n / 2)
 	var adj := _adjacency(n, edges)
 	var dist := _bfs(adj, start_idx)
 	var max_dist := 0
@@ -106,13 +100,7 @@ static func generate(seed_value: int, db: Node = null) -> Dictionary:
 	var ids: Array[String] = []
 	for i in n:
 		var band := mini(int(dist[i] / band_size), band_count - 1)
-		var layer := "surface"
-		var lr := rng.randf()
-		if i != start_idx:
-			if lr < 0.2:
-				layer = "sky"
-			elif lr < 0.4:
-				layer = "underground"
+		var layer := "surface" if grid[i].y == 0 else ("sky" if grid[i].y < 0 else "underground")
 		var biome_id: String = RngUtil.weighted_key(rng, LAYER_BIOMES[layer])
 		var biome: Dictionary = db.biome(biome_id) if db else {}
 		var id := "r%02d" % i
@@ -123,6 +111,7 @@ static func generate(seed_value: int, db: Node = null) -> Dictionary:
 			"biome": biome_id,
 			"layer": layer,
 			"pos": [points[i].x, LAYER_HEIGHT[layer] + rng.randf_range(-2.0, 2.0), points[i].y],
+			"grid": [grid[i].x, grid[i].y],
 			"band": band,
 			"depth": dist[i],
 			"tier": clampi(1 + int(float(dist[i]) / maxf(1.0, max_dist) * 2.99), 1, 3),
@@ -196,7 +185,10 @@ static func generate(seed_value: int, db: Node = null) -> Dictionary:
 			kind = "sky_bridge"
 		elif la == "underground" or lb == "underground":
 			kind = "tunnel"
-		world["edges"].append({"a": ids[a], "b": ids[b], "requires": req, "kind": kind})
+		var dg := grid[b] - grid[a]
+		var dir_a := "R" if dg.x > 0 else ("L" if dg.x < 0 else ("D" if dg.y > 0 else "U"))
+		world["edges"].append({"a": ids[a], "b": ids[b], "requires": req, "kind": kind,
+			"dir_a": dir_a, "dir_b": {"R": "L", "L": "R", "U": "D", "D": "U"}[dir_a]})
 
 	# 7) regiões opcionais (folhas fora do caminho do final) e fendas dimensionais
 	var finale_path := _path(adj, start_idx, finale_idx)
@@ -368,7 +360,18 @@ static func neighbors(world: Dictionary, region_id: String) -> Array:
 	var out := []
 	for e in world["edges"]:
 		if e["a"] == region_id:
-			out.append({"id": e["b"], "requires": e["requires"], "kind": e["kind"]})
+			out.append({"id": e["b"], "requires": e["requires"], "kind": e["kind"], "dir": e.get("dir_a", "")})
 		elif e["b"] == region_id:
-			out.append({"id": e["a"], "requires": e["requires"], "kind": e["kind"]})
+			out.append({"id": e["a"], "requires": e["requires"], "kind": e["kind"], "dir": e.get("dir_b", "")})
+	return out
+
+
+## Portões físicos de uma região (bordas da fase): [{dir, to, requires}].
+## Fendas dimensionais não entram (são portais dentro da fase).
+static func ports(world: Dictionary, region_id: String) -> Array:
+	var out := []
+	for nb in neighbors(world, region_id):
+		if nb["kind"] != "rift" and nb["dir"] != "":
+			out.append({"dir": nb["dir"], "to": nb["id"], "requires": nb["requires"]})
+	out.sort_custom(func(a, b): return "LRUD".find(a["dir"]) < "LRUD".find(b["dir"]))
 	return out

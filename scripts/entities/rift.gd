@@ -24,7 +24,7 @@ func interact(_player: Node) -> void:
 	if target_region != "" and Game.world.get("regions", {}).has(target_region):
 		Audio.play("spell_heavy")
 		FX.flash(1.0)
-		Game.enter_region(target_region)
+		Game.travel(target_region, "", "rift")
 
 
 func _process(delta: float) -> void:

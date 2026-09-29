@@ -43,7 +43,7 @@ static func synth(room_type: String, exits: String, rng: RandomNumberGenerator, 
 	match room_type:
 		"combat", "platforming", "corridor", "shaft", "puzzle", "arena":
 			style = room_type
-		"entrance", "exit", "treasure":
+		"entrance", "exit", "treasure", "passage":
 			style = "terraced"
 	var fl := _terrain(g, rng, exits, STYLES[style], opts)
 	if STYLES[style]["ceil"] > 0.0 and rng.randf() < float(STYLES[style]["ceil"]):
@@ -60,6 +60,7 @@ static func synth(room_type: String, exits: String, rng: RandomNumberGenerator, 
 		"entrance": _entrance(g, exits, fl)
 		"exit": _exit(g, exits, fl)
 		"hub": _hub(g)
+		"passage": _passage(g, rng, exits, fl)
 		"boss": _boss(g)
 		"shaft": _shaft(g, rng, exits, fl)
 	if exits.contains("U"):
@@ -704,6 +705,18 @@ static func _exit(g: Array, exits: String, fl: Array) -> void:
 	while x > 4 and at(g, x, int(fl[x]) - 1) != ".":
 		x -= 1
 	put(g, x, int(fl[x]) - 1, "X")
+
+
+## Sala de passagem entre regiões: portal de pedra na saída e um santuário
+## (descanso) no meio — ponto seguro antes de mudar de região.
+static func _passage(g: Array, rng: RandomNumberGenerator, exits: String, fl: Array) -> void:
+	var hx := 20 if not (exits.contains("D") or exits.contains("U")) else 9
+	if int(fl[hx]) == FL and at(g, hx, FL - 1) == ".":
+		put(g, hx, FL - 1, "H")
+	if rng.randf() < 0.5:
+		var lx := 6 if hx != 6 else 30
+		if at(g, lx, 3) == ".":
+			put(g, lx, 3, "L")
 
 
 static func _hub(g: Array) -> void:

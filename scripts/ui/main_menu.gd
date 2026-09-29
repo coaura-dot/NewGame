@@ -86,7 +86,7 @@ func _show_main() -> void:
 
 func _continue() -> void:
 	if Game.load_game(0):
-		Game.goto(Game.SCENE_MAP)
+		Game.enter_region(str(Game.profile.get("region", Game.world.get("start", ""))))
 
 
 func _show_new_game() -> void:
@@ -94,7 +94,7 @@ func _show_new_game() -> void:
 	var v := UIKit.vbox(6)
 	p.add_child(v)
 	v.add_child(UIKit.title("Novo jogo", 22))
-	var l := UIKit.label("O mapa-múndi é gerado pela seed e fica fixo durante toda a partida. Deixe vazio para aleatória.", 10, UIKit.DIM)
+	var l := UIKit.label("O mundo é gerado pela seed e fica fixo durante toda a partida (explore a pé: céu, superfície e subsolo). Deixe vazio para aleatória.", 10, UIKit.DIM)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD
 	l.custom_minimum_size = Vector2(240, 0)
 	v.add_child(l)
@@ -110,7 +110,7 @@ func _show_new_game() -> void:
 		if seed_edit.text.strip_edges().is_valid_int():
 			s = int(seed_edit.text.strip_edges())
 		Game.new_game(s)
-		Game.goto(Game.SCENE_MAP), 90))
+		Game.start_new_journey(), 90))
 	row.add_child(UIKit.button("Voltar", _show_main, 70))
 	v.add_child(row)
 	_set_panel(p)

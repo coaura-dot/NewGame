@@ -66,11 +66,10 @@ func _show_main() -> void:
 	v.add_child(UIKit.button("Continuar", close))
 	v.add_child(UIKit.button("Equipamento", _show_equipment))
 	v.add_child(UIKit.button("Opções", _show_options))
-	if level and not level.training:
-		v.add_child(UIKit.button("Voltar ao mapa-múndi", func():
-			get_tree().paused = false
-			Game.save()
-			Game.goto(Game.SCENE_MAP)))
+	if level and not level.training and level.map_screen:
+		v.add_child(UIKit.button("Mapa (M)", func():
+			close()
+			level.map_screen.call_deferred("open")))
 	v.add_child(UIKit.button("Menu principal", func():
 		get_tree().paused = false
 		if level and level.training:

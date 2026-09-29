@@ -53,10 +53,7 @@ func _ready() -> void:
 		Game.pending = {"training": true}
 		await _shot_juice()
 	if scenario in ["map", "all"]:
-		if not Game.has_game:
-			Game.new_game(1234, 9)
-		await _shot_scene("res://scenes/world_map.tscn", "mapa", 40)
-		SaveSystem.delete_save(9)
+		await _shot_map()
 	get_tree().quit()
 
 
@@ -255,6 +252,41 @@ func _shot_juice() -> void:
 	level.queue_free()
 	await _frames(2)
 	Game.end_training()
+
+
+## Mapa do mundo contínuo: visita a região inicial e as vizinhas (resumo
+## registrado como se tivessem sido exploradas) e abre o mapa.
+func _shot_map() -> void:
+	Game.new_game(1234, 9)
+	var start: String = Game.world["start"]
+	var lib := ChunkLibrary.new()
+	var ids: Array = [start]
+	for nb in WorldGenerator.neighbors(Game.world, start):
+		ids.append(nb["id"])
+	for id in ids:
+		var r: Dictionary = Game.world["regions"][id]
+		if r.get("dimension", "prima") != "prima":
+			continue
+		r["visited"] = true
+		var params := {"seed": int(r["level_seed"]), "biome": r["biome"], "tier": int(r["tier"]), "boss": r.get("boss", ""),
+			"hub": r.get("hub", ""), "npcs": [], "abilities": [], "ports": WorldGenerator.ports(Game.world, id)}
+		var lay := LevelGenerator.generate(params, lib, DB)
+		Game.record_map(id, lay)
+		for i in lay["rooms"].size():
+			if i % 3 != 2 or id == start:
+				Game.mark_explored(id, i)
+		Game.add_shrine(id)
+	Game.pending = {"region": start}
+	var level: Node = load("res://scenes/level.tscn").instantiate()
+	add_child(level)
+	await _frames(20)
+	level.map_screen.open()
+	await _frames(10)
+	await _save("mapa")
+	level.map_screen.close()
+	level.queue_free()
+	await _frames(2)
+	SaveSystem.delete_save(9)
 
 
 ## A fase inteira numa imagem só (mapa do layout renderizado de verdade).

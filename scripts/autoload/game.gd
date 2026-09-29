@@ -148,13 +148,69 @@ func goto(scene_path: String) -> void:
 
 
 func enter_region(region_id: String) -> void:
-	profile["region"] = region_id
-	var r: Dictionary = world["regions"][region_id]
+	travel(region_id, "", "shrine")
+
+
+## Começo da jornada (depois de Novo jogo): a abertura (história) e então a
+## região inicial.
+func start_new_journey() -> void:
+	if ResourceLoader.exists("res://scenes/intro.tscn"):
+		goto("res://scenes/intro.tscn")
+	else:
+		travel(str(world.get("start", "")))
+
+
+## Mundo contínuo: atravessou o portão para a região `to` vindo de `from`.
+## `at` = "shrine" (viagem rápida: nasce no santuário da região).
+func travel(to: String, from: String = "", at: String = "") -> void:
+	if not world.get("regions", {}).has(to):
+		return
+	profile["region"] = to
+	var r: Dictionary = world["regions"][to]
 	r["visited"] = true
 	profile["dimension"] = r.get("dimension", "prima")
-	pending = {"region": region_id}
+	pending = {"region": to, "from": from, "at": at}
 	save()
 	goto(SCENE_LEVEL)
+
+
+## Guarda um resumo da fase (salas e portões) para o mapa.
+func record_map(region_id: String, layout: Dictionary) -> void:
+	if training or region_id == "":
+		return
+	if not profile.has("maps"):
+		profile["maps"] = {}
+	var rooms: Array = []
+	for r in layout.get("rooms", []):
+		var o: Array = r["origin"]
+		rooms.append([int(o[0]) / LevelConst.ROOM_W, int(o[1]) / LevelConst.ROOM_H, str(r.get("type", ""))])
+	var ports: Array = []
+	for p in layout.get("ports", []):
+		var o: Array = p["origin"]
+		ports.append([int(o[0]) / LevelConst.ROOM_W, int(o[1]) / LevelConst.ROOM_H, p["dir"], p["to"]])
+	profile["maps"][region_id] = {"w": int(layout["width"]) / LevelConst.ROOM_W, "h": int(layout["height"]) / LevelConst.ROOM_H,
+		"rooms": rooms, "ports": ports}
+
+
+func mark_explored(region_id: String, room_index: int) -> void:
+	if training or region_id == "":
+		return
+	if not profile.has("explored"):
+		profile["explored"] = {}
+	var list: Array = profile["explored"].get(region_id, [])
+	if not list.has(room_index):
+		list.append(room_index)
+	profile["explored"][region_id] = list
+
+
+func add_shrine(region_id: String) -> void:
+	if training or region_id == "":
+		return
+	if not profile.has("shrines"):
+		profile["shrines"] = []
+	if not profile["shrines"].has(region_id):
+		profile["shrines"].append(region_id)
+		Events.toast.emit("Santuário encontrado: viagem rápida liberada")
 
 
 func current_region() -> Dictionary:
