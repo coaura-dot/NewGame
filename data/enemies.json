@@ -536,7 +536,7 @@
     }
   },
   "nightmare": {
-    "name": "Corcel do Pesadelo",
+    "name": "Corcel do Pesadelo", "desc": "Investida imparável (não dá para aparar): pule por cima e castigue quando ele bater na parede.",
     "tier": 2,
     "hp": 110,
     "speed": 45,
@@ -621,7 +621,7 @@
     }
   },
   "archdemon": {
-    "name": "Arquidemônio de Cinzas",
+    "name": "Arquidemônio de Cinzas", "desc": "Chefe final. Três fases; na última, magias em leque.",
     "tier": 3,
     "hp": 520,
     "speed": 35,

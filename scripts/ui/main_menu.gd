@@ -72,6 +72,7 @@ func _show_main() -> void:
 		box.add_child(UIKit.button("Continuar", _continue))
 	box.add_child(UIKit.button("Novo jogo", _show_new_game))
 	box.add_child(UIKit.button("Treino (movimento e combate)", func(): Game.start_training(), 180))
+	box.add_child(UIKit.button("Arena de chefes", _show_arena, 180))
 	box.add_child(UIKit.button("Opções", _show_options))
 	box.add_child(UIKit.button("Créditos", _show_credits))
 	box.add_child(UIKit.button("Sair", func(): get_tree().quit()))
@@ -113,6 +114,32 @@ func _show_new_game() -> void:
 	_set_panel(p)
 
 
+## Luta direta contra qualquer chefe, com tudo liberado (como no treino).
+func _show_arena() -> void:
+	var p := UIKit.panel(Vector2(280, 0))
+	var v := UIKit.vbox(4)
+	p.add_child(v)
+	v.add_child(UIKit.title("Arena de chefes", 22))
+	var ids: Array = []
+	for id in DB.enemies.keys():
+		var e: Dictionary = DB.enemy(id)
+		if e.get("boss", false) or e.get("elite", false):
+			ids.append(id)
+	ids.sort_custom(func(a, b): return int(DB.enemy(a).get("hp", 0)) < int(DB.enemy(b).get("hp", 0)))
+	for i in ids:
+		var id: String = i
+		var e: Dictionary = DB.enemy(id)
+		v.add_child(UIKit.button(e.get("name", id), func(): Game.start_training(id), 220))
+		var desc: String = e.get("desc", "")
+		if desc != "":
+			var dl := UIKit.label(desc, 9, UIKit.DIM)
+			dl.autowrap_mode = TextServer.AUTOWRAP_WORD
+			dl.custom_minimum_size = Vector2(260, 0)
+			v.add_child(dl)
+	v.add_child(UIKit.button("Voltar", _show_main, 80))
+	_set_panel(p)
+
+
 func _show_options() -> void:
 	var o := OptionsMenu.new()
 	o.closed.connect(_show_main)
@@ -125,11 +152,10 @@ func _show_credits() -> void:
 	p.add_child(v)
 	v.add_child(UIKit.title("Créditos", 22))
 	for line in [
-		"Arte placeholder (CC0): Luis Zuno @ansimuz — Gothicvania",
-		"Pixel Frog — Pixel Adventure, Treasure Hunters",
-		"Foozle / Baldur — Lucifer Effects",
-		"Alex's Assets — 16x16 RPG Item Pack",
-		"Kenney — fontes e efeitos sonoros",
+		"Personagens, cenários e música: gerados por código (placeholders)",
+		"Ícones (CC0): Alex's Assets — 16x16 RPG Item Pack",
+		"Efeitos (CC0): Foozle / Baldur — Lucifer Effects",
+		"Kenney (CC0) — fontes e efeitos sonoros",
 		"Tudo será substituído pela arte final.",
 	]:
 		v.add_child(UIKit.label(line, 11))

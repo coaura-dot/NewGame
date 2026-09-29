@@ -88,3 +88,16 @@ func test_mundo_distribui_chefes() -> void:
 				bosses[r["boss"]] = true
 	for b in ["duelist", "brood_mother", "colossus"]:
 		check(bosses.has(b), "chefe %s aparece no mundo" % b)
+
+
+func test_arena_de_chefes() -> void:
+	for id in ["colossus", "archdemon"]:
+		Game.pending = {"training": true, "arena": id}
+		var level: Node = load("res://scenes/level.tscn").instantiate()
+		tree.root.add_child(level)
+		await _frames(10)
+		eq(level.layout["rooms"].size(), 3, "arena: entrada, chefe, saída")
+		check(level.boss_node != null and level.boss_node.enemy_id == id, "arena gera o chefe escolhido: " + id)
+		level.queue_free()
+		await _frames(2)
+		Game.end_training()

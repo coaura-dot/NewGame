@@ -74,6 +74,13 @@ func _resolve_params() -> void:
 			"force_path": ["entrance", "corridor", "platforming", "combat", "shaft", "puzzle", "challenge", "combat", "boss", "exit"],
 		}
 		region = {"name": "Salão de Treino", "biome": "castelo", "tier": 1}
+		var arena: String = pending.get("arena", "")
+		if arena != "":
+			params["boss"] = arena
+			params["tier"] = 2
+			params["force_path"] = ["entrance", "boss", "exit"]
+			params["no_branches"] = true
+			region = {"name": "Arena: " + str(DB.enemy(arena).get("name", arena)), "biome": "castelo", "tier": 2}
 		return
 	region_id = pending.get("region", Game.profile.get("region", Game.world.get("start", "")))
 	region = Game.world["regions"].get(region_id, {})

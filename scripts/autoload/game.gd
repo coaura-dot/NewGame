@@ -67,8 +67,9 @@ func new_game(seed_in: int = -1, save_slot: int = 0) -> void:
 
 
 ## Partida de treino: fase fixa para testar movimento/combate com tudo liberado.
-func start_training() -> void:
-	pending = {"training": true}
+## Com `arena_boss`, vira a Arena de chefes (entrada -> chefe -> saída).
+func start_training(arena_boss: String = "") -> void:
+	pending = {"training": true, "arena": arena_boss}
 	goto(SCENE_LEVEL)
 
 

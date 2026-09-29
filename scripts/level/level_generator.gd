@@ -8,7 +8,7 @@ extends RefCounted
 ## Parâmetros (Dictionary):
 ##   seed, biome, tier, boss (id do inimigo ou ""), hub (tipo ou ""),
 ##   dimension, npcs (ids), abilities (do jogador), force_path (tipos),
-##   path_length, quest_objective
+##   path_length, quest_objective, no_branches (arena: só o caminho)
 ## Saída: {width, height, rows, rooms, entities, spawn, exit, ...}
 
 const DIRS := {"R": Vector2i(1, 0), "L": Vector2i(-1, 0), "U": Vector2i(0, -1), "D": Vector2i(0, 1)}
@@ -65,6 +65,8 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 
 	# 2) ramos opcionais
 	var branch_count := rng.randi_range(2, 3) + (1 if tier >= 2 else 0)
+	if params.get("no_branches", false):
+		branch_count = 0
 	var key_needed := false
 	var owned: Array = params.get("abilities", [])
 	var gate_candidates: Array = []
