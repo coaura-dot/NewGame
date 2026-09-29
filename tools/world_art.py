@@ -635,11 +635,12 @@ def sky(P, L):
                 t = 1.0 - abs(y - yc + 5) / 10.0
                 if t <= 0:
                     continue
-                if _dither(x, y, t * 0.8, 4) > 0.4:
-                    col = mix(a1, a2, 0.5 + 0.5 * math.sin(x * 0.05))
-                    c.set(x, y, mix(c.get(x, y), col, 0.35))
-                    if _dither(x, y, t, 4) > 0.9:
-                        L.g.set(x, y, alpha(col, 70))
+                col = mix(a1, a2, 0.5 + 0.5 * math.sin(x * 0.05))
+                k = int(t * 3) / 3.0
+                if k > 0:
+                    c.set(x, y, mix(c.get(x, y), col, 0.16 * k))
+                    if k >= 0.99 and (x + y) % 2 == 0:
+                        L.g.set(x, y, alpha(col, 22))
     if P.get("moon"):
         mx, my = 250, 36
         rr = 13 if P.get("bigmoon") else 9

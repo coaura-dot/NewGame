@@ -1,19 +1,27 @@
 extends Node2D
-## Menu principal: continuar, novo jogo (com seed), treino, opções, créditos.
-## Fundo: a tela interna 320x180 com o parallax da floresta e o herói
-## cochilando num banco.
+## Tela de título: "PAVIO — a última chama".
+## Uma clareira escura da Floresta Sussurrante (fundo em parallax, névoa,
+## vaga-lumes) e o Pavio sentado numa pedra: a única chama acesa, que
+## ilumina o chão em volta. O menu fica por cima, em painéis escuros.
 
-class PanCam:
+class StillCam:
 	extends Node
-	var x := 0.0
 	func render_center() -> Vector2:
-		return Vector2(x, 90)
+		return Vector2(160, 90)
+
+const T := 8
+## clareira: chão embaixo e uma pedra à esquerda onde o Pavio se senta
+const GROUND := [
+	[17, 5, 10], [18, 3, 12], [19, 2, 14],
+]
 
 var _ui: Control
 var _panel: Control
-var _cam: PanCam
+var _cam: StillCam
 var _t: float = 0.0
 var _pv: PixelView
+var _rig: HeroRig
+var _halo: Sprite2D
 
 
 func _ready() -> void:
@@ -22,7 +30,7 @@ func _ready() -> void:
 	get_tree().paused = false
 	_pv = PixelView.new()
 	add_child(_pv)
-	_cam = PanCam.new()
+	_cam = StillCam.new()
 	add_child(_cam)
 	_pv.camera = _cam
 	var bg := BackgroundLayer.new()
@@ -31,6 +39,7 @@ func _ready() -> void:
 	bg.build("floresta")
 	_pv.world.add_child(bg)
 	_pv.set_grade({}, true)
+	_build_clearing()
 	var layer := CanvasLayer.new()
 	layer.layer = 10
 	add_child(layer)
@@ -38,16 +47,73 @@ func _ready() -> void:
 	UIKit.fit(_ui)
 	_ui.theme = UIKit.theme()
 	layer.add_child(_ui)
-	var shade := ColorRect.new()
-	shade.color = Color(0.02, 0.0, 0.06, 0.25)
-	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_ui.add_child(shade)
 	_show_main()
+
+
+## Monta a clareira com os tiles da floresta, o Pavio sentado e as luzes.
+func _build_clearing() -> void:
+	var biome: Dictionary = DB.biomes.get("floresta", {})
+	var cm := CanvasModulate.new()
+	cm.color = Level.ambient_color(biome, {})
+	_pv.world.add_child(cm)
+	var w := 44
+	var h := 30
+	var top := 4 ## linhas extras acima da tela (senão o teto invisível ganha enfeites pendurados)
+	var rows := PackedStringArray()
+	for y in h:
+		var row := ""
+		for x in w:
+			var solid := y >= 20 + top
+			for g in GROUND:
+				if y == int(g[0]) + top and x >= int(g[1]) and x <= int(g[2]):
+					solid = true
+			row += "#" if solid else "."
+		rows.append(row)
+	var holder := Node2D.new()
+	holder.position = Vector2(0, -top * T)
+	_pv.world.add_child(holder)
+	var built: Dictionary = LevelBuilder.build(holder, {"rows": rows, "width": w, "height": h, "rooms": []}, biome, "floresta")
+	for l in built.get("lamps", []):
+		var lt := LightUtil.make_light(Color(0.5, 0.9, 1.0), 0.4, 0.55)
+		if lt:
+			lt.position = l[0] - Vector2(0, top * T)
+			_pv.world.add_child(lt)
+	# raio de luar caindo na pedra
+	var shaft := LightShaft.new()
+	shaft.position = Vector2(64, 0)
+	shaft.setup(Color(0.7, 0.9, 1.2), 136.0, 44.0)
+	_pv.world.add_child(shaft)
+	# o Pavio: a última chama
+	_rig = HeroRig.new()
+	_rig.position = Vector2(64, 136)
+	_rig.z_index = 5
+	_pv.world.add_child(_rig)
+	_rig.play("sit")
+	_rig.base_expression = "normal"
+	var light := LightUtil.make_light(Color(1.0, 0.8, 0.55), 0.9, 1.7)
+	if light:
+		light.position = Vector2(64, 124)
+		_pv.world.add_child(light)
+	_halo = LightUtil.make_glow(Color(1.0, 0.62, 0.3, 0.26), 50.0)
+	_halo.position = Vector2(64, 124)
+	_halo.z_index = 4
+	_pv.world.add_child(_halo)
+	if Settings.video("ambient_particles"):
+		var amb := AmbientParticles.new()
+		amb.setup("fireflies")
+		_pv.world.add_child(amb)
 
 
 func _process(delta: float) -> void:
 	_t += delta
-	_cam.x += delta * 12.0
+	if _rig:
+		# a chama respira devagar; às vezes ele pisca e olha para cima
+		_rig.flame_boost = 0.15 + 0.1 * sin(_t * 0.9)
+		if fmod(_t, 9.0) < delta:
+			_rig.set_expression("look_up", 1.6)
+	if _halo:
+		var k := 0.9 + 0.1 * sin(_t * 7.0) * sin(_t * 3.1)
+		_halo.modulate.a = 0.26 * k
 
 
 func _set_panel(c: Control) -> void:
@@ -59,23 +125,42 @@ func _set_panel(c: Control) -> void:
 
 
 func _show_main() -> void:
-	var v := UIKit.vbox(5)
-	var t := UIKit.title("NEWGAME", 48)
-	t.add_theme_color_override("font_color", Color(1.0, 0.92, 0.75))
-	v.add_child(t)
-	v.add_child(UIKit.label("arcade de stages procedural — v0.2 (320x180)", 11, UIKit.INK, HORIZONTAL_ALIGNMENT_CENTER))
+	var v := UIKit.vbox(2)
+	# título com um brilho quente atrás (a chama)
+	var head := Control.new()
+	head.custom_minimum_size = Vector2(300, 64)
+	var glow := TextureRect.new()
+	glow.texture = LightUtil.soft()
+	glow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	glow.stretch_mode = TextureRect.STRETCH_SCALE
+	glow.size = Vector2(300, 110)
+	glow.position = Vector2(0, -24)
+	glow.modulate = Color(1.0, 0.55, 0.2, 0.32)
+	var gm := CanvasItemMaterial.new()
+	gm.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	glow.material = gm
+	head.add_child(glow)
+	var t := UIKit.title("PAVIO", 56)
+	t.add_theme_color_override("font_color", Color(1.0, 0.87, 0.62))
+	t.add_theme_color_override("font_outline_color", Color(0.12, 0.04, 0.02))
+	t.size = Vector2(300, 64)
+	head.add_child(t)
+	v.add_child(head)
+	v.add_child(UIKit.label("a última chama", 14, Color(0.95, 0.72, 0.5), HORIZONTAL_ALIGNMENT_CENTER))
 	var sp := Control.new()
-	sp.custom_minimum_size = Vector2(0, 8)
+	sp.custom_minimum_size = Vector2(0, 22)
 	v.add_child(sp)
 	var box := UIKit.vbox(4)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	if SaveSystem.has_save(0):
-		box.add_child(UIKit.button("Continuar", _continue))
-	box.add_child(UIKit.button("Novo jogo", _show_new_game))
-	box.add_child(UIKit.button("Treino (movimento e combate)", func(): Game.start_training(), 180))
-	box.add_child(UIKit.button("Opções", _show_options))
-	box.add_child(UIKit.button("Créditos", _show_credits))
-	box.add_child(UIKit.button("Sair", func(): get_tree().quit()))
+		box.add_child(UIKit.button("Continuar", _continue, 120))
+	box.add_child(UIKit.button("Novo jogo", _show_new_game, 120))
+	box.add_child(UIKit.button("Treino", func(): Game.start_training(), 120))
+	box.add_child(UIKit.button("Opções", _show_options, 120))
+	box.add_child(UIKit.button("Créditos", _show_credits, 120))
+	box.add_child(UIKit.button("Sair", func(): get_tree().quit(), 120))
+	for b in box.get_children():
+		(b as Control).modulate = Color(1, 1, 1, 0.9)
 	var c := CenterContainer.new()
 	c.add_child(box)
 	v.add_child(c)
@@ -126,6 +211,7 @@ func _show_credits() -> void:
 	p.add_child(v)
 	v.add_child(UIKit.title("Créditos", 22))
 	for line in [
+		"Pavio, a última chama — um jogo de plataforma e duelos à luz de vela",
 		"Arte: gerada por código (tools/pixel_art.py) — herói, criaturas, tiles e fundos",
 		"Ícones de itens: Alex's Assets — 16x16 RPG Item Pack (CC0)",
 		"Kenney — fontes e efeitos sonoros (CC0)",
