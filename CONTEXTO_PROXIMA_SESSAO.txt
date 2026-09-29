@@ -1,5 +1,5 @@
 ===============================================================================
  ESTE ARQUIVO FOI SUBSTITUÍDO.
- Leia CONTEXTO_SESSAO_4.txt (contexto completo e atualizado para a próxima
- sessão, com o histórico das sessões 1, 2 e 3).
+ Leia CONTEXTO_SESSAO_5.txt (contexto completo e atualizado para a próxima
+ sessão, com o histórico das sessões 1 a 4).
 ===============================================================================

@@ -1,4 +1,9 @@
 ===============================================================================
+ ESTE ARQUIVO FOI SUBSTITUÍDO por CONTEXTO_SESSAO_5.txt (leia aquele).
+ O conteúdo abaixo é o histórico da sessão 3 -> 4, mantido para consulta.
+===============================================================================
+
+===============================================================================
  CONTEXTO PARA A SESSÃO 4 — projeto "NewGame" (título provisório)
  Este é o arquivo de contexto ATUAL (substitui CONTEXTO_PROXIMA_SESSAO.txt).
  Leia inteiro antes de mexer em qualquer coisa.

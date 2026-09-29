@@ -1,0 +1,210 @@
+===============================================================================
+ CONTEXTO PARA A SESSÃO 5 — projeto "NewGame" (título provisório)
+ Subtítulo em jogo: "Cindária — a última brasa"
+ Este é o arquivo de contexto ATUAL (substitui CONTEXTO_SESSAO_4.txt).
+ Leia inteiro antes de mexer em qualquer coisa.
+===============================================================================
+
+ESTADO NO FIM DA SESSÃO 4 (resumo rápido)
+ - Branch: claude/arcade-stages-procedural-939gyg (sempre desenvolver e dar
+   push nela). Árvore limpa, tudo enviado. Não há trabalho pela metade.
+ - Testes: ~6700 verificações OK, 0 falhas (a suíte leva ~5 min no Godot do
+   container, que é compilado sem otimização).
+ - O usuário vai TESTAR esta versão. Comece perguntando o que ele achou do
+   combate (Corte-Relâmpago, Ímpeto, impacto), das salas/estruturas, do mundo
+   contínuo e do mapa, da arte (fundos, água, tiles) e dos sons. Priorize o
+   feedback dele.
+ - Download (ZIP da branch):
+   https://github.com/coaura-dot/NewGame/archive/refs/heads/claude/arcade-stages-procedural-939gyg.zip
+
+Repositório: coaura-dot/NewGame · Engine: Godot 4.7 (GDScript), Forward+
+Idioma: o usuário fala português. Comentários, textos do jogo e docs em PT-BR.
+O usuário tem pouco crédito: seja eficiente, commits/push frequentes.
+
+-------------------------------------------------------------------------------
+1. A IDEIA DO JOGO (visão do usuário — respeitar sempre)
+-------------------------------------------------------------------------------
+Ação 2D em pixel art, geração procedural, GAMEPLAY ÚNICA E FRENÉTICA.
+ * MOVIMENTO de Celeste (dash 8 direções, inércia, parede, super/hyper).
+ * COMBATE = Katana Zero + Hollow Knight + Dead Cells: golpes rápidos e
+   precisos, hitstop de acordo com o golpe, impacto visual e sonoro,
+   "dopaminérgico". Parkour COM combate: "dash dash dash hit dash".
+ * Inimigos rápidos e agressivos. Salas divertidas (NÃO só "sala com
+   inimigos e plataformas").
+ * Personagem: criaturinha minimalista (~12 px) expressiva, sem falas
+   (emoções por símbolos ! ? … ♥ ♪ gota zZ). Quase não há humanos.
+ * Fases GRANDES com câmera que se move (Dead Cells). Calabouços, reinos,
+   esgotos, cavernas, cidades, vilas, campos, cidades no céu...
+ * MUNDO CONTÍNUO EXPLORÁVEL (nada de "ilhas flutuantes" num mapa-múndi).
+ * ARTE: bonita, inspirada em Kingdom Two Crowns (camadas, reflexos na
+   água), Blasphemous (arquitetura, luz) e Dead Cells (cores). Fundos
+   animados; fases épicas com algo acontecendo ao fundo; fases calmas com
+   paisagem, pássaros, sons de natureza; eco em cavernas.
+ * SONS de qualidade (pode baixar da internet se forem bons — mas neste
+   container só o GitHub é acessível; por isso tudo foi sintetizado).
+ * GERAÇÃO DE SALAS é peça-chave: MUITAS estruturas prontas (variações
+   valem) + partes aleatórias (Dead Cells), validadas como divertidas.
+ * Tela limpa e legível (sem poluição), mas com impacto nos golpes.
+ * Resto da visão (de sessões anteriores, continua valendo): muitas armas e
+   magias (inclusive modernas: gravidade, buraco negro, tempo...), sigilos
+   desenhados com o mouse, upgrades, relíquias que combam, armaduras em
+   conjuntos, pool compartilhado com inimigos (drops), chefes variados,
+   refight com item, hubs com NPCs, missões, casamento, reputação, mundos
+   paralelos com física diferente, e o Cerco final (escolher UMA região para
+   salvar; as outras são destruídas).
+
+-------------------------------------------------------------------------------
+2. HISTÓRICO
+-------------------------------------------------------------------------------
+SESSÃO 1: tudo do zero (dados, sistemas, geração, UI, testes).
+SESSÃO 2: novo visual (320x180, criaturinha, tiles 8 px, física Celeste).
+SESSÃO 3: câmera por sala, salas validadas pela física, golpes animados,
+música procedural, loja/forja, 3 chefes, arena de chefes.
+SESSÃO 4 (esta) — feedback do usuário: "gameplay genérica, pouco divertida,
+mapas péssimos, escala pequena; quero frenético e bonito". O que foi feito:
+ - Escala: mundo em 256x144 (25% maior), shader de pixel nítido
+   (shaders/linear_to_srgb.gdshader faz sRGB + "sharp bilinear"). Câmera
+   livre estilo Dead Cells (scripts/level/game_camera.gd), trava só em
+   arenas/chefes (lock_room/unlock_room).
+ - Combate: Corte-Relâmpago (atacar no dash; Player._start_dash_strike),
+   Ímpeto (todo acerto recarrega dash+pulo), peso do golpe (DamageInfo.weight
+   -> FX.impact/kill_impact: hitstop, tremor, coice FX.kick, zoom
+   FX.zoom_punch, quadro de impacto FX.impact_flash), morte Katana Zero
+   (scripts/fx/death_fx.gd: metades cortadas + respingo), faísca de impacto
+   (scripts/fx/hit_spark.gd), Frenesi (Player.FRENZY_TIERS, HUD), nota
+   S/A/B/C por arena (Level._rank_encounter).
+ - Inimigos novos (data/enemies.json + IA em enemy.gd): gunner (mira laser,
+   tiro rebatível e fatal de volta), leaper, assassin, shieldbearer (IA
+   "shield"), diver. Antigos mais rápidos e com menos vida.
+ - Lanterna de Ímpeto (scripts/entities/impeto_orb.gd, char "I").
+ - Arenas com ondas (tipo de sala "arena"; Level._next_wave, SpawnPortal).
+ - Fases contínuas (LevelGenerator._open_up: dissolve paredes, céu aberto).
+ - BIBLIOTECA DE ESTRUTURAS: tools/build_rooms.py gera
+   data/rooms/estruturas.txt (131 estruturas; ChunkLibrary cria o espelho
+   de cada uma => 262). Tokens aleatórios resolvidos em
+   RoomSynth.resolve_tokens (seguros: e f u i s c d j + o; grupos: 1 2 3
+   bloco, 4 5 espinho). tests/test_room_reach.gd simula TODAS as
+   combinações de grupos e o teste de qualidade exige ação, elemento aéreo,
+   verticalidade e inimigos alcançáveis. 25% das salas seguem procedurais.
+ - MUNDO CONTÍNUO: WorldGenerator em grade (grid [x, y]: y=-1 céu, 0
+   superfície, 1 subsolo), arestas com dir_a/dir_b. WorldGenerator.ports()
+   dá os portões de cada região; LevelGenerator._add_port cria o corredor até
+   a borda + sala "passage" (com santuário). Level._setup_ports/_leave_by
+   fazem a transição (fade) e Game.travel(to, from, at) carrega a vizinha
+   nascendo no portão de volta. Sem porta de saída no modo mundo; região sem
+   chefe conclui ao ser atravessada; santuários = viagem rápida
+   (Game.add_shrine). Novo jogo -> abertura -> região inicial; Continuar ->
+   santuário. O antigo scenes/world_map.tscn (ilhas 3D) NÃO é mais usado.
+ - MAPA estilo Hollow Knight: scripts/ui/map_screen.gd (tecla M/Tab ou
+   pausa): salas exploradas (Game.record_map/mark_explored), portões com
+   cadeado, "?" nas vizinhas desconhecidas, viagem rápida, escolha do Cerco
+   (tecla C quando pronto).
+ - ARTE: tools/build_scenery.py (10 estilos de fundo em camadas; meta em
+   data/scenery.json) + scripts/level/background_layer.gd (parallax, nuvens,
+   névoa, raios, pássaros, eventos: storm, titan, sandworm, whale, eyes,
+   catapults, bats, wisps). tools/build_tiles.py (13 tilesets por
+   material). Água com reflexo (shaders/water.gdshader +
+   scripts/level/water_pool.gd, detectada em LevelBuilder._water nos
+   biomas com "water": true). Janelas em arco (LevelBuilder._windows).
+   Adereços vivos (scripts/level/props_layer.gd; biomes.json "props").
+ - SOM: tools/build_sfx.py (71 efeitos sintetizados, nenhum genérico),
+   tools/build_ambience.py (10 ambientes em assets/audio/ambience; bus
+   "Ambience"; Music.play_ambience), eco = reverb no bus SFX
+   (Audio.set_space "cave"/"hall"/"open"; biomes.json "space").
+ - HISTÓRIA: data/lore.json (Cindária, Chama Primeira, a Maré, Ignara, a
+   Faísca, Ocos, Dons, Reflexos, Cerco). Abertura scenes/intro.tscn
+   (scripts/ui/intro.gd, arte em código). Inscrições (entidade
+   inscription, LevelGenerator._place_inscriptions). Cartões de título de
+   região/chefe (hud.gd _title_card). Pausa > Códice.
+ - Bug corrigido: personagem invisível depois de morrer (Player
+   _visual_tween cancelado em revive).
+
+-------------------------------------------------------------------------------
+3. MAPA DO CÓDIGO (novidades em destaque)
+-------------------------------------------------------------------------------
+data/  weapon_classes, weapons, spells, armor, buffs, enemies, items,
+       biomes (tileset, scenery, ambience, space, water, props...),
+       dimensions, abilities, npcs, quests, lore*, scenery*,
+       rooms/core.txt (templates antigos) + rooms/estruturas.txt* (GERADO)
+scripts/autoload/  Events, Settings (bus Ambience + reverb), DB (lore),
+       Game (travel, record_map, mark_explored, add_shrine,
+       start_new_journey), FX (kick, zoom, impact_flash, kill_impact),
+       Audio (set_space), Music (play_ambience), SaveSystem
+scripts/actors/    Actor, Player (dash strike, Ímpeto, Frenesi), Enemy
+scripts/combat/    AttackRunner, Hitbox, Hurtbox, Projectile (estilo bolt),
+       SpellCaster, ...
+scripts/level/     Level (portões, ondas, notas), LevelGenerator (_open_up,
+       _add_port, _place_inscriptions), RoomSynth (receitas + tokens),
+       RoomReach, ChunkLibrary (espelhos), LevelBuilder (água, janelas),
+       BackgroundLayer*, PropsLayer*, WaterPool*, GameCamera*
+scripts/entities/  ImpetoOrb*, Inscription*, ...
+scripts/fx/        DeathFX*, HitSparkFX*, DashCutLine*, SpawnPortal*, ...
+scripts/ui/        hud (Frenesi, cartões, lore), map_screen*, intro*,
+       pause_menu (Códice), main_menu, world_map (LEGADO, sem uso)
+tools/  build_rooms.py*, build_scenery.py*, build_tiles.py*, build_sfx.py*,
+        build_ambience.py*, build_music.py, fix_font_accents.py
+tests/  test_room_reach (estruturas + qualidade), test_world_continuo*,
+        test_lore*, test_smoke (inclui renascer visível), shots.gd
+        (cenários: rooms region menu pause map combat shop bosses juice
+        overview biomes intro)
+
+-------------------------------------------------------------------------------
+4. COMO TRABALHAR NO CONTAINER
+-------------------------------------------------------------------------------
+ - Godot: /opt/godot-headless (link /usr/local/bin/godot) e /opt/godot-gfx
+   (com janela). Se sumirem: compilar do GitHub (ver CONTEXTO_SESSAO_4.txt).
+ - Testes:  godot --headless --path . --import   (após novos class_name)
+            godot --headless --path . res://tests/test_runner.tscn
+            TEST_ONLY=test_room_reach REACH_VERBOSE=1 ... (mostra a sala
+            que falhou). Use "ulimit -v 8000000" e timeout: um teste que
+            trava pode derrubar o processo do container.
+ - Screenshots: xvfb-run -a -s "-screen 0 1280x720x24" /opt/godot-gfx
+   --path . --rendering-driver vulkan res://tests/shots.tscn -- <pasta> <cenário>
+ - Ferramentas Python: pip install numpy pillow soundfile scipy.
+   Depois de gerar PNG/OGG novos: godot --headless --path . --import
+ - Estruturas de sala: edite tools/build_rooms.py (famílias fam_*), rode
+   python3 tools/build_rooms.py e o teste test_room_reach. Regras: colunas
+   1..3 livres perto das saídas L/R (linhas 17..20); da chão (linha 21) a 1ª
+   plataforma fica na linha 18; cada degrau sobe no máximo 3 linhas; vão no
+   mesmo nível <= 5; bloco do chão com topo >= linha 18 (ou com degraus dos
+   dois lados). Saídas: L/R linhas 17-20; U linha 0 cols 18-21 (escada até a
+   linha 4); D linhas 21-23 cols 18-21. RoomReach NÃO simula pulo na parede
+   nem lanternas (é conservador).
+ - Armadilhas do GDScript 4.7: `var x := <Variant>` falha (tipar
+   explícito); round() -> roundf(); Input.action_press em teste precisa ser
+   segurado alguns frames; hitstop zera Engine.time_scale (physics_frame não
+   chega enquanto dura).
+
+-------------------------------------------------------------------------------
+5. O QUE FALTA (prioridade sugerida)
+-------------------------------------------------------------------------------
+ALTA
+ 1. Feedback do usuário jogando: ajustar números (Player.STRIKE_*,
+    COMBO_TIMEOUT, pesos em _attack_weight, FX.impact/kill_impact, vida e
+    velocidade em enemies.json, ondas das arenas).
+ 2. Mais estruturas por bioma (ex.: esgotos com canais, cidade com
+    telhados, céu com ilhas e ventos, cavernas com lagos) e salas de puzzle
+    de verdade; chefes de parkour e de puzzle (arenas especiais).
+ 3. Formas de fase por bioma (torres altas no céu, poços fundos no
+    subsolo) — hoje todas usam o mesmo "caminho que anda para a direita".
+ 4. Hubs/vilas mais ricos (casas, NPCs andando, telhados) e missões com
+    objetivos reais.
+MÉDIA
+ 5. Criaturas exclusivas dos mundos paralelos e visual próprio de cada um.
+ 6. Mais eventos de fundo (ex.: dragão, procissão, cidade queimando) e
+    variação dia/noite.
+ 7. Música: variações por bioma e camadas que sobem com o Frenesi.
+ 8. Desempenho no PC do usuário (fundo, adereços e água são desenhados em
+    código; se pesar, cachear em texturas).
+BAIXA
+ 9. Limpeza: scenes/world_map.tscn + scripts/ui/world_map.gd (ilhas 3D),
+    assets/art/characters e backgrounds antigos, sons Kenney sem uso.
+10. Rebinding na UI, controle no mapa, export para Windows.
+
+-------------------------------------------------------------------------------
+6. COMO O USUÁRIO ABRE O JOGO
+-------------------------------------------------------------------------------
+Baixa o ZIP da branch, extrai o Godot 4.7 em C:\Users\igo\Downloads\godot
+(não precisa instalar), Import -> project.godot -> F5. Menu: Novo jogo
+(abertura + mundo), Treino ou Arena de chefes. M abre o mapa. Ver README.md.
+===============================================================================

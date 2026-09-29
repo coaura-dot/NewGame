@@ -163,12 +163,12 @@ class Splat extends Node2D:
 	var _life: float = 25.0
 
 	func setup(d: Vector2, c: Color, size: float) -> void:
-		_color = Color(c.r, c.g, c.b, 0.85)
-		_blobs.append([Vector2.ZERO, 3.0 * size])
-		for i in 7:
+		_color = Color(c.r, c.g, c.b, 0.7)
+		_blobs.append([Vector2.ZERO, 2.0 * size])
+		for i in 5:
 			var t := randf_range(0.2, 1.0)
-			var p := d * t * 18.0 * size + Vector2(randf_range(-3, 3), randf_range(-3, 3))
-			_blobs.append([p, maxf(1.0, (1.0 - t) * 3.0 * size + randf_range(0.0, 1.0))])
+			var p := d * t * 14.0 * size + Vector2(randf_range(-2, 2), randf_range(-2, 2))
+			_blobs.append([p, maxf(1.0, (1.0 - t) * 2.0 * size + randf_range(0.0, 0.8))])
 		for i in 4:
 			_blobs.append([d.rotated(randf_range(-1.2, 1.2)) * randf_range(4.0, 12.0) * size, 1.0])
 

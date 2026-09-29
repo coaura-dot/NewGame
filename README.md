@@ -1,13 +1,14 @@
-# NEWGAME — protótipo (Godot 4.7)
+# NEWGAME — protótipo (Godot 4.7) · *Cindária — a última brasa*
 
-Arcade de stages procedural em pixel art: movimento estilo **Celeste** + combate estilo **Katana Zero**,
-mundo gerado por seed (estilo Dead Cells), metroidvania, NPCs com afinidade/casamento, reputação e o Cerco final.
+Ação 2D em pixel art com **movimento de Celeste** e **combate frenético** (Katana Zero + Hollow Knight + Dead Cells):
+dash → corte → dash, mundo **contínuo e explorável** gerado por seed (céu, superfície e subsolo), fases grandes
+estilo Dead Cells montadas com uma biblioteca de estruturas feitas à mão, história, NPCs, reputação e o Cerco final.
 
 ## Como abrir e jogar
 1. Baixe o projeto: no GitHub, repositório `coaura-dot/NewGame`, branch **`claude/arcade-stages-procedural-939gyg`** → botão **Code → Download ZIP** (ou `git clone -b claude/arcade-stages-procedural-939gyg <url>`).
 2. Godot não precisa instalar: extraia o zip do Godot 4.7 (ou 4.4+) em `C:\Users\igo\Downloads\godot` e rode o `.exe`.
 3. No Project Manager: **Import** → selecione o `project.godot` desta pasta → **Import & Edit** → aperte **F5**.
-4. No menu: **Treino** (fase fixa com todas as habilidades/armas/magias liberadas), **Arena de chefes** ou **Novo jogo** (mapa-múndi por seed).
+4. No menu: **Novo jogo** (abertura + mundo gerado pela seed), **Treino** (tudo liberado) ou **Arena de chefes**.
 
 ## Controles (teclado)
 | Ação | Tecla | Ação | Tecla |
@@ -17,13 +18,27 @@ mundo gerado por seed (estilo Dead Cells), metroidvania, NPCs com afinidade/casa
 | Pesado (segure p/ carregar) | K / mouse dir. | Aparar/Bloquear | L / F |
 | Esquiva | Ctrl / V | Magias | Q / E |
 | Sigilo (segure e desenhe com o mouse) | R / mouse meio | Poção | H |
-| Trocar arma | G | Interagir | W / ↑ / Enter |
-| Pausa (equipamento/opções) | Esc | | |
+| Trocar arma | G | Interagir / Ler | W / ↑ / Enter |
+| Pausa (equipamento/Códice/opções) | Esc | **Mapa** (viagem rápida) | M / Tab |
 
-Técnicas: baixo+ataque no ar = **pogo** (recarrega dash); pulo durante dash no chão = **super/hyper**; aparo perfeito = câmera lenta + crítico; baixo+pesado no ar = **Queda Esmagadora**.
+Técnicas: **atacar durante o dash = Corte-Relâmpago** (atravessa cortando, em qualquer direção); **todo acerto recarrega o dash e o pulo** (dash → corte → dash...); golpear **Lanternas de Ímpeto** também recarrega; baixo+ataque no ar = **pogo**; pulo durante dash no chão = **super/hyper**; aparo perfeito = câmera lenta + crítico (e rebate o tiro do Atirador de volta, fatal); baixo+pesado no ar = **Queda Esmagadora**.
+
+## Sessão 4 — gameplay frenética, fases grandes, mundo contínuo, arte e história
+![biomas](docs/biomas.jpg)
+- **Escala maior**: o mundo renderiza em 256x144 (tudo 25% maior) com um filtro de pixel nítido para qualquer resolução. **Câmera livre estilo Dead Cells** (olha à frente, zona morta vertical) que só trava em arenas e chefes.
+- **Combate com impacto**: hitstop, tremor, coice e zoom de câmera proporcionais ao peso do golpe; **quadro de impacto** em dois tons nas mortes fortes (desligável); câmera lenta no último inimigo da arena; **morte estilo Katana Zero** (o inimigo é cortado em dois, as metades voam e quicam, respingo de tinta na parede). **Frenesi**: contador de golpes com níveis e bônus. **Nota S/A/B/C** ao limpar uma arena.
+- **5 inimigos novos e rápidos**: Atirador (mira laser; rebata o tiro), Saltador, Lâmina Sombria (dash cortante), Escudeiro (bloqueia de frente) e Morcego-Brasa (mergulha). Os antigos ficaram mais rápidos e morrem em 2–3 golpes.
+- **Salas**: biblioteca de **131 estruturas desenhadas à mão (262 com espelho)** em `tools/build_rooms.py` — pontes sobre espinhos, torres com túnel, zigurates, mesas com atiradores, arenas com **ondas** (portões fecham, inimigos entram por portais), corridas de lanternas, plataformas que caem, molas, serras, escaladas, desafios com cristais, poços, criptas... com **partes aleatórias** (tokens e grupos) e 25% de salas procedurais. Os testes simulam a física real em todas as combinações e exigem que cada estrutura tenha ação, elemento aéreo, verticalidade e inimigos alcançáveis.
+- **Fases contínuas**: paredes entre salas vizinhas viram salões; biomas externos têm céu aberto; salas subterrâneas ganham parede de rocha.
+- **Mundo contínuo explorável** (sem ilhas flutuantes): regiões em grade — superfície em fila, cidades do céu acima, subterrâneo abaixo. Ande até a borda e você entra na região vizinha. **Mapa estilo Hollow Knight** (M) com as salas exploradas, portões com cadeado, santuários para **viagem rápida** e a escolha do Cerco.
+![mapa](docs/mapa.png)
+- **Arte**: 10 **cenários pintados** em camadas (`tools/build_scenery.py`) com vida — nuvens, névoa, raios de sol, pássaros e um evento épico por lugar (titã atrás da cidade gótica, verme nas dunas, baleia do céu, catapultas na guerra, relâmpagos no castelo, olhos na caverna...). **13 tilesets** por material (`tools/build_tiles.py`), **água com reflexo** estilo Kingdom Two Crowns, **janelas** nos castelos mostrando o cenário, **adereços vivos** (cipós, correntes, estandartes, cristais, velas, capim).
+- **Som**: todos os efeitos refeitos por síntese (`tools/build_sfx.py`), **ambiente** por bioma (pássaros, vento, chuva com sino, caverna com gotas, pântano, noite com grilos e coruja, guerra) em `tools/build_ambience.py`, e **eco** (reverb) em cavernas e salões.
+- **História de Cindária** (`data/lore.json`): abertura ilustrada, **inscrições** espalhadas pelas fases, **cartões de título** de região e de chefe e o **Códice** na pausa.
+![abertura](docs/abertura.jpg)
+- Correção: o personagem ficava invisível depois de morrer.
 
 ## Sessão 3 — câmera, salas, golpes, música, loja e chefes
-![treino](docs/screenshot_treino.png)
 - **Câmera por sala (Celeste)**: cada sala tem o tamanho da tela; a câmera fica travada nela e desliza ao trocar de sala. Ao subir pela saída de cima o pulo é renovado (impulso de transição, como no Celeste).
 - **HUD compacto no topo** (vida/foco/dash à esquerda; brasas, arma, magias e poção à direita), que fica translúcido quando o personagem passa por baixo.
 - **Salas recalibradas** para o herói de 12 px: relevo com degraus de até 3 tiles, fossos, tetos irregulares, plataformas em camadas. Um validador (`scripts/level/room_reach.gd`) **simula a física real do jogador** e os testes garantem que toda saída leva a toda outra.
@@ -55,11 +70,8 @@ Técnicas: baixo+ataque no ar = **pogo** (recarrega dash); pulo durante dash no 
 - **Assets**: personagens/tiles agora procedurais; ícones, fontes e sons são placeholders CC0 (ver `assets/CREDITS.md`).
 
 ## Testes
-`godot --headless --path . res://tests/test_runner.tscn` — ~4300 verificações (dados, balanceamento, mundo, fases, **alcançabilidade das salas com a física do jogador**, combate, sigilos, inventário, social, loja/forja, chefes, save, e um teste que joga a fase de treino com entradas simuladas).
-Screenshots de vários cenários (salas, menu, pausa, mapa, golpes, loja, chefes): `godot --path . res://tests/shots.tscn -- <pasta> [all|rooms|region|menu|pause|map|combat|shop|bosses]`.
+`godot --headless --path . res://tests/test_runner.tscn` — ~6700 verificações (dados, balanceamento, mundo, fases, **alcançabilidade das salas com a física do jogador**, combate, sigilos, inventário, social, loja/forja, chefes, save, e um teste que joga a fase de treino com entradas simuladas).
+Screenshots de vários cenários: `godot --path . res://tests/shots.tscn -- <pasta> [all|rooms|region|menu|pause|map|combat|shop|bosses|juice|overview|biomes|intro]`.
 
 ## Pendências conhecidas (próxima sessão)
-- Ajustar o *feel* jogando de verdade (números no topo de `player.gd`, escalas em `attack_runner.gd`, IA dos chefes em `enemy.gd`).
-- Mais inimigos por bioma e criaturas exclusivas dos mundos paralelos; chefes de puzzle e de parkour.
-- Mais templates de sala por bioma; puzzles de verdade.
-- Arte final desenhada à mão (o visual atual é procedural e fácil de trocar).
+Veja `CONTEXTO_SESSAO_5.txt` (contexto completo e lista priorizada).
