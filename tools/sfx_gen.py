@@ -185,8 +185,21 @@ def fade_tail(sig, dur=0.01):
     return out
 
 
-def save(name, sig, peak=0.85):
-    sig = fade_tail(normalize(sig, peak))
+def soft_clip(sig, drive=1.4):
+    """Saturação macia (tanh): arredonda picos sem estalar."""
+    k = math.tanh(drive)
+    return [math.tanh(v * drive) / k for v in sig]
+
+
+SOFTEN = 0.68  # a saturação deixa o som mais "cheio": o pico cai para o volume ficar um pouco abaixo do antigo
+
+
+def save(name, sig, peak=0.85, air=11000):
+    """Normaliza e grava. `air` = corte suave do chiado lá em cima (Hz)."""
+    if air:
+        sig = lowpass(sig, air)
+    sig = soft_clip(normalize(sig, 1.0), 1.0)
+    sig = fade_tail(normalize(sig, peak * SOFTEN))
     data = array.array("h", [int(max(-1.0, min(1.0, v)) * 32767) for v in sig])
     path = os.path.join(OUT, "g_%s.wav" % name)
     with wave.open(path, "wb") as w:
@@ -205,6 +218,21 @@ def note(n):
     return 440.0 * 2 ** ((n - 69) / 12.0)
 
 
+def dash_fwip(r, v):
+    """Dash: "fwip". Um sopro que abre do médio para o agudo (o filtro sobe
+    enquanto o volume cresce e corta), um assobio senoidal subindo rápido e
+    um brilho curtinho no fim. Nada abaixo de ~600 Hz."""
+    dur = 0.11
+    air = white(dur, r)
+    air = lowpass(air, 1400 + v * 150, 7000 + v * 400)
+    air = highpass(air, 1100)
+    air = env(air, 0.028, 0.075, 0.0, 0.012)
+    whistle = env(osc("sine", 820 + v * 70, 2500 + v * 160, 0.075, curve=0.55), 0.01, 0.06, 0.0, 0.01)
+    shine = exp_decay(osc("sine", 3150 + v * 140, 3350 + v * 140, 0.05), 0.014)
+    s = mix((air, 0.5, 0), (whistle, 0.42, 0.006), (shine, 0.14, 0.045))
+    return highpass(s, 600)
+
+
 def make_all():
     os.makedirs(OUT, exist_ok=True)
     for f in os.listdir(OUT):
@@ -216,20 +244,18 @@ def make_all():
         r = random.Random(100 + v)
         # pulo: blip quadrado subindo
         base = 360 + v * 30
-        s = env(osc("square", base, base * 2.1, 0.09, duty=0.25, curve=0.6), 0.002, 0.08, 0.0, 0.02)
-        s = mix((s, 0.55, 0), (env(white(0.03, r), 0.001, 0.03), 0.12, 0))
-        save("jump_%d" % v, lowpass(s, 6000))
+        sq = lowpass(osc("square", base, base * 2.1, 0.09, duty=0.25, curve=0.6), 2800)
+        tr = osc("tri", base, base * 2.1, 0.09, curve=0.6)
+        s = env(mix((sq, 0.35, 0), (tr, 0.65, 0)), 0.003, 0.08, 0.0, 0.02)
+        s = mix((s, 0.8, 0), (env(lowpass(white(0.025, r), 3000), 0.001, 0.025), 0.05, 0))
+        save("jump_%d" % v, s, 0.75)
         # pulo no ar / pulo extra: dois degraus + brilho
         a = env(osc("square", 520 + v * 40, 780 + v * 40, 0.05, duty=0.25), 0.002, 0.05)
         b = env(osc("tri", 900 + v * 50, 1500 + v * 60, 0.08), 0.002, 0.08)
         save("djump_%d" % v, mix((a, 0.5, 0), (b, 0.6, 0.045), (env(osc("sine", 2600, 3100, 0.1), 0.002, 0.1), 0.15, 0.06)))
-        # dash: sopro de ruído com filtro varrendo + batida grave
-        w = white(0.2, r)
-        w = lowpass(w, 900 + v * 200, 5200)
-        w = highpass(w, 400)
-        w = env(w, 0.004, 0.19, 0.0, 0.03)
-        thump = exp_decay(osc("sine", 150, 60, 0.08), 0.03)
-        save("dash_%d" % v, mix((w, 0.9, 0), (thump, 0.5, 0)))
+        # dash: "fwip" — sopro curto que abre para o agudo + assobio subindo,
+        # limpo e brilhante, sem batida grave
+        save("dash_%d" % v, dash_fwip(r, v), 0.7)
         # chute de parede: pancada + ruído + chirp subindo
         th = exp_decay(osc("sine", 190, 55, 0.1), 0.035)
         nz = env(bandpass(white(0.08, r), 500, 3500), 0.001, 0.07)
@@ -264,40 +290,43 @@ def make_all():
         tk = exp_decay(osc("square", 2400, 2200, 0.03, duty=0.5), 0.008)
         save("pogo_%d" % v, mix((sp, 0.6, 0), (tk, 0.25, 0)))
         # corte leve: "shff" curto
-        sl = env(bandpass(white(0.09, r), 1200 + v * 300, 7000), 0.003, 0.085)
-        save("slash_%d" % v, mix((sl, 1.0, 0), (env(osc("saw", 900 + v * 80, 300, 0.06), 0.002, 0.06), 0.08, 0)), 0.7)
+        sl = env(bandpass(white(0.08, r), 900 + v * 150, 4200), 0.006, 0.07)
+        sw = env(osc("sine", 1500 + v * 120, 520, 0.07, curve=0.7), 0.004, 0.065)
+        save("slash_%d" % v, mix((sl, 0.8, 0), (sw, 0.3, 0)), 0.65)
         # corte pesado: mais longo e grave
-        sh = env(lowpass(white(0.17, r), 3000, 900), 0.006, 0.16)
+        sh = env(lowpass(white(0.16, r), 2400, 700), 0.01, 0.15)
         save("slashheavy_%d" % v, mix((sh, 1.0, 0), (exp_decay(osc("sine", 120, 70, 0.14), 0.06), 0.4, 0.02)), 0.75)
         # acerto: clique + soco grave + estalo
         ht = mix((exp_decay(osc("sine", 140 + v * 10, 60, 0.09), 0.03), 0.9, 0),
                  (env(bandpass(white(0.05, r), 800, 5000), 0.001, 0.045), 0.6, 0),
                  (exp_decay(osc("square", 900 + v * 60, 500, 0.04, duty=0.4), 0.012), 0.2, 0))
-        save("hit_%d" % v, crush(ht, 9))
+        save("hit_%d" % v, ht, 0.8)
         # acerto pesado
         hh = mix((exp_decay(osc("sine", 110, 40, 0.18), 0.06), 1.0, 0),
                  (env(lowpass(white(0.12, r), 2500), 0.001, 0.11), 0.7, 0),
                  (exp_decay(osc("square", 600, 200, 0.08, duty=0.4), 0.03), 0.25, 0))
-        save("hitheavy_%d" % v, crush(hh, 8))
+        save("hitheavy_%d" % v, hh, 0.85)
         # abate: estouro + chirp descendo
-        kl = mix((env(osc("square", 900 + v * 70, 180, 0.2, duty=0.3, curve=0.5), 0.002, 0.2), 0.4, 0),
-                 (env(lowpass(white(0.18, r), 4000, 600), 0.001, 0.17), 0.7, 0),
+        kl = mix((env(lowpass(osc("square", 900 + v * 70, 180, 0.2, duty=0.3, curve=0.5), 2500), 0.002, 0.2), 0.4, 0),
+                 (env(lowpass(white(0.16, r), 2800, 500), 0.001, 0.15), 0.5, 0),
                  (exp_decay(osc("sine", 130, 45, 0.15), 0.05), 0.6, 0))
-        save("kill_%d" % v, crush(kl, 8))
+        save("kill_%d" % v, kl, 0.8)
         # rebater: "ting" metálico que sobe
         rf = mix((fm(note(93 + v), 1.5, 2.0, 0.3, decay=0.1), 0.6, 0), (env(osc("square", 900, 2200, 0.08, duty=0.25), 0.002, 0.08), 0.3, 0))
         save("reflect_%d" % v, rf, 0.75)
         # tiro da torreta: "pew"
         pw = env(osc("square", 1300 + v * 90, 260, 0.12, duty=0.35, curve=0.5), 0.001, 0.12)
-        save("turretshot_%d" % v, lowpass(pw, 5000), 0.6)
+        save("turretshot_%d" % v, lowpass(pw, 3200), 0.55)
         # pouso: baque macio
         ld = mix((exp_decay(osc("sine", 95 + v * 8, 50, 0.07), 0.025), 0.9, 0), (env(lowpass(white(0.05, r), 1500), 0.001, 0.045), 0.5, 0))
         save("land_%d" % v, ld, 0.6)
         # passo
-        save("step_%d" % v, env(bandpass(white(0.03, r), 300 + v * 100, 2500), 0.001, 0.028), 0.4)
+        save("step_%d" % v, env(bandpass(white(0.03, r), 250 + v * 80, 1600), 0.002, 0.026), 0.35)
         # dano no herói: zumbido áspero
-        hu = mix((env(osc("square", 260 + v * 15, 110, 0.2, duty=0.5), 0.002, 0.2), 0.5, 0), (env(lowpass(white(0.15, r), 3000), 0.001, 0.13), 0.5, 0))
-        save("hurt_%d" % v, crush(hu, 7))
+        hu = mix((env(osc("tri", 520 + v * 30, 170, 0.2, curve=0.6), 0.002, 0.19), 0.6, 0),
+                 (env(lowpass(osc("square", 260 + v * 15, 110, 0.18, duty=0.5), 1400), 0.002, 0.17), 0.3, 0),
+                 (env(lowpass(white(0.1, r), 2000), 0.001, 0.08), 0.25, 0))
+        save("hurt_%d" % v, hu, 0.8)
         # nota da cadeia aérea (o pitch sobe no jogo)
         save("chain_%d" % v, exp_decay(osc("tri", note(79 + v * 0), note(79), 0.14), 0.05), 0.55)
         # passo de corrida da muralha / estalo de tábua
@@ -314,16 +343,17 @@ def make_all():
         parts.append((exp_decay(osc("square", note(nn), note(nn), 0.16, duty=0.25), 0.07), 0.35, i * 0.045))
     save("chainend_0", echo(mix(*parts), 0.08, 0.3, 2), 0.7)
     # morte
-    de = mix((env(osc("square", 620, 70, 0.9, duty=0.5, curve=0.7, vib=0.06, vib_hz=9), 0.002, 0.85), 0.45, 0),
-             (env(lowpass(white(0.6, r), 2000, 200), 0.002, 0.55), 0.5, 0))
-    save("death_0", crush(de, 7))
+    de = mix((env(osc("tri", 620, 70, 0.9, curve=0.7, vib=0.06, vib_hz=9), 0.002, 0.85), 0.5, 0),
+             (env(lowpass(osc("square", 620, 70, 0.9, duty=0.5, curve=0.7, vib=0.06, vib_hz=9), 1500), 0.002, 0.85), 0.2, 0),
+             (env(lowpass(white(0.5, r), 1500, 200), 0.002, 0.45), 0.35, 0))
+    save("death_0", de, 0.8)
     # renascer: sopro ao contrário + brilho
     rs = env(lowpass(white(0.3, r), 400, 5000), 0.25, 0.04)
     save("respawn_0", mix((rs, 0.6, 0), (exp_decay(osc("tri", note(84), note(84), 0.3), 0.1), 0.4, 0.26)), 0.6)
     # torreta quebrando
     tb = mix((env(lowpass(white(0.35, r), 5000, 300), 0.001, 0.33), 0.8, 0), (exp_decay(osc("sine", 120, 35, 0.3), 0.1), 0.8, 0),
              (env(osc("square", 700, 120, 0.2, duty=0.3), 0.001, 0.2), 0.2, 0))
-    save("turretbreak_0", crush(tb, 7))
+    save("turretbreak_0", tb, 0.8)
     # ronco da muralha (início da fuga)
     ru = mix((env(lowpass(white(1.1, r), 180), 0.08, 1.0), 1.0, 0), (env(osc("saw", 55, 40, 1.1), 0.1, 1.0), 0.25, 0))
     save("rumble_0", ru, 0.8)
@@ -359,7 +389,7 @@ def make_all():
             f = 70 + 40 * math.sin(TAU * 13 * t)
             zp.append((1.0 if (t * f) % 1.0 < 0.5 else -1.0) * r.uniform(0.5, 1.0))
         zp = env(zp, 0.001, 0.27)
-        save("bolt_%d" % v, crush(mix((zp, 0.6, 0), (env(highpass(white(0.12, r), 3000), 0.001, 0.11), 0.5, 0)), 6), 0.75)
+        save("bolt_%d" % v, crush(mix((lowpass(zp, 3500), 0.6, 0), (env(bandpass(white(0.1, r), 2500, 6000), 0.001, 0.09), 0.3, 0)), 9), 0.7)
         # sombra/vazio: drone FM descendo
         vd = mix((fm(180 - v * 20, 0.5, 4.0, 0.6, decay=0.3, index_decay=0.4), 0.8, 0), (env(osc("sine", 90, 45, 0.6), 0.05, 0.55), 0.4, 0))
         save("void_%d" % v, vd, 0.75)
@@ -376,7 +406,7 @@ def make_all():
         save("arcane_%d" % v, echo(ar, 0.06, 0.3, 2), 0.7)
         # terra/impacto pesado de magia
         ea = mix((exp_decay(osc("sine", 80, 35, 0.4), 0.15), 1.0, 0), (env(lowpass(white(0.35, r), 900, 200), 0.001, 0.3), 0.8, 0))
-        save("earth_%d" % v, crush(ea, 8), 0.8)
+        save("earth_%d" % v, ea, 0.8)
 
 
 if __name__ == "__main__":

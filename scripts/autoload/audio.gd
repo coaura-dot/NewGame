@@ -75,9 +75,10 @@ const EVENTS := {
 	"ui_error": ["error"],
 	"draw_blade": ["drawKnife"],
 }
-## Volume base por evento (dB) — os sintetizados são mais "cheios".
+## Volume base por evento (dB). Os sintetizados passam por saturação macia e
+## ficam uns 2 dB abaixo da versão antiga; o pulo foi refeito mais redondo.
 const VOL := {
-	"jump": -3.0, "djump": -2.0, "step": -4.0, "turret_shot": -2.0, "hurt": -2.0, "death": -2.0,
+	"jump": -0.5, "djump": -2.0, "step": -3.0, "turret_shot": -2.0, "hurt": -1.0, "death": -2.0,
 }
 
 var _streams: Dictionary = {} ## prefixo -> Array[AudioStream]
