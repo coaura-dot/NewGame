@@ -57,6 +57,19 @@ def hero():
     return im
 
 
+def hero_overworld():
+    """Pavio visto de cima (mapa-múndi): frente, costas e lado."""
+    F = pavio_art.build_overworld()
+    im, cols = sheet([f[1] for f in F], 4)
+    save(im, os.path.join(ART, "hero", "pavio_ow.png"))
+    meta = {"size": [16, 16], "cols": cols, "frames": {}}
+    for i, (name, _c, m) in enumerate(F):
+        meta["frames"][name] = dict(index=i, **m)
+    with open(os.path.join(ART, "hero", "pavio_ow.json"), "w") as f:
+        json.dump(meta, f, indent=1)
+    return im
+
+
 def enemies():
     out = []
     for eid, fn in enemy_art.ALL.items():
@@ -124,6 +137,7 @@ def world():
 def main():
     if "--hero" in sys.argv:
         hero()
+        hero_overworld()
         print("herói gerado em", os.path.join(ART, "hero"))
         return
     for old in ("characters", "tilesets", "backgrounds", "fx"):
@@ -135,6 +149,7 @@ def main():
         if os.path.isdir(p):
             shutil.rmtree(p)
     h = hero()
+    hero_overworld()
     en = enemies()
     npcs()
     props()

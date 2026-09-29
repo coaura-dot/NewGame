@@ -113,8 +113,11 @@ static func change_affinity(social: Dictionary, npc_id: String, delta: int) -> v
 	Events.affinity_changed.emit(npc_id, npc["affinity"])
 
 
-static func talk(social: Dictionary, npc_id: String, db: Node, rng: RandomNumberGenerator) -> String:
+static func talk(social: Dictionary, npc_id: String, db: Node, rng: RandomNumberGenerator, world: Dictionary = {}) -> String:
 	var npc: Dictionary = social["npcs"][npc_id]
+	# às vezes o morador fala da Lareira ou dá uma pista de onde está um guardião
+	if npc["met"] and rng.randf() < 0.35:
+		return Lore.rumor(world, rng) if not world.is_empty() and rng.randf() < 0.5 else RngUtil.pick(rng, Lore.TOWN_LORE)
 	var arch: Dictionary = db.npc_data["archetypes"][npc["role"]]
 	var lines: Dictionary = arch.get("lines", {})
 	var key := "greet"

@@ -338,7 +338,7 @@ func open_dialogue(npc_id: String) -> void:
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
-	var line := SocialSystem.talk(Game.social, npc_id, DB, rng)
+	var line := SocialSystem.talk(Game.social, npc_id, DB, rng, Game.world)
 	var p := UIKit.panel(Vector2(320, 0))
 	var v := UIKit.vbox(4)
 	p.add_child(v)

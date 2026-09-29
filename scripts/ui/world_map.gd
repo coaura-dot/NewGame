@@ -274,9 +274,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		_cycle(-1)
 	elif event.is_action_pressed("jump") or event.is_action_pressed("ui_accept"):
 		_try_enter(_selected)
-	elif event.is_action_pressed("pause"):
+	elif event.is_action_pressed("pause") or event.is_action_pressed("map"):
 		Game.save()
-		Game.goto(Game.SCENE_MENU)
+		Game.goto(Game.SCENE_MAP)
 
 
 func _pick(screen_pos: Vector2) -> void:
@@ -358,7 +358,7 @@ func _build_ui() -> void:
 	add_child(p)
 	_info = UIKit.vbox(2)
 	p.add_child(_info)
-	var help := UIKit.label("Clique/W-S: escolher  •  Espaço/Enter: viajar  •  A-D/botão dir.: girar  •  roda: zoom  •  Esc: menu", 9, UIKit.DIM)
+	var help := UIKit.label("Clique/W-S: escolher  •  Espaço/Enter: viajar  •  A-D/botão dir.: girar  •  roda: zoom  •  Esc/M: voltar a andar", 9, UIKit.DIM)
 	help.position = Vector2(8, 256)
 	add_child(help)
 	var top := UIKit.hbox(6)

@@ -5,7 +5,9 @@ extends SceneTree
 ## do treino (teleporta o herói para cada sala); heroi: closes do Pavio em
 ## várias poses (parado, correndo, pulando, dash, golpe, feliz, ferido, morto);
 ## efeitos: dash, golpe e os efeitos de cada escola de magia;
-## duelo: esqueleto telegrafando (amarelo/vermelho), guarda e janela de punição.
+## duelo: esqueleto telegrafando (amarelo/vermelho), guarda e janela de punição;
+## mapa [seed]: mapa-múndi explorável (vila inicial, entradas, noite);
+## intro: os cartões da introdução do novo jogo.
 
 var _out := "user://shot"
 var _mode := "treino"
@@ -30,6 +32,8 @@ func _save(tag: String) -> void:
 
 func _process(_d: float) -> bool:
 	_n += 1
+	if _mode in ["mapa", "intro"]:
+		return _mapa()
 	if _n == 2:
 		if _mode == "menu":
 			change_scene_to_file("res://scenes/main_menu.tscn")
@@ -277,3 +281,60 @@ func _crop2(p: Node, tag: String) -> void:
 	var r := Rect2i(Vector2i((at - sz * 0.5).round()), Vector2i(sz.round()))
 	r = r.intersection(Rect2i(Vector2i.ZERO, img.get_size()))
 	img.get_region(r).save_png("%s_%s.png" % [_out, tag])
+
+
+var _ow: Node = null
+var _visit: Array = []
+
+
+func _mapa() -> bool:
+	var game = root.get_node("Game")
+	if _n == 2:
+		var args := OS.get_cmdline_user_args()
+		game.new_game(int(args[2]) if args.size() > 2 else 12345)
+		if _mode == "mapa":
+			game.profile["flags"] = {"intro_seen": true}
+		game.profile["ow_clock"] = 0.45
+		change_scene_to_file("res://scenes/overworld.tscn")
+		return false
+	if _ow == null:
+		_ow = current_scene if current_scene and current_scene.name == "Overworld" else null
+		return false
+	if _mode == "intro":
+		if _n in [30, 60, 90, 120, 150]:
+			_save("intro%d" % (_n / 30))
+			var ev := InputEventAction.new()
+			ev.action = "jump"
+			ev.pressed = true
+			Input.parse_input_event(ev)
+		if _n > 160:
+			quit()
+		return false
+	if _n == 40:
+		_save("vila")
+	if _n == 41:
+		for id in _ow.data["entrances"].keys():
+			_visit.append(id)
+		_visit.sort()
+	var k := _n - 50
+	if k >= 0 and k % 25 == 0:
+		var i := k / 25
+		if i < mini(_visit.size(), 6):
+			var id: String = _visit[i * 3 % _visit.size()]
+			game.world["regions"][id]["visited"] = true
+			_ow.known = _ow._known_regions()
+			_ow._refresh_fog()
+			_ow.hero.global_position = _ow.feet_px(_ow.data["entrances"][id]) + Vector2(0, 16)
+			_ow.camera.snap()
+		elif i == 6:
+			game.profile["ow_clock"] = 0.02
+		elif i == 7:
+			var gl: Array = _ow._glows
+			print("glows ", gl.size(), " night ", _ow.night)
+			for g in gl.slice(0, 4):
+				print("  ", g.global_position, " mod ", g.modulate, " vis ", g.is_visible_in_tree(), " tex ", g.texture.get_size())
+			_save("noite")
+			quit()
+	if k >= 0 and k % 25 == 20 and k / 25 < 6:
+		_save("regiao%d" % (k / 25))
+	return false

@@ -1,0 +1,40 @@
+{
+ "tile": 8,
+ "cols": 8,
+ "materials": {
+  "grass": 0,
+  "grass_dark": 1,
+  "sand": 2,
+  "gold_sand": 3,
+  "cobble": 4,
+  "ruin": 5,
+  "swamp": 6,
+  "red_dirt": 7,
+  "snow": 8,
+  "cloud": 9,
+  "cave": 10,
+  "arcane": 11,
+  "moss_cave": 12,
+  "plaza": 13,
+  "forest_floor": 14,
+  "bridge_h": 15,
+  "bridge_v": 16,
+  "deep_water": 17,
+  "sky_road": 18,
+  "tunnel": 19,
+  "rift": 20,
+  "rock_wall": 21,
+  "sky_void": 22
+ },
+ "masked": {
+  "road": 23,
+  "water": 25
+ },
+ "solid": [
+  "deep_water",
+  "rock_wall",
+  "sky_void",
+  "forest_floor",
+  "water"
+ ]
+}

@@ -43,7 +43,14 @@ const ANIMS := {
 	"sit": {"frames": ["sit"], "fps": 1.0},
 }
 
-static var _meta: Dictionary = {}
+static var _meta: Dictionary = {} ## folha do herói de plataforma (hero.json)
+static var _metas: Dictionary = {} ## caminho -> meta (outras folhas, ex.: mapa-múndi)
+
+## Folha e animações (o mapa-múndi troca por pavio_ow.png e andar em 4 direções).
+var tex: Texture2D = TEX
+var meta_path: String = META_PATH
+var anims: Dictionary = ANIMS
+var _m: Dictionary = {}
 
 var anim: String = "idle"
 var anim_t: float = 0.0
@@ -76,16 +83,28 @@ var _smoke_t: float = 0.0
 
 func _ready() -> void:
 	if _meta.is_empty():
-		var f := FileAccess.open(META_PATH, FileAccess.READ)
-		if f:
-			_meta = JSON.parse_string(f.get_as_text())
+		_meta = _load_meta(META_PATH)
+	if meta_path == META_PATH:
+		_m = _meta
+	else:
+		if not _metas.has(meta_path):
+			_metas[meta_path] = _load_meta(meta_path)
+		_m = _metas[meta_path]
 	mat = ShaderMaterial.new()
 	mat.shader = SPRITE_FX
 	material = mat
 
 
+static func _load_meta(path: String) -> Dictionary:
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return {}
+	var d = JSON.parse_string(f.get_as_text())
+	return d if d is Dictionary else {}
+
+
 func play(a: String, restart: bool = false) -> void:
-	if not ANIMS.has(a):
+	if not anims.has(a):
 		return
 	if a != anim or restart:
 		anim = a
@@ -137,7 +156,7 @@ func flame_tip_global() -> Vector2:
 
 
 func _process(delta: float) -> void:
-	var a: Dictionary = ANIMS[anim]
+	var a: Dictionary = anims[anim]
 	anim_t += delta
 	var frames: Array = a["frames"]
 	var i := int(anim_t * float(a["fps"]))
@@ -168,12 +187,12 @@ func _process(delta: float) -> void:
 
 
 func frame_meta() -> Dictionary:
-	return _meta.get("frames", {}).get(frame_name, {"index": 0, "eye": [7, 7], "neck": [5, 10], "hand": [11, 11]})
+	return _m.get("frames", {}).get(frame_name, {"index": 0, "eye": [7, 7], "neck": [5, 10], "hand": [11, 11]})
 
 
 func frame_region() -> Rect2:
 	var idx := int(frame_meta()["index"])
-	var cols := int(_meta.get("cols", 8))
+	var cols := int(_m.get("cols", 8))
 	return Rect2((idx % cols) * 16, (idx / cols) * 16, 16, 16)
 
 
@@ -186,11 +205,11 @@ func anchor(key: String) -> Vector2:
 
 
 func ghost_data() -> Dictionary:
-	return {"texture": TEX, "region": frame_region(), "offset": Vector2(-8, -16), "flip_h": facing < 0, "flip_v": flip_v, "scale": Vector2(squash.x, squash.y)}
+	return {"texture": tex, "region": frame_region(), "offset": Vector2(-8, -16), "flip_h": facing < 0, "flip_v": flip_v, "scale": Vector2(squash.x, squash.y)}
 
 
 func _draw() -> void:
-	draw_texture_rect_region(TEX, Rect2(-8, -16, 16, 16), frame_region(), cloak_tint)
+	draw_texture_rect_region(tex, Rect2(-8, -16, 16, 16), frame_region(), cloak_tint)
 	_draw_collar()
 	_draw_cheeks()
 	_draw_eyes()
@@ -328,6 +347,8 @@ func _draw_cheeks() -> void:
 
 func _draw_eyes() -> void:
 	var m := frame_meta()
+	if not (m.get("eye") is Array):
+		return # de costas: sem rosto
 	var ex := float(m["eye"][0]) - 8.0
 	var ey := float(m["eye"][1]) - 16.0
 	var e := expression

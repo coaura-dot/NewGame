@@ -3,7 +3,8 @@ extends Node
 ## jogador, estado social e navegação entre cenas.
 
 const SCENE_MENU := "res://scenes/main_menu.tscn"
-const SCENE_MAP := "res://scenes/world_map.tscn"
+const SCENE_MAP := "res://scenes/overworld.tscn" ## mapa-múndi explorável
+const SCENE_WORLD_VIEW := "res://scenes/world_map.tscn" ## visão geral 3D (viagem rápida, Cerco)
 const SCENE_LEVEL := "res://scenes/level.tscn"
 
 const START_PROFILE := {
@@ -146,7 +147,12 @@ func goto(scene_path: String) -> void:
 	get_tree().call_deferred("change_scene_to_file", scene_path)
 
 
-func enter_region(region_id: String) -> void:
+## Entra na fase da região. from_overworld = o jogador andou até a entrada
+## (a posição no mapa já foi guardada em profile.ow_pos); senão (viagem
+## rápida pelo mapa 3D) ele volta para a frente da entrada dessa região.
+func enter_region(region_id: String, from_overworld: bool = false) -> void:
+	if not from_overworld:
+		profile.erase("ow_pos")
 	profile["region"] = region_id
 	var r: Dictionary = world["regions"][region_id]
 	r["visited"] = true

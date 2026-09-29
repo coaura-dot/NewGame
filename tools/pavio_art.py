@@ -161,3 +161,80 @@ def build():
     add("dead", pavio(2, 12, 3, [], [], drip=False, w=12, rim=8), (6, 13), (4, 14))
     add("sit", pavio(4, 8, 5, [11, 11, 10], [(10, 15), (11, 15)]), (7, 9), (4, 12))
     return F
+
+
+# ---------------------------------------------------------------------------
+# Mapa-múndi (visão de cima 3/4): frente, costas e lado, 4 passos cada
+# ---------------------------------------------------------------------------
+
+def _front(top, feet, back=False):
+    """Pavio de frente (ou de costas): vela de 8 px, poncho simétrico."""
+    c = Canvas(W, H)
+    x0 = 4
+    # cera
+    c.hline(x0 + 1, x0 + 6, top, WAX)
+    for y in range(top + 1, top + 6):
+        c.hline(x0, x0 + 7, y, WAX)
+    c.hline(x0 + 2, x0 + 5, top, WAX_HI)
+    for y in range(top + 2, top + 6):
+        c.set(x0, y, WAX_SH)
+        c.set(x0 + 7, y, WAX_SH)
+    c.hline(x0 + 1, x0 + 6, top + 5, WAX_SH)
+    if not back:
+        c.set(x0 + 6, top + 1, WAX_HI)
+        c.set(x0 + 6, top + 2, WAX_HI)
+    # poncho (3 linhas) — de costas tem o capuz dobrado
+    py = top + 5
+    c.hline(x0 - 1, x0 + 8, py, PON)
+    c.hline(x0 - 1, x0 + 8, py + 1, PON)
+    c.hline(x0, x0 + 7, py + 2, PON_SH)
+    c.hline(x0, x0 + 7, py, PON_HI)
+    for xx in range(x0, x0 + 8, 2):
+        c.set(xx, py + 1, PON_HI)
+    if back:
+        c.set(x0 + 3, py + 1, PON_SH)
+        c.set(x0 + 4, py + 1, PON_SH)
+        c.set(x0 + 3, py + 2, dark_pon())
+        c.set(x0 + 4, py + 2, dark_pon())
+    c.outline(OUT)
+    for p in feet:
+        c.set(p[0], p[1], FOOT if p[1] >= 15 else OUT)
+    c.set(8, top - 1, WICK)
+    collar = [x0, x0 + 7, py]
+    return c, collar
+
+
+def dark_pon():
+    return (PON_SH[0] * 3 // 4, PON_SH[1] * 3 // 4, PON_SH[2] * 3 // 4, 255)
+
+
+def build_overworld():
+    """Quadros 16x16: down0-3, up0-3, side0-3. Âncoras como no herói de
+    plataforma: olhos (só de frente/lado), bochechas, chama e gola."""
+    F = []
+    steps = [
+        ([(6, 14), (6, 15), (9, 14), (9, 15)], 0),
+        ([(6, 14), (9, 14), (9, 15)], -1),
+        ([(6, 14), (6, 15), (9, 14), (9, 15)], 0),
+        ([(6, 14), (6, 15), (9, 14)], -1),
+    ]
+    for i, (feet, bob) in enumerate(steps):
+        top = 6 + bob
+        c, collar = _front(top, feet)
+        F.append(("down%d" % i, c, {"eye": [6, top + 2], "cheeks": [[5, top + 4], [10, top + 4]], "flame": [8, top - 2], "collar": [collar[0] + 1, collar[1] - 1, collar[2]]}))
+    for i, (feet, bob) in enumerate(steps):
+        top = 6 + bob
+        c, collar = _front(top, feet, back=True)
+        F.append(("up%d" % i, c, {"eye": None, "cheeks": [], "flame": [8, top - 2], "collar": [collar[0] + 1, collar[1] - 1, collar[2]]}))
+    side_legs = [
+        [(6, 14), (5, 15), (9, 14), (10, 15)],
+        [(7, 14), (7, 15), (9, 14), (9, 15)],
+        [(9, 14), (10, 15), (6, 14), (5, 15)],
+        [(8, 14), (8, 15), (7, 14), (7, 15)],
+    ]
+    for i in range(4):
+        bob = -1 if i % 2 else 0
+        cv = pavio(4, 6 + bob, 6, [10, 10, 9], side_legs[i])
+        c, wx, wy = cv
+        F.append(("side%d" % i, c, {"eye": [8, 8 + bob], "cheeks": [[7, 10 + bob], [12, 10 + bob]], "flame": [wx, wy - 1], "collar": c.collar}))
+    return F
