@@ -75,7 +75,11 @@ func test_treino() -> void:
 	proj.velocity = Vector2(-200, 0)
 	proj.global_position = p.body_center() + Vector2(60, 0)
 	level.entities.add_child(proj)
-	await _frames(20)
+	# aperta aparar quando o projétil estiver perto (janela de ~0.17 s)
+	for i in 60:
+		await _frames(1)
+		if not is_instance_valid(proj) or proj.global_position.distance_to(p.body_center()) < 26.0:
+			break
 	await _tap("parry")
 	await _frames(30)
 	check(p.hp >= hp_before, "aparar anulou o dano do projétil")

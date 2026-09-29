@@ -8,6 +8,9 @@ var player: Node = null
 var boss: Node = null
 var _root: Control
 var _draw_node: Control
+var _left_node: Control ## vida/foco/dash (translúcido se o jogador passa por baixo)
+var _right_node: Control ## brasas/arma/magias/poção
+var _cv: Control ## onde os helpers desenham agora
 var _toasts: VBoxContainer
 var _combo: int = 0
 var _combo_pop: float = 0.0
@@ -31,6 +34,8 @@ func _ready() -> void:
 	_draw_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_draw_node.draw.connect(_draw_hud)
 	_root.add_child(_draw_node)
+	_left_node = _layer_node(_draw_left)
+	_right_node = _layer_node(_draw_right)
 	_toasts = UIKit.vbox(2)
 	_toasts.position = Vector2(140, 34)
 	_toasts.size = Vector2(200, 100)
@@ -59,6 +64,22 @@ func _process(delta: float) -> void:
 		var ratio: float = player.hp / maxf(player.max_hp(), 1.0)
 		_hp_ghost = move_toward(_hp_ghost, ratio, delta * 0.5) if _hp_ghost > ratio else ratio
 	_draw_node.queue_redraw()
+	_left_node.queue_redraw()
+	_right_node.queue_redraw()
+	var k := 1.0 - exp(-delta * 10.0)
+	_left_node.modulate.a = lerpf(_left_node.modulate.a, _cluster_alpha(Rect2(0, 0, 150, 50)), k)
+	_right_node.modulate.a = lerpf(_right_node.modulate.a, _cluster_alpha(Rect2(370, 0, 110, 48)), k)
+
+
+func _layer_node(cb: Callable) -> Control:
+	var c := Control.new()
+	c.size = Vector2(480, 270)
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.draw.connect(func():
+		_cv = c
+		cb.call())
+	_root.add_child(c)
+	return c
 
 
 func toast(text: String) -> void:
@@ -91,12 +112,12 @@ func hide_boss() -> void:
 
 func _text(pos: Vector2, s: String, size: int, color: Color, outline: bool = true) -> void:
 	if outline:
-		_draw_node.draw_string_outline(FONT, pos, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 3, Color(0.04, 0.02, 0.07, color.a))
-	_draw_node.draw_string(FONT, pos, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+		_cv.draw_string_outline(FONT, pos, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 3, Color(0.04, 0.02, 0.07, color.a))
+	_cv.draw_string(FONT, pos, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
 
 
 func _bar(rect: Rect2, ratio: float, color: Color, ghost: float = -1.0) -> void:
-	var d := _draw_node
+	var d := _cv
 	d.draw_rect(rect.grow(1), Color(0.02, 0.01, 0.04, 0.9))
 	d.draw_rect(rect, Color(0.12, 0.1, 0.16))
 	if ghost > ratio:
@@ -105,8 +126,24 @@ func _bar(rect: Rect2, ratio: float, color: Color, ghost: float = -1.0) -> void:
 	d.draw_rect(Rect2(rect.position, Vector2(rect.size.x * clampf(ratio, 0, 1), 1)), Color(color.r * 1.4, color.g * 1.4, color.b * 1.4))
 
 
-func _draw_hud() -> void:
-	var d := _draw_node
+## Caixinha de ícone 18x18 da HUD.
+func _slot(pos: Vector2, icon: Texture2D) -> void:
+	_cv.draw_rect(Rect2(pos, Vector2(18, 18)), Color(0.05, 0.04, 0.08, 0.8))
+	_cv.draw_rect(Rect2(pos, Vector2(18, 18)), Color(0.4, 0.35, 0.55, 0.6), false, 1.0)
+	if icon:
+		_cv.draw_texture_rect(icon, Rect2(pos + Vector2(1, 1), Vector2(16, 16)), false)
+
+
+## A HUD fica translúcida quando o jogador (ou a ação) passa por baixo dela.
+func _cluster_alpha(rect: Rect2) -> float:
+	if player == null or not is_instance_valid(player):
+		return 1.0
+	var sp: Vector2 = player.get_global_transform_with_canvas().origin * 1.5
+	return 0.3 if rect.grow(10).has_point(sp) or rect.grow(10).has_point(sp - Vector2(0, 18)) else 1.0
+
+
+func _draw_left() -> void:
+	var d := _cv
 	if player == null or not is_instance_valid(player):
 		return
 	# vida / foco
@@ -132,40 +169,47 @@ func _draw_hud() -> void:
 		sx += 8.0
 	if player.ward_charges > 0:
 		_text(Vector2(sx + 2, 44), "Égide x%d" % player.ward_charges, 9, Color(2.0, 1.8, 1.0))
-	# brasas
+
+
+func _draw_right() -> void:
+	var d := _cv
+	if player == null or not is_instance_valid(player):
+		return
+	# brasas + equipamento (canto superior direito, compacto)
 	var cur := int(Game.profile.get("currency", 0))
-	d.draw_circle(Vector2(452, 13), 3.0, Color(2.4, 1.4, 0.4))
-	_text(Vector2(458, 17), str(cur), 12, Color(1.0, 0.8, 0.45))
-	# arma + magias (canto inferior esquerdo)
-	var wid: String = player.weapon_id
-	var wicon := DB.icon(wid)
-	d.draw_rect(Rect2(8, 244, 20, 20), Color(0.05, 0.04, 0.08, 0.85))
-	if wicon:
-		d.draw_texture(wicon, Vector2(10, 246))
-	_text(Vector2(8, 240), DB.display_name(wid), 10, UIKit.DIM)
+	var cur_s := str(cur)
+	var cw := FONT.get_string_size(cur_s, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+	d.draw_circle(Vector2(462 - cw, 13), 3.0, Color(2.4, 1.4, 0.4))
+	_text(Vector2(468 - cw, 17), cur_s, 12, Color(1.0, 0.8, 0.45))
 	var slots: Array = Game.profile.get("spell_slots", [])
 	var keys := [Settings.binding_label("spell_1"), Settings.binding_label("spell_2")]
+	var potions := int(Game.profile.get("items", {}).get("pocao_vida", 0))
+	var x0 := 470.0 - 20.0 * (1 + slots.size() + (1 if potions > 0 else 0))
+	_slot(Vector2(x0, 22), DB.icon(player.weapon_id))
 	for i in slots.size():
 		var sid: String = slots[i]
-		var x := 34.0 + i * 24.0
-		d.draw_rect(Rect2(x, 244, 20, 20), Color(0.05, 0.04, 0.08, 0.85))
-		var ic := DB.icon(sid)
-		if ic:
-			d.draw_texture(ic, Vector2(x + 2, 246))
+		var x := x0 + 20.0 * (i + 1)
+		_slot(Vector2(x, 22), DB.icon(sid))
 		var cd: float = player.caster.cooldown_left(sid)
-		var total: float = float(DB.spell(sid).get("cooldown", 1.0))
+		var total: float = maxf(float(DB.spell(sid).get("cooldown", 1.0)), 0.01)
 		if cd > 0.0:
-			d.draw_rect(Rect2(x, 244 + 20 * (1.0 - cd / maxf(total, 0.01)), 20, 20 * cd / maxf(total, 0.01)), Color(0, 0, 0, 0.6))
-		var level_ := Inventory.spell_level(Game.profile, sid)
-		var cost: float = player.caster.cost_of(sid, level_)
+			d.draw_rect(Rect2(x, 22 + 18 * (1.0 - cd / total), 18, 18 * cd / total), Color(0, 0, 0, 0.6))
+		var cost: float = player.caster.cost_of(sid, Inventory.spell_level(Game.profile, sid))
 		if player.focus < cost:
-			d.draw_rect(Rect2(x, 244, 20, 20), Color(0.1, 0.1, 0.4, 0.45))
-		_text(Vector2(x + 13, 262), keys[i] if i < keys.size() else "", 9, UIKit.GOLD)
-	if not Game.profile.get("sigils", {}).is_empty():
-		_text(Vector2(84, 262), "[%s] Sigilo" % Settings.binding_label("sigil"), 9, UIKit.DIM)
-	var potions := int(Game.profile.get("items", {}).get("pocao_vida", 0))
+			d.draw_rect(Rect2(x, 22, 18, 18), Color(0.1, 0.1, 0.4, 0.45))
+		_text(Vector2(x + 12, 42), keys[i] if i < keys.size() else "", 8, UIKit.GOLD)
 	if potions > 0:
-		_text(Vector2(84, 252), "[%s] Poção x%d" % [Settings.binding_label("heal"), potions], 9, Color(1.4, 0.6, 0.7))
+		var px := x0 + 20.0 * (slots.size() + 1)
+		_slot(Vector2(px, 22), DB.icon("pocao_vida"))
+		_text(Vector2(px + 1, 42), Settings.binding_label("heal"), 8, UIKit.GOLD)
+		_text(Vector2(px + 11, 38), str(potions), 9, Color(1.4, 0.7, 0.8))
+
+
+func _draw_hud() -> void:
+	_cv = _draw_node
+	var d := _draw_node
+	if player == null or not is_instance_valid(player):
+		return
 	# combo
 	if _combo >= 2:
 		var s := 18 + int(_combo_pop * 8.0)

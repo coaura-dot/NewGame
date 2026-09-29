@@ -316,7 +316,7 @@ func _spawn_player() -> void:
 	camera.target = player
 	world.add_child(camera)
 	camera.set_bounds(Rect2(0, 0, layout["width"] * T, layout["height"] * T))
-	camera.snap()
+	_focus_camera_on_player()
 	camera.make_current()
 	var amb := AmbientParticles.new()
 	amb.setup(biome.get("particles", "dust"), camera)
@@ -351,10 +351,10 @@ func _build_layers() -> void:
 func _physics_process(_delta: float) -> void:
 	if player == null or player.dead:
 		return
-	var cell := Vector2i(int(player.global_position.x) / (LevelConst.ROOM_W * T), int(player.global_position.y - 8) / (LevelConst.ROOM_H * T))
-	var idx: int = _room_index_by_cell.get(cell, -1)
+	var idx := room_at(player.global_position)
 	if idx != _current_room and idx >= 0:
 		_current_room = idx
+		camera.set_room(room_rect(idx))
 		_on_room_entered(idx)
 	if player.global_position.y > layout["height"] * T + 32:
 		player.take_status_damage(10.0, "fall")
@@ -380,6 +380,25 @@ func _on_room_entered(idx: int) -> void:
 				hud.show_boss(boss_node)
 	else:
 		_mark_cleared(idx)
+
+
+## Retângulo (em pixels) da sala `idx`.
+func room_rect(idx: int) -> Rect2:
+	var o: Array = layout["rooms"][idx]["origin"]
+	return Rect2(int(o[0]) * T, int(o[1]) * T, LevelConst.ROOM_W * T, LevelConst.ROOM_H * T)
+
+
+func room_at(pos: Vector2) -> int:
+	var cell := Vector2i(int(pos.x) / (LevelConst.ROOM_W * T), int(pos.y - 8) / (LevelConst.ROOM_H * T))
+	return _room_index_by_cell.get(cell, -1)
+
+
+## Trava a câmera na sala do jogador, sem transição (nascer/renascer/teleporte).
+func _focus_camera_on_player() -> void:
+	var idx := room_at(player.global_position)
+	if idx >= 0:
+		camera.set_room(room_rect(idx), true)
+	camera.snap()
 
 
 func _alive_enemies(idx: int) -> int:
@@ -490,7 +509,7 @@ func _on_player_died(_p: Node) -> void:
 	if checkpoint and is_instance_valid(checkpoint):
 		at = checkpoint.global_position
 	player.revive(at)
-	camera.snap()
+	_focus_camera_on_player()
 	FX.clear_time_effects()
 
 

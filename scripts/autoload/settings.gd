@@ -4,7 +4,7 @@ extends Node
 ## motion blur, sombras...) pode ser desligado aqui.
 
 const PATH := "user://settings.cfg"
-const VERSION := 2 ## mudou o visual padrão => reseta as opções de vídeo antigas
+const VERSION := 3 ## mudou o visual padrão => reseta as opções de vídeo antigas
 
 const DEFAULTS := {
 	"video": {
@@ -13,7 +13,7 @@ const DEFAULTS := {
 		"integer_scaling": false,
 		"bloom": true,
 		"bloom_intensity": 0.8,
-		"god_rays": true,
+		"god_rays": false, # raios em tela: sutis, mas deixam rastro em luzes pontuais
 		"motion_blur": true,
 		"motion_blur_strength": 0.35,
 		"dynamic_lights": true,
@@ -58,7 +58,7 @@ const DEFAULT_BINDINGS := {
 	"spell_1": ["k:Q", "ja:4:1"],
 	"spell_2": ["k:E", "ja:5:1"],
 	"sigil": ["k:R", "m:3", "jb:8"],
-	"interact": ["k:Up", "k:W", "k:Enter", "jb:11"],
+	"interact": ["k:W", "k:Up", "k:Enter", "jb:11"],
 	"pause": ["k:Escape", "jb:6"],
 	"map": ["k:M", "k:Tab", "jb:4"],
 	"heal": ["k:H", "jb:7"],

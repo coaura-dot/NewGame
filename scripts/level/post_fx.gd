@@ -53,7 +53,7 @@ func apply_settings() -> void:
 	env.glow_intensity = float(Settings.video("bloom_intensity"))
 	mat.set_shader_parameter("motion_blur_on", bool(Settings.video("motion_blur")))
 	mat.set_shader_parameter("rays_on", bool(Settings.video("god_rays")))
-	mat.set_shader_parameter("ray_strength", 0.15 if outdoor else 0.08)
+	mat.set_shader_parameter("ray_strength", 0.9 if outdoor else 0.55)
 	mat.set_shader_parameter("vignette_on", bool(Settings.video("vignette")))
 	mat.set_shader_parameter("grain_on", bool(Settings.video("film_grain")))
 	var tint: Array = grade.get("tint", [1, 1, 1])

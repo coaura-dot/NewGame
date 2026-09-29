@@ -13,7 +13,8 @@ uniform vec2 dash_center = vec2(0.5);
 uniform bool rays_on = true;
 uniform vec2 ray_origin = vec2(0.5, -0.1);
 uniform float ray_strength = 0.3;
-uniform float ray_threshold = 0.75;
+uniform float ray_threshold = 1.05;
+uniform float ray_length = 0.12;
 
 uniform float chroma = 0.0;
 
@@ -62,18 +63,23 @@ void fragment() {
 	}
 
 	if (rays_on && ray_strength > 0.0) {
-		vec2 delta = (uv - ray_origin) / 28.0;
-		vec2 p = uv;
+		// Raios curtos e suaves: só pixels HDR (luz emissiva > 1.0) espalham
+		// luz para longe da origem, por um trecho curto e com jitter por
+		// pixel (sem isso, a 320x180 os passos viram "contas" pontilhadas).
+		const int RAY_STEPS = 20;
+		vec2 delta = (uv - ray_origin) * ray_length / float(RAY_STEPS);
+		float jitter = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715))));
+		vec2 p = uv - delta * jitter;
 		float decay = 1.0;
 		vec3 rays = vec3(0.0);
-		for (int i = 0; i < 28; i++) {
+		for (int i = 0; i < RAY_STEPS; i++) {
 			p -= delta;
 			vec3 s = texture(screen_tex, clamp(p, vec2(0.001), vec2(0.999))).rgb;
 			float lum = dot(s, vec3(0.299, 0.587, 0.114));
 			rays += s * max(lum - ray_threshold, 0.0) * decay;
-			decay *= 0.94;
+			decay *= 0.88;
 		}
-		col += rays * ray_strength * 0.12;
+		col += rays * ray_strength / float(RAY_STEPS);
 	}
 
 	col *= grade_tint;
