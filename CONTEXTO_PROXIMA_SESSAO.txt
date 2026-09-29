@@ -1,0 +1,237 @@
+===============================================================================
+ CONTEXTO PARA A PRÓXIMA SESSÃO — projeto "NewGame" (título provisório)
+ Leia este arquivo inteiro antes de mexer em qualquer coisa.
+===============================================================================
+
+Repositório: coaura-dot/NewGame
+Branch de trabalho: claude/arcade-stages-procedural-939gyg  (desenvolver e dar push SEMPRE nela)
+Engine: Godot 4.7 (GDScript), renderer Forward+
+Idioma: o usuário fala português. Comentários, textos do jogo e docs em PT-BR.
+Orçamento: o usuário tem pouco crédito. Seja eficiente: faça commits/push cedo,
+evite explorações longas, priorize o que ele pediu.
+
+-------------------------------------------------------------------------------
+1. A IDEIA DO JOGO (visão do usuário)
+-------------------------------------------------------------------------------
+Arcade de stages 2D em pixel art com geração procedural de mapa.
+
+MOVIMENTO: igual Celeste (dash 8 direções, inércia/momentum, precisão, ritmo,
+parkour, pulo na parede, super/hyper). Personagem PEQUENO (~12 px de altura),
+resolução interna 320x180 escalada para a tela (método do Celeste).
+
+COMBATE: estilo Hollow Knight (golpes curtos e rápidos: lado/cima/baixo com
+pogo, recuo ao acertar) misturado com Katana Zero (frenético, aparar/rebater
+projéteis, dash-attack). Regras simples mas profundas: golpe fraco/forte,
+combos, dash hit, esquiva, pulo duplo, aparar, magias, buffs, ponto fraco,
+ataques rítmicos, multi-hit, acúmulos (stacks), fraquezas por classe de arma
+e por escola de magia. Movimento serve como ferramenta de combate.
+
+PERSONAGEM: criaturinha minimalista e expressiva (tipo o cavaleiro de Hollow
+Knight, mas não precisa ser inseto). QUASE NÃO HÁ HUMANOS no jogo; se houver
+"classe humana", também é pequena e minimalista. Sem falas: reage com símbolos
+sobre a cabeça (! ? … ♥ ♪ gota zZ).
+
+VISUAL: tela LIMPA, clara, legível. NÃO poluir com partículas/escuridão.
+Efeitos de luz (bloom, raios, motion blur) existem mas são sutis e todos
+desligáveis no menu de vídeo. Pixel art simples; placeholders são aceitos
+(o usuário vai editar a arte depois).
+
+ARMAS (várias classes/playstyles): espada fina, espada longa, espada pesada,
+katana, adagas, katanas duplas, katana pesada (odachi), faca, bastão, armas de
+sangramento, espada+escudo, manoplas...
+
+MAGIAS: clássicas (arcano, fogo, gelo, terra, água, raio) + modernas (gravidade,
+buraco negro, cegueira, teleporte, luz, psíquico, parar o tempo, pressão,
+telecinese, quântico, voltar no tempo, desacelerar). SIGILOS desenhados com o
+mouse (dano escala com a precisão). Tudo tem nível de upgrade.
+
+POOL COMPARTILHADO: jogador e inimigos usam as MESMAS armas/magias/armaduras.
+Inimigos dropam o que usam; itens raríssimos só de certos inimigos/chefes;
+chefes podem ser reconjurados (refight) se o jogador tiver um item requisito.
+BALANCEAMENTO: ninguém pode ter magia/arma desproporcional (há testes de
+"orçamento de poder").
+
+BUILDS: relíquias/buffs que combam entre si (Dead Cells). Armaduras em
+conjuntos customizáveis com efeitos (Terraria, mais complexo).
+
+MUNDO — duas camadas:
+ * MACRO (mapa-mundi): grafo de regiões gerado pela seed no início do save e
+   FIXO durante a partida. Pode ser meio 3D. Regiões em camadas céu /
+   superfície / subterrâneo. Habilidades de movimento e certas magias são
+   GATES (metroidvania). Regiões limpas viram viagem rápida.
+ * MICRO: interior de cada região gerado por chunks modulares (Dead Cells):
+   combate, puzzle, tesouro, segredo, desafios "caminho da dor", salas
+   seladas (magia/chave/puzzle), baús, desafios opcionais e obrigatórios.
+ * MUITOS biomas (cidades, vilas, templos, ruínas, florestas, desertos,
+   pântanos, cidades no céu, subterrâneas, de magos, orcs, bárbaros,
+   goblins...), MUITAS áreas opcionais, OUTRAS DIMENSÕES / mundos paralelos
+   com física, regras e criaturas diferentes.
+ * CHEFES variados: 1v1 em arena, horda, monstros grandes, chefes de puzzle,
+   chefes com parkour.
+
+SOCIAL: hubs fixos com NPCs cativantes; missões; NPCs ajudam (upgrades,
+itens, lore, resgate em combate) e são ajudados. Casamento estilo Stardew.
+Reputação: baixa = trabalhos sujos (mercenário, assassino); alta = missões do
+rei/autoridades (matar chefes, limpar áreas, enigmas de templo).
+
+FINAL ("O Cerco"): ataque simultâneo a todas as regiões; o jogador escolhe UMA
+para defender. Todas as outras — NPCs, casamentos, reputação — são dizimadas.
+Os vínculos construídos dão o peso emocional da escolha.
+
+-------------------------------------------------------------------------------
+2. HISTÓRICO DAS SESSÕES
+-------------------------------------------------------------------------------
+SESSÃO 1: criou tudo do zero — dados, sistemas, geração, UI, testes. Usou
+arte CC0 da internet (Gothicvania etc.), herói humano grande, tela 480x270.
+
+FEEDBACK DO USUÁRIO após a sessão 1 (IMPORTANTE, respeitar sempre):
+ - personagem humanoide e grande = ruim; quer bichinho minimalista ~12 px
+ - pixel arts grandes demais; jogo escuro, poluído, cheio de partículas
+ - combate lento; quer estilo Hollow Knight com movimento Celeste
+ - resolução interna 320x180 escalada
+
+SESSÃO 2 (atual): refez visual e feel:
+ - 320x180: o mundo renderiza num SubViewport 320x180 pixel-perfeito dentro
+   de Level (scripts/level/level.gd, _make_viewport). HUD/menus ficam fora,
+   nítidos. project.godot: viewport 320x180, stretch canvas_items, janela
+   1280x720, hdr_2d=false na raiz; o SubViewport usa HDR (bloom) e é
+   convertido linear->sRGB por shaders/linear_to_srgb.gdshader (sem isso a
+   imagem ficava ~50% mais escura — não remover!).
+ - tiles 8 px gerados por tools/build_tiles.py (paletas chapadas por bioma).
+ - criaturas procedurais: scripts/fx/creature_sprite.gd (player, inimigos,
+   NPCs). Aparência dos inimigos em data/enemies.json -> "look".
+ - física do player = números nativos do Celeste (topo de player.gd).
+ - golpes: data/weapon_classes.json foi escrito para herói grande; o
+   AttackRunner.scaled() converte (BOX/LUNGE/KB/tempos). Magias convertidas
+   em SpellCaster (_sv/_sf, tabela SPACE).
+ - UI: layouts continuam em coordenadas 480x270 dentro de CanvasLayers com
+   scale 2/3 (root Control com size 480x270, NÃO usar anchors full rect).
+ - efeitos: grain/vinheta/aberração/números de dano/partículas desligados por
+   padrão (Settings.VERSION=2 reseta vídeo antigo).
+ - Screenshot atual: docs/screenshot_treino.png
+ - Testes: 4412 verificações passando.
+
+-------------------------------------------------------------------------------
+3. MAPA DO CÓDIGO
+-------------------------------------------------------------------------------
+data/               tudo é dirigido por JSON (chaves "_doc" são ignoradas)
+  weapon_classes.json  movesets por classe (frame data)
+  weapons.json         armas concretas (pool compartilhado)
+  spells.json          24 magias + sigilos ("cast" define o comportamento)
+  armor.json           slots, afixos, conjuntos (bônus 2/4/6), berloques
+  buffs.json           relíquias: triggers/condições/efeitos
+  enemies.json         inimigos: loadout, fraquezas, drops, look, IA
+  biomes.json (15), dimensions.json (6), abilities.json (gates),
+  npcs.json, quests.json, items.json
+  rooms/core.txt       templates de sala ASCII 40x24 (editáveis à mão)
+
+scripts/autoload/  Events (sinais), Settings (opções/controles), DB (carrega
+                   e valida JSON), Game (estado, seed, perfil, cenas, treino),
+                   FX (hitstop, shake, slowmo, faíscas), Audio, SaveSystem
+scripts/core/      DamageInfo, StatBlock, CombatMath, PowerBudget, RngUtil,
+                   Inventory
+scripts/combat/    Hitbox, Hurtbox, Hazard, StatusController, AttackRunner,
+                   SpellCaster, Projectile, SpellField, BuffSystem,
+                   SigilRecognizer ($1 recognizer), EchoStrike, Layers
+scripts/actors/    Actor (base), Player (~1300 linhas), Enemy (IA: melee,
+                   lunger, caster, turret, charger, boss_demon)
+scripts/world/     WorldGenerator (grafo macro, gates solúveis por construção)
+scripts/level/     LevelGenerator (layout Dead Cells), RoomSynth (sala
+                   procedural p/ qualquer saída), ChunkLibrary, LevelBuilder,
+                   TileSetBuilder, Level (runtime), GameCamera, BackgroundLayer,
+                   AmbientParticles, PostFX, LevelConst (TILE=8, sala 40x24)
+scripts/entities/  porta, baú, pickup, cristal de dash, mola, serra, tocha,
+                   raio de luz, portão, alavanca, NPC, checkpoint, plataforma
+                   que cai, relíquia, mural de missões, fenda dimensional,
+                   altar de chefe, portão de habilidade, parede quebrável
+scripts/social/    SocialSystem (NPCs, afinidade, presentes, casamento,
+                   reputação, missões por faixa, resgate, O Cerco)
+scripts/ui/        UIKit, HUD, PauseMenu (equipamento), OptionsMenu,
+                   MainMenu, WorldMap (3D pixelado), Ending
+scripts/fx/        CreatureSprite, SlashArc, Burst, FloatingText, NovaFX,
+                   LightningFX, AfterImage, LightUtil
+shaders/           post_fx, light_shaft, linear_to_srgb, sprite_fx (legado)
+scenes/            boot, main_menu, world_map, level, ending (raízes finas)
+tests/             test_runner.tscn + test_*.gd, screenshot.tscn
+tools/             build_tiles.py (tiles 8px), build_assets.py (legado CC0),
+                   validate_rooms.py, check_scripts.sh
+assets/            ícones/fontes/sons CC0 (Kenney etc.); art/characters e
+                   backgrounds antigos (Gothicvania) NÃO são mais usados
+
+Controles: WASD/setas, Espaço pular, Shift dash, J ataque, K pesado (segurar),
+L/F aparar, Ctrl esquiva, Q/E magias, R sigilo (segurar+desenhar), H poção,
+G trocar arma, W/↑ interagir, Esc pausa. Menu tem "Treino" (tudo liberado).
+
+-------------------------------------------------------------------------------
+4. COMO TRABALHAR NO CONTAINER (nuvem)
+-------------------------------------------------------------------------------
+ - Godot NÃO vem instalado e os sites de download do Godot são bloqueados.
+   Na sessão 1 foi compilado do código-fonte (git clone do GitHub funciona):
+     git clone --depth 1 --branch 4.7.2-stable https://github.com/godotengine/godot.git /opt/godot-src
+     pip3 install scons
+     (headless, ~12 min com 4 núcleos)
+     scons platform=linuxbsd target=editor x11=no wayland=no vulkan=no opengl3=no \
+       fontconfig=no udev=no dbus=no speechd=no pulseaudio=no alsa=no optimize=none \
+       debug_symbols=no module_mono_enabled=no module_openxr_enabled=no \
+       module_text_server_adv_enabled=no accesskit=no -j4
+   Para screenshots: mesma coisa com x11=yes vulkan=yes opengl3=yes, e
+     apt-get install -y xvfb mesa-vulkan-drivers libvulkan1
+     xvfb-run -a -s "-screen 0 1280x720x24" <godot> --path . --rendering-driver vulkan \
+       res://tests/screenshot.tscn -- <saida.png>
+ - Rodar testes:  godot --headless --path . --import   (1ª vez / após novos class_name)
+                  godot --headless --path . res://tests/test_runner.tscn
+                  (TEST_ONLY=test_smoke para rodar só um arquivo)
+ - Armadilhas do GDScript 4.7 já encontradas:
+     * `var x := algo_de_Node_sem_tipo.metodo()` falha (inferência de Variant);
+       use tipo explícito `var x: Vector2 = ...`
+     * round() retorna Variant -> use roundf()
+     * novos class_name só entram no cache após --import
+     * testes usam extends "res://tests/test_case.gd" (sem class_name)
+     * Input.action_press em teste não gera just_pressed no mesmo frame;
+       segure alguns frames.
+ - Arte CC0 extra: repo github.com/series-ai/jam-ready-assets (arquivos são
+   Git LFS; baixar via https://media.githubusercontent.com/media/series-ai/jam-ready-assets/main/<caminho>)
+
+-------------------------------------------------------------------------------
+5. O QUE FALTA (prioridade sugerida)
+-------------------------------------------------------------------------------
+ALTA (feel / o que o usuário vai notar primeiro)
+ 1. Ajustar feel jogando/recebendo feedback: física (player.gd), escalas de
+    golpe (attack_runner.gd), velocidade/alcance de inimigos (enemies.json).
+ 2. Animação do golpe do player: hoje só o arco (SlashArc) + pose; desenhar o
+    ferrão/lâmina balançando no CreatureSprite; squash no acerto.
+ 3. Recalibrar templates de sala (data/rooms/core.txt) e RoomSynth para o
+    novo tamanho (herói 12px, pulo ~4 tiles): alturas de plataforma, vãos.
+ 4. Menus/HUD revisados para 320x180 (hoje só escalados 2/3); mais emoções
+    contextuais (NPC querido perto = ♥, etc).
+ 5. Música/ambiente sonoro (nenhuma música ainda).
+
+MÉDIA (conteúdo)
+ 6. Chefes: só existem Corcel (elite) e Arquidemônio. Faltam chefe de horda,
+    de puzzle, de parkour, monstro gigante, arena 1v1 com espadachim.
+ 7. Mais inimigos e variantes por bioma/dimensão (hoje 9).
+ 8. Mais templates de sala por bioma e tipo; puzzles de verdade (hoje só
+    alavanca/portão e paredes quebráveis).
+ 9. Loja/ferreiro/sábio: upgrade de armas, magias e armaduras (os serviços
+    existem nos dados dos NPCs, mas não há UI de compra/upgrade).
+10. Mundos paralelos: física por dimensão já funciona (gravidade, invertida,
+    tempo inimigo, regras); faltam criaturas/visual exclusivos de cada uma.
+11. Hubs visitáveis mais ricos (cidade/vila com casas, NPCs andando).
+12. Mais conteúdo de missões (objetivos reais: alvo de assassinato, entrega,
+    escolta) e consequências de reputação.
+
+BAIXA / polimento
+13. Arte final (o usuário vai editar; tudo procedural é fácil de trocar).
+14. Rebinding de controles na UI; suporte melhor a controle nos menus.
+15. Mapa 3D: estética, animações de viagem, ícones.
+16. Limpeza: remover assets/art/characters e backgrounds antigos + shader
+    sprite_fx se confirmado sem uso; tools/build_assets.py é legado.
+17. Exportar builds (Windows) quando o usuário pedir.
+
+-------------------------------------------------------------------------------
+6. COMO O USUÁRIO ABRE O JOGO
+-------------------------------------------------------------------------------
+Baixa o ZIP da branch no GitHub, extrai o Godot em C:\Users\igo\Downloads\godot
+(não precisa instalar), Import -> project.godot -> F5. Menu: "Treino" ou
+"Novo jogo" (seed). Ver também README.md.
+===============================================================================
