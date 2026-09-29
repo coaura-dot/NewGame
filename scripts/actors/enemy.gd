@@ -80,6 +80,7 @@ var _combo_red_finisher: bool = false
 var _spam_hits: Array = [] ## tempos dos golpes recebidos fora da janela
 var _glint_done: bool = true
 var _pending_spell: String = "" ## magia escolhida no início da conjuração
+var brain: GuardianBrain = null ## chefes guardiões (padrões por dados)
 
 
 func setup(id: String, enemy_tier: int, dimension_id: String = "prima") -> void:
@@ -103,6 +104,7 @@ func setup(id: String, enemy_tier: int, dimension_id: String = "prima") -> void:
 		"melee": default_guard = 3 if tier <= 1 else 2
 		"lunger": default_guard = 2
 		"charger": default_guard = 3
+		"guardian": default_guard = 3
 	guard_threshold = int(data.get("guard", default_guard))
 
 
@@ -122,6 +124,10 @@ func _ready() -> void:
 	hp = max_hp()
 	if lo.get("weapon", "") != "":
 		moveset = DB.moveset(lo["weapon"])
+	if moveset.is_empty() and data.has("damage"):
+		moveset = {"damage": float(data["damage"])}
+	if ai == "guardian":
+		brain = GuardianBrain.new(self)
 	spells = lo.get("spells", [])
 	var body: Array = data.get("body", [8, 12])
 	var cs := CollisionShape2D.new()
@@ -223,6 +229,7 @@ func _actor_physics(d: float, raw: float) -> void:
 		"moth": _ai_moth(d)
 		"shield": _ai_shield(d)
 		"gust": _ai_gust(d)
+		"guardian": brain.tick(d)
 		_: _ai_melee(d)
 	_gravity(d)
 	_move(d, raw)

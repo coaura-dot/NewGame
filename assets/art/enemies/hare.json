@@ -1,0 +1,38 @@
+{
+ "size": [
+  20,
+  18
+ ],
+ "feet": [
+  10,
+  18
+ ],
+ "cols": 9,
+ "anims": {
+  "idle": {
+   "start": 0,
+   "count": 2,
+   "fps": 3
+  },
+  "run": {
+   "start": 2,
+   "count": 4,
+   "fps": 16
+  },
+  "windup": {
+   "start": 6,
+   "count": 1,
+   "fps": 8
+  },
+  "attack": {
+   "start": 7,
+   "count": 1,
+   "fps": 8
+  },
+  "tired": {
+   "start": 8,
+   "count": 1,
+   "fps": 8
+  }
+ }
+}

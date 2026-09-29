@@ -540,3 +540,7 @@ ALL = {
     "fire_skull": fire_skull, "hell_beast": hell_beast, "nightmare": nightmare, "demon": demon,
     "moth": moth, "ash_knight": ash_knight, "gust": gust,
 }
+
+# guardiões das Brasas-Mestras (chefes) ficam em guardian_art.py
+from guardian_art import GUARDIANS  # noqa: E402
+ALL.update(GUARDIANS)

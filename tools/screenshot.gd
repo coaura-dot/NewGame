@@ -10,6 +10,7 @@ extends SceneTree
 ## intro: os cartões da introdução do novo jogo;
 ## regiao [seed]: fase da região inicial (tábua de pedra com a inscrição);
 ## bichos: os inimigos novos (mariposa, Guarda de Cinzas, Sopro) em ação.
+## chefe <id>: um guardião duelando com o herói (vários quadros).
 
 var _out := "user://shot"
 var _mode := "treino"
@@ -67,6 +68,8 @@ func _process(_d: float) -> bool:
 		return _duelo()
 	if _mode == "bichos":
 		return _bichos()
+	if _mode == "chefe":
+		return _chefe()
 	if _mode != "menu":
 		if _n == 60:
 			Input.action_press("move_right")
@@ -399,3 +402,36 @@ func _bichos() -> bool:
 	if _n > 275:
 		quit()
 	return false
+
+
+var _boss_en: Node = null
+
+
+func _chefe() -> bool:
+	var p = _level.player if _level else null
+	if p == null:
+		return false
+	var args := OS.get_cmdline_user_args()
+	var gid: String = args[2] if args.size() > 2 else "golem_guardian"
+	if _n == 30:
+		p.invuln_time = 999.0
+		var en = load("res://scripts/actors/enemy.gd").new()
+		en.setup(gid, 2)
+		en.position = p.global_position + Vector2(60, -40 if DB_flying(gid) else -4)
+		en.level = _level
+		p.get_parent().add_child(en)
+		_boss_en = en
+	if _n > 30:
+		p.invuln_time = 999.0
+		p._idle_t = 0.0
+		if _boss_en and is_instance_valid(_boss_en):
+			_boss_en.hp = maxf(_boss_en.hp, _boss_en.max_hp() * 0.45)
+	if _n > 30 and _n % 25 == 0 and _n <= 330:
+		_save("c%03d_%s" % [_n, _boss_en.ai_state if _boss_en and is_instance_valid(_boss_en) else "?"])
+	if _n > 335:
+		quit()
+	return false
+
+
+func DB_flying(gid: String) -> bool:
+	return bool(root.get_node("DB").enemy(gid).get("flying", false))

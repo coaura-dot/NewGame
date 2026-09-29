@@ -13,6 +13,12 @@ extends RefCounted
 ##     k-1, que é concedida por um chefe numa faixa < k;
 ##   * ao menos um hub (o inicial) e um chefe final na região mais distante.
 
+## Guardião (chefe) de cada Brasa-Mestra: cada dom tem um duelo próprio.
+const GUARDIAN_OF := {
+	"double_jump": "raven_guardian", "wall_climb": "spider_guardian", "dash_2": "hare_guardian",
+	"ground_pound": "golem_guardian", "blink": "mirror_guardian",
+}
+
 const LAYER_HEIGHT := {"sky": 16.0, "surface": 0.0, "underground": -14.0}
 const LAYER_BIOMES := {
 	"surface": {"cemiterio": 3, "castelo": 3, "cidade_gotica": 3, "templo_dourado": 2, "ruinas": 3, "floresta": 3,
@@ -164,7 +170,7 @@ static func generate(seed_value: int, db: Node = null) -> Dictionary:
 		var gi: int = candidates[0]
 		var gr: Dictionary = world["regions"][ids[gi]]
 		gr["grants"] = gate_abilities[b]
-		gr["boss"] = "nightmare"
+		gr["boss"] = GUARDIAN_OF.get(gate_abilities[b], "nightmare")
 
 	# final: a região mais distante
 	var finale_idx := 0

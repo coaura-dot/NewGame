@@ -68,7 +68,7 @@ static func _build(room_type: String, exits: String, rng: RandomNumberGenerator,
 		"entrance": _entrance(g, rng, exits)
 		"exit": _exit(g, rng, exits)
 		"hub": _hub(g, rng, exits)
-		"boss": _boss(g, rng, exits)
+		"boss": _boss(g, rng, exits, bool(opts.get("boss_flying", true)))
 	if exits.contains("U"):
 		ladder(g, rng)
 	_decorate(g, rng, opts)
@@ -83,7 +83,7 @@ static func _safe(room_type: String, exits: String, rng: RandomNumberGenerator, 
 		"entrance": _put_on_floor(g, 8 if not exits.contains("L") else 30, "P")
 		"exit": _put_on_floor(g, 28, "X")
 		"hub": _hub(g, rng, exits)
-		"boss": _boss(g, rng, exits)
+		"boss": _boss(g, rng, exits, bool(opts.get("boss_flying", true)))
 		"treasure": _put_on_floor(g, 12, "C")
 		"secret": _put_on_floor(g, 12, "R")
 		"challenge": _put_on_floor(g, 12, "R")
@@ -1401,8 +1401,10 @@ static func _hub(g: Array, _rng: RandomNumberGenerator, exits: String) -> void:
 	put(g, W - 9, 8, "L")
 
 
-static func _boss(g: Array, rng: RandomNumberGenerator, exits: String) -> void:
+static func _boss(g: Array, rng: RandomNumberGenerator, exits: String, flying: bool = true) -> void:
 	var roll := rng.randf()
+	if not flying:
+		roll = 0.4 + roll * 0.6 # chefe que anda: nada de arena sobre espinhos
 	if roll < 0.4:
 		# chefe de parkour: arena sobre espinhos, ilhas largas e orbes para
 		# alcançar o chefe no ar

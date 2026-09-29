@@ -684,5 +684,692 @@
    1.0
   ],
   "desc": "Um fiapo do Sopro que apagou a Lareira: inspira e sopra rajadas que empurram e esfriam."
+ },
+ "raven_guardian": {
+  "boss": true,
+  "elite": true,
+  "tier": 2,
+  "aggro": 320,
+  "attack_range": 60,
+  "guard": 3,
+  "phases": [
+   1.0,
+   0.5
+  ],
+  "loadout": {
+   "spells": []
+  },
+  "name": "Corvo das Cinzas",
+  "sprite": "raven",
+  "hp": 170,
+  "speed": 82,
+  "ai": "guardian",
+  "flying": true,
+  "body": [
+   16,
+   12
+  ],
+  "contact_damage": 6,
+  "poise": 14,
+  "damage": 15,
+  "pref_range": 58,
+  "anim": {
+   "idle": "idle",
+   "move": "idle",
+   "windup": "windup",
+   "attack": "attack",
+   "cast": "cast",
+   "tired": "idle"
+  },
+  "light": {
+   "color": [
+    2.0,
+    1.2,
+    0.5
+   ],
+   "energy": 0.7,
+   "scale": 0.8
+  },
+  "weakness": {
+   "ice": 1.3,
+   "lightning": 1.3,
+   "fire": 0.6
+  },
+  "moves": [
+   {
+    "id": "rasante",
+    "kind": "swoop",
+    "windup": 0.5,
+    "time": 0.55,
+    "speed": 215,
+    "box": [
+     -8,
+     -6,
+     18,
+     12
+    ],
+    "recover": 0.9,
+    "weight": 3
+   },
+   {
+    "id": "penas",
+    "kind": "volley",
+    "windup": 0.5,
+    "count": 4,
+    "count_phase": 1,
+    "spread": 26,
+    "speed": 125,
+    "color": [
+     2.4,
+     1.3,
+     0.6
+    ],
+    "recover": 0.8,
+    "weight": 2,
+    "range": [
+     40,
+     400
+    ]
+   },
+   {
+    "id": "ventania",
+    "kind": "volley",
+    "red": true,
+    "windup": 0.6,
+    "count": 3,
+    "spread": 10,
+    "speed": 155,
+    "radius": 5,
+    "color": [
+     1.6,
+     2.4,
+     2.8
+    ],
+    "status": {
+     "chill": 1
+    },
+    "sfx": "spell_pressure",
+    "recover": 0.7,
+    "weight": 1.5,
+    "phase": 1
+   },
+   {
+    "id": "mergulho",
+    "kind": "slam",
+    "red": true,
+    "windup": 0.55,
+    "waves": true,
+    "dizzy": true,
+    "recover": 1.2,
+    "weight": 2,
+    "phase": 1,
+    "dmg": 1.4
+   }
+  ],
+  "currency": [
+   70,
+   100
+  ],
+  "blood": [
+   0.4,
+   0.35,
+   0.5
+  ],
+  "desc": "Rasantes e leques de penas (amarelos: rebata as penas!). Na 2ª fase mergulha no chão (vermelho) e solta ondas: pule por cima e castigue enquanto ele se levanta."
+ },
+ "spider_guardian": {
+  "boss": true,
+  "elite": true,
+  "tier": 2,
+  "aggro": 320,
+  "attack_range": 60,
+  "guard": 3,
+  "phases": [
+   1.0,
+   0.5
+  ],
+  "loadout": {
+   "spells": []
+  },
+  "name": "Tecelã das Frestas",
+  "sprite": "spider",
+  "hp": 190,
+  "speed": 70,
+  "ai": "guardian",
+  "body": [
+   18,
+   12
+  ],
+  "contact_damage": 6,
+  "poise": 16,
+  "damage": 15,
+  "pref_range": 44,
+  "anim": {
+   "idle": "idle",
+   "move": "walk",
+   "windup": "windup",
+   "attack": "attack",
+   "cast": "cast",
+   "tired": "idle"
+  },
+  "weakness": {
+   "fire": 1.5,
+   "light": 1.2
+  },
+  "moves": [
+   {
+    "id": "mordida",
+    "kind": "combo",
+    "windup": 0.45,
+    "hits": [
+     {
+      "box": [
+       0,
+       -12,
+       20,
+       12
+      ],
+      "dmg": 1.0,
+      "lunge": 90,
+      "time": 0.28
+     },
+     {
+      "box": [
+       0,
+       -14,
+       22,
+       14
+      ],
+      "dmg": 1.3,
+      "lunge": 130,
+      "time": 0.4
+     }
+    ],
+    "recover": 0.85,
+    "weight": 3,
+    "range": [
+     0,
+     90
+    ]
+   },
+   {
+    "id": "teia",
+    "kind": "volley",
+    "windup": 0.45,
+    "count": 1,
+    "bursts": 2,
+    "interval": 0.3,
+    "speed": 115,
+    "radius": 4,
+    "status": {
+     "slowed": 1
+    },
+    "color": [
+     2.4,
+     2.4,
+     2.6
+    ],
+    "recover": 0.6,
+    "weight": 2,
+    "range": [
+     40,
+     400
+    ]
+   },
+   {
+    "id": "bote",
+    "kind": "slam",
+    "red": true,
+    "windup": 0.5,
+    "jump": 250,
+    "air": 0.55,
+    "recover": 1.0,
+    "weight": 2,
+    "range": [
+     40,
+     220
+    ],
+    "dmg": 1.3
+   },
+   {
+    "id": "ninhada",
+    "kind": "summon",
+    "windup": 0.6,
+    "enemy": "hellcat",
+    "count": 2,
+    "recover": 0.9,
+    "weight": 1.2,
+    "phase": 1
+   },
+   {
+    "id": "casulos",
+    "kind": "rockfall",
+    "red": true,
+    "windup": 0.55,
+    "count": 3,
+    "gap": 30,
+    "delay": 0.8,
+    "recover": 0.7,
+    "weight": 1.5,
+    "phase": 1
+   }
+  ],
+  "currency": [
+   70,
+   100
+  ],
+  "blood": [
+   0.7,
+   0.5,
+   0.9
+  ],
+  "desc": "Mordidas em dupla (amarelas) e teias que deixam lento. O bote é vermelho: esquive e castigue. Na 2ª fase chama filhotes e derruba casulos do teto."
+ },
+ "hare_guardian": {
+  "boss": true,
+  "elite": true,
+  "tier": 2,
+  "aggro": 320,
+  "attack_range": 60,
+  "guard": 3,
+  "phases": [
+   1.0,
+   0.5
+  ],
+  "loadout": {
+   "spells": []
+  },
+  "name": "Lebre do Vendaval",
+  "sprite": "hare",
+  "hp": 150,
+  "speed": 115,
+  "ai": "guardian",
+  "body": [
+   12,
+   12
+  ],
+  "contact_damage": 5,
+  "poise": 12,
+  "damage": 14,
+  "pref_range": 62,
+  "anim": {
+   "idle": "idle",
+   "move": "run",
+   "windup": "windup",
+   "attack": "attack",
+   "cast": "windup",
+   "tired": "tired"
+  },
+  "weakness": {
+   "earth": 1.4,
+   "ice": 1.2,
+   "pressure": 0.5
+  },
+  "moves": [
+   {
+    "id": "coice",
+    "kind": "combo",
+    "windup": 0.35,
+    "hits": [
+     {
+      "box": [
+       0,
+       -12,
+       18,
+       12
+      ],
+      "dmg": 1.0,
+      "lunge": 150,
+      "time": 0.25
+     }
+    ],
+    "recover": 0.6,
+    "weight": 2,
+    "range": [
+     0,
+     70
+    ]
+   },
+   {
+    "id": "vendaval",
+    "kind": "dash_chain",
+    "windup": 0.45,
+    "count": 3,
+    "speed": 285,
+    "time": 0.42,
+    "chain_windup": 0.32,
+    "red_last": true,
+    "recover": 1.5,
+    "weight": 3
+   },
+   {
+    "id": "sopro",
+    "kind": "volley",
+    "windup": 0.45,
+    "count": 3,
+    "spread": 16,
+    "speed": 140,
+    "radius": 5,
+    "color": [
+     1.6,
+     2.4,
+     2.8
+    ],
+    "sfx": "spell_pressure",
+    "recover": 0.6,
+    "weight": 1.2,
+    "range": [
+     60,
+     400
+    ]
+   },
+   {
+    "id": "salto",
+    "kind": "slam",
+    "red": true,
+    "windup": 0.5,
+    "jump": 290,
+    "air": 0.7,
+    "waves": true,
+    "recover": 1.0,
+    "weight": 1.5,
+    "phase": 1,
+    "dmg": 1.3
+   }
+  ],
+  "currency": [
+   70,
+   100
+  ],
+  "blood": [
+   0.9,
+   0.9,
+   1.0
+  ],
+  "desc": "Rapidíssima. Três investidas seguidas: as duas primeiras dá para aparar, a terceira é vermelha — pule! Depois ela fica tonta: é a sua vez."
+ },
+ "golem_guardian": {
+  "boss": true,
+  "elite": true,
+  "tier": 2,
+  "aggro": 320,
+  "attack_range": 60,
+  "guard": 3,
+  "phases": [
+   1.0,
+   0.5
+  ],
+  "loadout": {
+   "spells": []
+  },
+  "name": "Golem de Pedra-Pomes",
+  "sprite": "golem",
+  "hp": 260,
+  "speed": 38,
+  "ai": "guardian",
+  "body": [
+   22,
+   24
+  ],
+  "contact_damage": 8,
+  "poise": 26,
+  "damage": 18,
+  "pref_range": 40,
+  "anim": {
+   "idle": "idle",
+   "move": "walk",
+   "windup": "windup",
+   "attack": "attack",
+   "cast": "windup",
+   "tired": "tired"
+  },
+  "weak_points": [
+   {
+    "box": [
+     -13,
+     -20,
+     6,
+     10
+    ],
+    "mult": 2.0,
+    "name": "brasa nas costas"
+   }
+  ],
+  "weakness": {
+   "water": 1.5,
+   "blunt": 1.3,
+   "fire": 0.3
+  },
+  "moves": [
+   {
+    "id": "pancada",
+    "kind": "combo",
+    "windup": 0.7,
+    "hits": [
+     {
+      "box": [
+       0,
+       -26,
+       30,
+       26
+      ],
+      "dmg": 1.5,
+      "lunge": 40,
+      "time": 0.55,
+      "active": 0.15
+     }
+    ],
+    "recover": 1.1,
+    "weight": 3,
+    "range": [
+     0,
+     70
+    ]
+   },
+   {
+    "id": "tremor",
+    "kind": "slam",
+    "red": true,
+    "windup": 0.65,
+    "jump": 200,
+    "air": 0.6,
+    "waves": true,
+    "wave_speed": 110,
+    "dizzy": true,
+    "recover": 1.3,
+    "weight": 2.5,
+    "dmg": 1.5
+   },
+   {
+    "id": "chuva",
+    "kind": "rockfall",
+    "red": true,
+    "windup": 0.55,
+    "count": 4,
+    "gap": 28,
+    "delay": 0.8,
+    "recover": 0.7,
+    "weight": 2,
+    "range": [
+     50,
+     400
+    ]
+   },
+   {
+    "id": "dupla",
+    "kind": "combo",
+    "windup": 0.6,
+    "hits": [
+     {
+      "box": [
+       0,
+       -26,
+       30,
+       26
+      ],
+      "dmg": 1.2,
+      "lunge": 50,
+      "time": 0.45,
+      "active": 0.14
+     },
+     {
+      "box": [
+       0,
+       -26,
+       32,
+       26
+      ],
+      "dmg": 1.6,
+      "lunge": 70,
+      "time": 0.6,
+      "active": 0.16,
+      "red": true
+     }
+    ],
+    "recover": 1.2,
+    "weight": 2,
+    "phase": 1,
+    "range": [
+     0,
+     80
+    ]
+   }
+  ],
+  "currency": [
+   80,
+   110
+  ],
+  "blood": [
+   0.8,
+   0.7,
+   0.6
+  ],
+  "desc": "Lento e pesado. A pancada é amarela (apare!). O tremor e a chuva de pedras são vermelhos. A brasa nas COSTAS é o ponto fraco — passe por trás durante a punição."
+ },
+ "mirror_guardian": {
+  "boss": true,
+  "elite": true,
+  "tier": 2,
+  "aggro": 320,
+  "attack_range": 60,
+  "guard": 3,
+  "phases": [
+   1.0,
+   0.5
+  ],
+  "loadout": {
+   "spells": []
+  },
+  "name": "Espelho Etéreo",
+  "sprite": "mirror",
+  "hp": 160,
+  "speed": 72,
+  "ai": "guardian",
+  "flying": true,
+  "body": [
+   12,
+   16
+  ],
+  "contact_damage": 5,
+  "poise": 12,
+  "damage": 14,
+  "pref_range": 62,
+  "anim": {
+   "idle": "idle",
+   "move": "idle",
+   "windup": "windup",
+   "attack": "attack",
+   "cast": "cast",
+   "tired": "idle"
+  },
+  "light": {
+   "color": [
+    1.4,
+    1.2,
+    2.4
+   ],
+   "energy": 0.7,
+   "scale": 0.8
+  },
+  "weakness": {
+   "blunt": 1.5,
+   "void": 0.5,
+   "light": 0.7
+  },
+  "moves": [
+   {
+    "id": "passo",
+    "kind": "teleport",
+    "windup": 0.35,
+    "weight": 3,
+    "follow": {
+     "kind": "swoop",
+     "windup": 0.34,
+     "time": 0.28,
+     "speed": 200,
+     "box": [
+      -6,
+      -8,
+      14,
+      14
+     ],
+     "recover": 0.9
+    }
+   },
+   {
+    "id": "estilhacos",
+    "kind": "volley",
+    "windup": 0.5,
+    "count": 5,
+    "spread": 45,
+    "speed": 115,
+    "color": [
+     2.6,
+     1.2,
+     2.6
+    ],
+    "recover": 0.8,
+    "weight": 2,
+    "range": [
+     40,
+     400
+    ]
+   },
+   {
+    "id": "ilusoes",
+    "kind": "decoys",
+    "windup": 0.45,
+    "count": 2,
+    "recover": 1.0,
+    "weight": 2
+   },
+   {
+    "id": "anel",
+    "kind": "volley",
+    "red": true,
+    "windup": 0.6,
+    "count": 10,
+    "spread": 180,
+    "speed": 85,
+    "color": [
+     1.8,
+     1.2,
+     2.8
+    ],
+    "recover": 0.9,
+    "weight": 1.5,
+    "phase": 1
+   }
+  ],
+  "currency": [
+   70,
+   100
+  ],
+  "blood": [
+   0.8,
+   0.85,
+   1.0
+  ],
+  "desc": "Some e reaparece pelas SUAS costas: vire-se e apare. As ilusões atiram estilhaços amarelos (rebata). O anel da 2ª fase é vermelho: passe pelos buracos."
  }
 }

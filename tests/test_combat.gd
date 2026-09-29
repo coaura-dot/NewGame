@@ -93,3 +93,65 @@ func test_efeitos_por_escola() -> void:
 		await tree.process_frame
 	eq(root.get_child_count(), 0, "partículas somem sozinhas")
 	root.queue_free()
+
+
+## Guardiões: cada um roda o próprio padrão (prepara com telegrafia, ataca,
+## fica exposto) sem travar, e a arena de quem anda não tem chão de espinhos.
+func test_guardioes_duelam() -> void:
+	for gid in ["raven_guardian", "spider_guardian", "hare_guardian", "golem_guardian", "mirror_guardian"]:
+		check(not DB.enemy(gid).is_empty(), "guardião %s existe" % gid)
+		var root := Node2D.new()
+		tree.root.add_child(root)
+		var floor_body := StaticBody2D.new()
+		floor_body.collision_layer = Layers.WORLD
+		var cs := CollisionShape2D.new()
+		var r := RectangleShape2D.new()
+		r.size = Vector2(800, 16)
+		cs.shape = r
+		cs.position = Vector2(0, 8)
+		floor_body.add_child(cs)
+		root.add_child(floor_body)
+		FX.effects_root = root
+		var p := Player.new()
+		p.position = Vector2(-40, 0)
+		root.add_child(p)
+		p.invuln_time = 999.0
+		var en := Enemy.new()
+		en.setup(gid, 2)
+		en.position = Vector2(40, -30 if DB.enemy(gid).get("flying", false) else 0)
+		root.add_child(en)
+		var states := {}
+		var moves := {}
+		for i in 900:
+			await tree.physics_frame
+			p.invuln_time = 999.0
+			states[en.ai_state] = true
+			if en.brain and en.brain.last_id != "":
+				moves[en.brain.last_id] = true
+			if i == 450:
+				en.hp = en.max_hp() * 0.4 # força a 2ª fase
+		check(states.has("windup") and states.has("attack") and states.has("recover"), "%s prepara, ataca e se expõe (%s)" % [gid, str(states.keys())])
+		check(moves.size() >= 2, "%s usa golpes variados (%s)" % [gid, str(moves.keys())])
+		check(en.phase_idx >= 1, "%s entra na 2ª fase" % gid)
+		root.queue_free()
+		await tree.physics_frame
+		await tree.physics_frame
+		FX.clear_time_effects()
+
+
+func test_guardiao_por_dom() -> void:
+	for ab in WorldGenerator.GUARDIAN_OF.keys():
+		var gid: String = WorldGenerator.GUARDIAN_OF[ab]
+		check(not DB.enemy(gid).is_empty(), "guardião de %s existe" % ab)
+		check(DB.enemy(gid).get("ai", "") == "guardian", "%s usa o motor de guardião" % gid)
+	var rng := RandomNumberGenerator.new()
+	for i in 20:
+		rng.seed = 40 + i
+		var g := RoomSynth.blank()
+		RoomSynth.frame(g, "LR")
+		RoomSynth._boss(g, rng, "LR", false)
+		var spikes := 0
+		for x in range(4, 36):
+			if g[22][x] == "^":
+				spikes += 1
+		check(spikes == 0, "arena de chefe que anda não tem fosso de espinhos")
