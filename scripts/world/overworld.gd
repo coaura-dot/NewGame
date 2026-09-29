@@ -445,6 +445,7 @@ func _spawn_hero() -> void:
 
 func _process(delta: float) -> void:
 	_update_daylight(delta)
+	_update_music()
 	_update_focus()
 	_region_check()
 	_save_t += delta
@@ -511,6 +512,22 @@ func _update_daylight(delta: float) -> void:
 		g.modulate = col
 	if hero:
 		hero.set_night(night)
+
+
+## Trilha do mapa: valsa da Lareira nas vilas, Candelária de dia, Noite à noite.
+func _update_music() -> void:
+	var track := "candelaria"
+	var cur := Audio.music_track
+	var night_on := night > 0.62 or (cur == "noite" and night > 0.45)
+	if night_on:
+		track = "noite"
+	var cell := hero.global_position / T
+	for id in data["villages"].keys():
+		var c: Vector2i = data["villages"][id]["center"]
+		var near := 14.0 if cur == "lareira" else 11.0
+		if known.has(id) and cell.distance_to(Vector2(c)) < near:
+			track = "lareira" if not night_on else "noite"
+	Audio.music(track, 2.5)
 
 
 func _region_check() -> void:

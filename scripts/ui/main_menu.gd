@@ -17,6 +17,7 @@ var _pv: PixelView
 
 
 func _ready() -> void:
+	Audio.music("lareira", 1.0)
 	FX.clear_time_effects()
 	get_tree().paused = false
 	_pv = PixelView.new()

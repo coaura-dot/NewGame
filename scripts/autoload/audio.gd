@@ -84,9 +84,17 @@ const VOL := {
 	"jump": -0.5, "djump": -2.0, "step": -3.0, "turret_shot": -2.0, "hurt": -1.0, "death": -2.0,
 }
 
+const MUSIC_DIR := "res://assets/audio/music/"
+const MUSIC_DB := -7.0 ## a trilha fica abaixo dos efeitos
+
 var _streams: Dictionary = {} ## prefixo -> Array[AudioStream]
 var _pool: Array[AudioStreamPlayer] = []
 var _next: int = 0
+# música: dois tocadores que se cruzam (crossfade)
+var _music: Array[AudioStreamPlayer] = []
+var _music_cur: int = 0
+var music_track: String = ""
+var _music_tween: Tween
 
 
 func _ready() -> void:
@@ -96,6 +104,12 @@ func _ready() -> void:
 		p.bus = "SFX"
 		add_child(p)
 		_pool.append(p)
+	for i in 2:
+		var mp := AudioStreamPlayer.new()
+		mp.bus = "Music"
+		mp.volume_db = -80.0
+		add_child(mp)
+		_music.append(mp)
 	_index_files()
 
 
@@ -135,3 +149,31 @@ func play(event: String, pitch_var: float = 0.08, volume_db: float = 0.0, pitch:
 	p.pitch_scale = maxf(0.1, pitch * (1.0 + randf_range(-pitch_var, pitch_var)) * clampf(Engine.time_scale, 0.5, 1.0))
 	p.volume_db = volume_db + float(VOL.get(event, 0.0))
 	p.play()
+
+
+## Troca a música com crossfade (trilha em assets/audio/music, gerada por
+## tools/music_gen.py). "" = silêncio. Chamar de novo com a mesma faixa não
+## reinicia.
+func music(track: String, fade: float = 1.5) -> void:
+	if track == music_track:
+		return
+	music_track = track
+	var old := _music[_music_cur]
+	_music_cur = 1 - _music_cur
+	var cur := _music[_music_cur]
+	if _music_tween and _music_tween.is_valid():
+		_music_tween.kill()
+	_music_tween = create_tween().set_parallel(true)
+	if track != "":
+		var path := MUSIC_DIR + track + ".ogg"
+		if ResourceLoader.exists(path):
+			var st: AudioStream = load(path)
+			if st is AudioStreamOggVorbis:
+				(st as AudioStreamOggVorbis).loop = true
+			cur.stream = st
+			cur.volume_db = -40.0
+			cur.play()
+			_music_tween.tween_property(cur, "volume_db", MUSIC_DB, fade).set_trans(Tween.TRANS_SINE)
+	if old.playing:
+		_music_tween.tween_property(old, "volume_db", -60.0, fade)
+		_music_tween.chain().tween_callback(old.stop)

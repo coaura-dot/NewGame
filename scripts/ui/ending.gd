@@ -4,6 +4,7 @@ extends Control
 
 
 func _ready() -> void:
+	Audio.music("lareira", 3.0)
 	theme = UIKit.theme()
 	UIKit.fit(self)
 	var bg := ColorRect.new()

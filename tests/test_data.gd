@@ -54,3 +54,18 @@ func test_drops_exclusivos() -> void:
 	var rng := RngUtil.make(1, "loot")
 	for i in 400:
 		check(LevelGenerator.roll_loot(rng, DB, 3, true) != "cutelo_arquidemonio", "item exclusivo apareceu em baú")
+
+
+## Trilha sonora: toda faixa usada pelo jogo existe, é OGG e toca em loop.
+func test_trilha_sonora() -> void:
+	for t in ["candelaria", "noite", "estrada", "frenesi", "guardiao", "lareira"]:
+		var path := "res://assets/audio/music/%s.ogg" % t
+		check(ResourceLoader.exists(path), "faixa %s existe" % t)
+		var st = load(path)
+		check(st is AudioStreamOggVorbis and st.get_length() > 15.0, "faixa %s é OGG com mais de 15 s" % t)
+	Audio.music("estrada", 0.01)
+	eq(Audio.music_track, "estrada", "Audio.music troca a faixa")
+	var mp: AudioStreamPlayer = Audio._music[Audio._music_cur]
+	check(mp.stream is AudioStreamOggVorbis and mp.stream.loop, "a faixa toca em loop")
+	Audio.music("", 0.01)
+	eq(Audio.music_track, "", "silêncio")

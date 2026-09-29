@@ -62,6 +62,30 @@ func _ready() -> void:
 	Events.room_entered.emit({"index": 0})
 	if not training:
 		Events.toast.emit(region.get("name", ""))
+	Audio.music(theme_track())
+
+
+## Música da fase: Frenesi nas regiões frenéticas, Guardião no Cerco, senão Estrada.
+func theme_track() -> String:
+	if siege:
+		return "guardiao"
+	if str(params.get("theme", "")) == "frenesi":
+		return "frenesi"
+	return "estrada"
+
+
+var _boss_awake: bool = false
+
+
+## O guardião acorda de verdade (sala do chefe ou última onda): aviso, barra e música.
+func _wake_boss(b: Node) -> void:
+	if hud and hud.has_method("show_boss"):
+		hud.show_boss(b)
+	if _boss_awake:
+		return
+	_boss_awake = true
+	Events.toast.emit(Lore.boss_wake(str(b.data.get("name", "Chefe")), b.enemy_id == "archdemon"))
+	Audio.music("guardiao", 0.8)
 
 
 func _resolve_params() -> void:
@@ -464,8 +488,7 @@ func _on_room_entered(idx: int) -> void:
 			if g.mode == "combat":
 				g.set_closed(true)
 		if room.get("type", "") == "boss" and boss_node and is_instance_valid(boss_node) and boss_node.is_inside_tree():
-			if hud and hud.has_method("show_boss"):
-				hud.show_boss(boss_node)
+			_wake_boss(boss_node)
 		if player and player.emote:
 			player.emote.show_emote("!", 0.8)
 	else:
@@ -490,6 +513,7 @@ func _start_chase(idx: int) -> void:
 	player.emote.show_emote("!", 0.9, true)
 	FX.shake(0.25)
 	Audio.play("rumble", 0.05, -4.0)
+	Audio.music("frenesi", 0.6)
 
 
 func _stop_chase() -> void:
@@ -497,6 +521,8 @@ func _stop_chase() -> void:
 		_chase.queue_free()
 		if player and not player.dead:
 			_chase_done[_chase_room] = true
+		if not _boss_awake:
+			Audio.music(theme_track(), 2.0)
 	_chase = null
 	_chase_room = -1
 
@@ -650,6 +676,8 @@ func on_enemy_killed(en: Node) -> void:
 		result["boss_killed"] = true
 		FX.slowmo(0.2, 1.5)
 		Events.toast.emit(Lore.boss_fall(str(en.data.get("name", "Chefe")), str(region.get("grants", "")), en.enemy_id == "archdemon"))
+		_boss_awake = false
+		Audio.music(theme_track(), 3.0)
 		if hud and hud.has_method("hide_boss"):
 			hud.hide_boss()
 	var room: int = int(en.get_meta("room", -1))
@@ -733,9 +761,7 @@ func _next_wave(room: int) -> void:
 			if e == boss_node:
 				FX.shake(0.5)
 				FX.white_flash(0.3)
-				Events.toast.emit(e.data.get("name", "Chefe"))
-				if hud and hud.has_method("show_boss"):
-					hud.show_boss(e))
+				_wake_boss(e))
 
 
 func respawn_boss(id: String, pos: Vector2) -> void:

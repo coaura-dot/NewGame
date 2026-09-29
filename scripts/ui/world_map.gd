@@ -25,6 +25,7 @@ var _dragging: bool = false
 
 
 func _ready() -> void:
+	Audio.music("noite", 2.0)
 	theme = UIKit.theme()
 	UIKit.fit(self)
 	FX.clear_time_effects()
