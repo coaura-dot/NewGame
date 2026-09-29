@@ -11,6 +11,7 @@ extends SceneTree
 ## regiao [seed]: fase da região inicial (tábua de pedra com a inscrição);
 ## bichos: os inimigos novos (mariposa, Guarda de Cinzas, Sopro) em ação.
 ## chefe <id>: um guardião duelando com o herói (vários quadros).
+## loja [seed]: diálogo e painéis de loja/forja/estudo/venda na vila inicial.
 
 var _out := "user://shot"
 var _mode := "treino"
@@ -35,7 +36,7 @@ func _save(tag: String) -> void:
 
 func _process(_d: float) -> bool:
 	_n += 1
-	if _mode in ["mapa", "intro"]:
+	if _mode in ["mapa", "intro", "loja"]:
 		return _mapa()
 	if _mode == "regiao":
 		return _regiao()
@@ -301,7 +302,7 @@ func _mapa() -> bool:
 	if _n == 2:
 		var args := OS.get_cmdline_user_args()
 		game.new_game(int(args[2]) if args.size() > 2 else 12345)
-		if _mode == "mapa":
+		if _mode in ["mapa", "loja"]:
 			game.profile["flags"] = {"intro_seen": true}
 		game.profile["ow_clock"] = 0.45
 		change_scene_to_file("res://scenes/overworld.tscn")
@@ -319,6 +320,8 @@ func _mapa() -> bool:
 		if _n > 160:
 			quit()
 		return false
+	if _mode == "loja":
+		return _loja(game)
 	if _n == 40:
 		_save("vila")
 	if _n == 41:
@@ -435,3 +438,32 @@ func _chefe() -> bool:
 
 func DB_flying(gid: String) -> bool:
 	return bool(root.get_node("DB").enemy(gid).get("flying", false))
+
+
+func _loja(game: Node) -> bool:
+	var hud: Node = _ow.hud
+	if _n == 30:
+		game.profile["currency"] = 480
+		game.profile["items"]["fragmento_runico"] = 1
+	var by_service := {}
+	for npc in game.social.get("npcs", {}).values():
+		for sv in npc.get("services", []):
+			if not by_service.has(sv):
+				by_service[sv] = npc["id"]
+	var steps := [[40, "dialogo", "shop"], [55, "loja", "shop"], [70, "forja", "upgrade_weapon"], [85, "estudo", "upgrade_spell"], [100, "venda", "fence"]]
+	for st in steps:
+		if _n == st[0]:
+			var id: String = by_service.get(st[2], "")
+			if id == "":
+				continue
+			match st[1]:
+				"dialogo": hud.open_dialogue(id)
+				"loja": hud.open_shop(id, false)
+				"forja": hud.open_forge(id)
+				"estudo": hud.open_study(id)
+				"venda": hud.open_sell(id)
+		if _n == st[0] + 8:
+			_save(st[1])
+	if _n > 112:
+		quit()
+	return false

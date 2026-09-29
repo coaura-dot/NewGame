@@ -171,6 +171,7 @@ func complete_region(region_id: String) -> void:
 	if r.is_empty():
 		return
 	r["cleared"] = true
+	profile["runs"] = int(profile.get("runs", 0)) + 1 ## estoque das lojas muda
 	var gained: Array = r.get("rewards", []).duplicate()
 	if r.get("grants", "") != "":
 		gained.append(r["grants"])

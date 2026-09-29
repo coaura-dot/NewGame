@@ -313,7 +313,17 @@ func _draw_hud() -> void:
 
 func _open_panel(p: Control) -> void:
 	close_panel()
-	_panel = UIKit.centered(p)
+	# fundo escurecido + painel centralizado: legível sobre o mapa/fase
+	var holder := Control.new()
+	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var dim := ColorRect.new()
+	dim.color = Color(0.03, 0.02, 0.06, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(dim)
+	holder.add_child(UIKit.centered(p))
+	_panel = holder
 	_root.add_child(_panel)
 	get_tree().paused = true
 	UIKit.focus_first(p)
@@ -371,6 +381,14 @@ func open_dialogue(npc_id: String) -> void:
 	v.add_child(said)
 	var rep := SocialSystem.reputation(Game.social, npc["region"])
 	v.add_child(UIKit.label("Sua reputação aqui: %d (%s)" % [rep, SocialSystem.reputation_band(rep, DB)], 10, UIKit.DIM))
+	# serviços do morador (loja, forja, estudo...)
+	var srow := UIKit.hbox(4)
+	for sv in npc.get("services", []):
+		var b := _service_button(str(sv), npc_id)
+		if b:
+			srow.add_child(b)
+	if srow.get_child_count() > 0:
+		v.add_child(srow)
 	var row := UIKit.hbox(4)
 	row.add_child(UIKit.button("Presentear", func(): _gift_menu(npc_id), 70))
 	row.add_child(UIKit.button("Missões", func(): open_quests(npc["region"], npc_id), 60))
@@ -386,6 +404,201 @@ func open_dialogue(npc_id: String) -> void:
 				toast(why), 110))
 	row.add_child(UIKit.button("Sair", close_panel, 40))
 	v.add_child(row)
+	_open_panel(p)
+
+
+# ---------------------------------------------------------------------------
+# Serviços das vilas (loja, forja, estudo, receptador, bardo, histórias)
+# ---------------------------------------------------------------------------
+
+func _service_button(sv: String, npc_id: String) -> Button:
+	match sv:
+		"shop": return UIKit.button("Loja", func(): open_shop(npc_id, false), 50)
+		"shop_potions": return UIKit.button("Poções", func(): open_shop(npc_id, true), 55)
+		"upgrade_weapon": return UIKit.button("Forja", func(): open_forge(npc_id), 50)
+		"upgrade_spell": return UIKit.button("Estudar", func(): open_study(npc_id), 55)
+		"fence": return UIKit.button("Vender", func(): open_sell(npc_id), 55)
+		"buff_song": return UIKit.button("Canção (%d)" % ShopSystem.SONG_COST, func():
+			if ShopSystem.buy_song(Game.profile):
+				Audio.play("clear", 0.0, -4.0)
+				toast("O bardo canta a Canção da Coragem: +15% de dano na próxima fase!")
+				Game.save()
+			else:
+				toast("Faltam brasas (ou a canção já está com você)."), 80)
+		"lore": return UIKit.button("Histórias", func():
+			var rng := RandomNumberGenerator.new()
+			rng.randomize()
+			var body: String = Lore.TOWN_LORE[rng.randi() % Lore.TOWN_LORE.size()]
+			open_text("Histórias de %s" % Lore.WORLD_NAME, body + "\n\n" + Lore.rumor(Game.world, rng)), 70)
+	return null
+
+
+func _brasas_label() -> Label:
+	return UIKit.label("Suas brasas: %d" % int(Game.profile.get("currency", 0)), 11, UIKit.GOLD)
+
+
+func _item_line(id: String, price: int, on_buy: Callable, verb: String = "Comprar") -> HBoxContainer:
+	var row := UIKit.hbox(4)
+	var data: Dictionary = DB.get_entry(id)
+	var col: Color = DB.rarity_color(str(data.get("rarity", "common"))) if data.has("rarity") else UIKit.INK
+	var name_l := UIKit.label(DB.display_name(id), 11, col)
+	name_l.custom_minimum_size = Vector2(150, 0)
+	row.add_child(name_l)
+	var price_l := UIKit.label("%d" % price, 11, UIKit.GOLD)
+	price_l.custom_minimum_size = Vector2(36, 0)
+	row.add_child(price_l)
+	var b := UIKit.button(verb, on_buy, 60)
+	b.disabled = verb == "Comprar" and int(Game.profile.get("currency", 0)) < price
+	row.add_child(b)
+	return row
+
+
+func open_shop(npc_id: String, potions_only: bool) -> void:
+	var npc: Dictionary = Game.social["npcs"][npc_id]
+	var region: Dictionary = Game.world.get("regions", {}).get(npc["region"], {})
+	var items: Array = ShopSystem.potion_stock(DB) if potions_only else ShopSystem.stock(str(npc["region"]), int(region.get("tier", 1)), int(Game.profile.get("runs", 0)), Game.seed_value, DB, Game.profile)
+	var p := UIKit.panel(Vector2(300, 0))
+	var v := UIKit.vbox(3)
+	p.add_child(v)
+	v.add_child(UIKit.label(("Poções de %s" if potions_only else "Loja de %s") % npc["name"], 14, UIKit.GOLD))
+	v.add_child(_brasas_label())
+	for it in items:
+		var id: String = it["id"]
+		var cost: int = int(it["price"])
+		if not potions_only and ShopSystem.owned(Game.profile, id, DB):
+			continue
+		v.add_child(_item_line(id, cost, func():
+			var msg := ShopSystem.buy(Game.profile, id, cost)
+			if msg == "":
+				toast("Faltam brasas.")
+				return
+			Audio.play("coins", 0.1, -4.0)
+			toast(msg)
+			Game.save()
+			open_shop(npc_id, potions_only)))
+	if not potions_only:
+		v.add_child(UIKit.label("O estoque muda a cada fase concluída.", 10, UIKit.DIM))
+	v.add_child(UIKit.button("Voltar", func(): open_dialogue(npc_id), 80))
+	_open_panel(p)
+
+
+func open_forge(npc_id: String) -> void:
+	var p := UIKit.panel(Vector2(300, 0))
+	var v := UIKit.vbox(3)
+	p.add_child(v)
+	v.add_child(UIKit.label("Forja", 14, UIKit.GOLD))
+	v.add_child(_brasas_label())
+	var frags := int(Game.profile.get("items", {}).get("fragmento_runico", 0))
+	v.add_child(UIKit.label("Fragmentos Rúnicos: %d  (a partir do nível 3)" % frags, 10, UIKit.DIM))
+	for wid in [str(Game.profile.get("weapon", "")), str(Game.profile.get("weapon_alt", ""))]:
+		if wid == "":
+			continue
+		var lvl := ShopSystem.weapon_level(Game.profile, wid)
+		var why := ShopSystem.weapon_block(Game.profile, wid)
+		var row := UIKit.hbox(4)
+		var l := UIKit.label("%s +%d  (dano x%.1f)" % [DB.display_name(wid), lvl, ShopSystem.weapon_mult(Game.profile, wid)], 11)
+		l.custom_minimum_size = Vector2(170, 0)
+		row.add_child(l)
+		var cost_txt := "%d" % int(ShopSystem.WEAPON_COST[lvl]) if lvl < ShopSystem.MAX_WEAPON_LEVEL else "máx."
+		var b := UIKit.button("Forjar (%s)" % cost_txt, func():
+			if ShopSystem.upgrade_weapon(Game.profile, wid):
+				Audio.play("hit_metal", 0.05, -2.0)
+				FX.shake(0.1)
+				toast("%s agora é +%d!" % [DB.display_name(wid), ShopSystem.weapon_level(Game.profile, wid)])
+				Game.save()
+			else:
+				toast(ShopSystem.weapon_block(Game.profile, wid))
+			open_forge(npc_id), 90)
+		b.disabled = why != ""
+		row.add_child(b)
+		v.add_child(row)
+	var shown := 0
+	for piece in Inventory.equipped_pieces(Game.profile):
+		if shown >= 4:
+			break
+		shown += 1
+		var uid := int(piece["uid"])
+		var alvl := int(piece.get("level", 0))
+		var arow := UIKit.hbox(4)
+		var al := UIKit.label("%s +%d" % [DB.display_name(str(piece["id"])), alvl], 11)
+		al.custom_minimum_size = Vector2(170, 0)
+		arow.add_child(al)
+		var acost := "%d" % int(ShopSystem.ARMOR_COST[alvl]) if alvl < Inventory.MAX_ARMOR_LEVEL else "máx."
+		var ab := UIKit.button("Reforçar (%s)" % acost, func():
+			if ShopSystem.upgrade_armor(Game.profile, uid):
+				Audio.play("hit_metal", 0.05, -4.0, 0.8)
+				toast("Armadura reforçada!")
+				Game.save()
+			else:
+				toast(ShopSystem.armor_block(Game.profile, uid))
+			open_forge(npc_id), 90)
+		ab.disabled = ShopSystem.armor_block(Game.profile, uid) != ""
+		arow.add_child(ab)
+		v.add_child(arow)
+	v.add_child(UIKit.button("Voltar", func(): open_dialogue(npc_id), 80))
+	_open_panel(p)
+
+
+func open_study(npc_id: String) -> void:
+	var p := UIKit.panel(Vector2(300, 0))
+	var v := UIKit.vbox(3)
+	p.add_child(v)
+	v.add_child(UIKit.label("Estudar magias", 14, UIKit.GOLD))
+	v.add_child(_brasas_label())
+	var ids: Array = Game.profile.get("spells", {}).keys() + Game.profile.get("sigils", {}).keys()
+	for sid in ids:
+		var spell_id: String = sid
+		var lvl := Inventory.spell_level(Game.profile, spell_id)
+		var row := UIKit.hbox(4)
+		var l := UIKit.label("%s  nv. %d" % [DB.display_name(spell_id), lvl + 1], 11)
+		l.custom_minimum_size = Vector2(170, 0)
+		row.add_child(l)
+		var cost_txt := "%d" % int(ShopSystem.SPELL_COST[lvl]) if lvl < Inventory.MAX_SPELL_LEVEL else "máx."
+		var b := UIKit.button("Estudar (%s)" % cost_txt, func():
+			if ShopSystem.upgrade_spell(Game.profile, spell_id):
+				Audio.play("spell_arcane", 0.05, -4.0)
+				toast("%s subiu de nível!" % DB.display_name(spell_id))
+				Game.save()
+			else:
+				toast(ShopSystem.spell_block(Game.profile, spell_id))
+			open_study(npc_id), 90)
+		b.disabled = ShopSystem.spell_block(Game.profile, spell_id) != ""
+		row.add_child(b)
+		v.add_child(row)
+	v.add_child(UIKit.button("Voltar", func(): open_dialogue(npc_id), 80))
+	_open_panel(p)
+
+
+func open_sell(npc_id: String) -> void:
+	var p := UIKit.panel(Vector2(300, 0))
+	var v := UIKit.vbox(3)
+	p.add_child(v)
+	v.add_child(UIKit.label("Vender ao Receptador", 14, UIKit.GOLD))
+	v.add_child(_brasas_label())
+	var any := false
+	for w in ShopSystem.sellable_weapons(Game.profile):
+		any = true
+		var wid: String = w
+		v.add_child(_item_line(wid, ShopSystem.sell_price(wid, DB), func():
+			var got := ShopSystem.sell_weapon(Game.profile, wid, DB)
+			if got > 0:
+				Audio.play("coins", 0.1, -4.0)
+				toast("+%d brasas" % got)
+				Game.save()
+			open_sell(npc_id), "Vender"))
+	for piece in ShopSystem.sellable_armor(Game.profile):
+		any = true
+		var uid := int(piece["uid"])
+		v.add_child(_item_line(str(piece["id"]), ShopSystem.sell_price(str(piece["id"]), DB) + 10 * int(piece.get("level", 0)), func():
+			var got := ShopSystem.sell_armor(Game.profile, uid, DB)
+			if got > 0:
+				Audio.play("coins", 0.1, -4.0)
+				toast("+%d brasas" % got)
+				Game.save()
+			open_sell(npc_id), "Vender"))
+	if not any:
+		v.add_child(UIKit.label("Nada sobrando para vender (a arma equipada e a reserva ficam com você).", 10, UIKit.DIM))
+	v.add_child(UIKit.button("Voltar", func(): open_dialogue(npc_id), 80))
 	_open_panel(p)
 
 

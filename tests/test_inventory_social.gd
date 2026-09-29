@@ -81,3 +81,52 @@ func test_casamento_e_cerco() -> void:
 		eq(w["regions"][rid]["destroyed"], rid != chosen, "só a escolhida sobrevive: " + rid)
 	for n in soc["npcs"].values():
 		eq(n["alive"], n["region"] == chosen, "NPC %s" % n["name"])
+
+
+## Loja e forja: preços coerentes, estoque determinístico que muda por fase,
+## forja sobe dano e pede fragmento, venda devolve brasas.
+func test_loja_e_forja() -> void:
+	var prof: Dictionary = Game.START_PROFILE.duplicate(true)
+	prof["currency"] = 2000
+	var st1: Array = ShopSystem.stock("r01", 1, 0, 42, DB, prof)
+	var st2: Array = ShopSystem.stock("r01", 1, 0, 42, DB, prof)
+	var st3: Array = ShopSystem.stock("r01", 1, 1, 42, DB, prof)
+	eq(st1.size(), 6, "loja tem 6 itens")
+	check(str(st1) == str(st2), "estoque determinístico")
+	check(str(st1) != str(st3), "estoque muda depois de uma fase")
+	for it in st1:
+		check(int(it["price"]) >= 10 and int(it["price"]) <= 800, "preço razoável de %s (%d)" % [it["id"], it["price"]])
+		check(not ShopSystem.owned(prof, it["id"], DB), "loja não vende o que você já tem (%s)" % it["id"])
+	# comprar
+	var first: Dictionary = st1[2]
+	var before := int(prof["currency"])
+	var msg := ShopSystem.buy(prof, first["id"], int(first["price"]))
+	check(msg != "", "compra deu certo")
+	eq(int(prof["currency"]), before - int(first["price"]), "brasas descontadas")
+	var poor := {"currency": 5}
+	eq(ShopSystem.buy(poor, "pocao_vida", 30), "", "sem brasas não compra")
+	# forja
+	var w: String = prof["weapon"]
+	var m0 := ShopSystem.weapon_mult(prof, w)
+	check(ShopSystem.upgrade_weapon(prof, w), "forja nível 1")
+	check(ShopSystem.upgrade_weapon(prof, w), "forja nível 2")
+	check(ShopSystem.weapon_mult(prof, w) > m0 + 0.15, "forja aumenta o dano")
+	check(ShopSystem.weapon_block(prof, w) != "", "3º nível pede fragmento rúnico")
+	prof["items"]["fragmento_runico"] = 1
+	check(ShopSystem.upgrade_weapon(prof, w), "com fragmento, forja o nível 3")
+	eq(int(prof["items"].get("fragmento_runico", 0)), 0, "fragmento gasto")
+	# magia
+	var sp: String = prof["spells"].keys()[0]
+	var l0 := Inventory.spell_level(prof, sp)
+	check(ShopSystem.upgrade_spell(prof, sp), "estudo sobe a magia")
+	eq(Inventory.spell_level(prof, sp), l0 + 1, "nível da magia +1")
+	# venda
+	var sellable: Array = ShopSystem.sellable_weapons(prof)
+	check(not sellable.has(prof["weapon"]) and not sellable.has(prof["weapon_alt"]), "não vende a arma equipada nem a reserva")
+	if not sellable.is_empty():
+		var c0 := int(prof["currency"])
+		var got := ShopSystem.sell_weapon(prof, sellable[0], DB)
+		check(got > 0 and int(prof["currency"]) == c0 + got, "venda paga brasas")
+	# canção
+	check(ShopSystem.buy_song(prof), "compra a canção")
+	check(not ShopSystem.buy_song(prof), "não compra duas vezes")

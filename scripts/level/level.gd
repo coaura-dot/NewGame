@@ -388,6 +388,12 @@ func _spawn_player() -> void:
 	player.position = spawn_pos
 	entities.add_child(player)
 	player.damaged.connect(func(_i, _a): result["hits"] = int(result["hits"]) + 1)
+	# Canção da Coragem comprada do bardo: +15% de dano nesta fase
+	var flags: Dictionary = Game.profile.get("flags", {})
+	if flags.get("song", false) and not training:
+		flags["song"] = false
+		player.song_mult = ShopSystem.SONG_MULT
+		Events.toast.emit("Canção da Coragem ecoa: +15% de dano nesta fase!")
 	camera = GameCamera.new()
 	camera.target = player
 	world.add_child(camera)

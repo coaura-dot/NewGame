@@ -135,7 +135,8 @@ var air_chain := 0 ## ações encadeadas sem tocar o chão
 var bonus_jumps := 0 ## pulo extra de Pena/Sino (some ao pousar)
 var _wall_refill_ready := true ## parede recarrega o dash uma vez por toque
 var _step_t := 0.0
-var _fx_tween: Tween = null ## morte/renascer (cancelado ao reviver)
+var _fx_tween: Tween = null
+var song_mult := 1.0 ## Canção da Coragem (bardo): vale para uma fase ## morte/renascer (cancelado ao reviver)
 var best_chain := 0
 var force_move_x := 0
 var force_move_t := 0.0
@@ -1251,6 +1252,8 @@ func build_attack_info(step: Dictionary, kind: String, charge: float, target: No
 		info.stagger *= 2.0
 		info.tags.append("counter")
 		FX.text(target.body_center() + Vector2(0, -16), "CONTRA-ATAQUE!", Color(0.6, 1.0, 1.0))
+	# forja (nível da arma) e Canção da Coragem do bardo
+	mult *= ShopSystem.weapon_mult(Game.profile, weapon_id) * song_mult
 	info.amount *= mult
 	if slowmo_bonus():
 		info.amount *= 1.15
