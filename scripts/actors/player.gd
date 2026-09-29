@@ -656,17 +656,23 @@ func _slash_fx(raw_step: Dictionary) -> void:
 	var step := AttackRunner.scaled(raw_step)
 	var box: Array = step.get("box", [0, -30, 40, 30])
 	var center := Vector2((float(box[0]) + float(box[2]) * 0.5) * facing, float(box[1]) + float(box[3]) * 0.5)
-	var c := Color(2.2, 2.4, 3.0)
+	# arco claro com brilho leve (bloom só na borda): legível sem ofuscar
+	var c := Color(1.3, 1.35, 1.55)
 	if not moveset.get("weapon_status", {}).is_empty() or step.has("status"):
-		c = Color(3.0, 0.8, 0.9)
+		c = Color(1.6, 0.55, 0.6)
 	if step.get("thrust", false):
-		FX.slash(global_position + Vector2(float(box[0]) * facing, center.y), facing, 0.0, float(box[2]), c, 0.0, true)
+		if attack.kind == "up_air":
+			FX.slash(global_position + Vector2(0, float(box[1]) + float(box[3])), facing, 0.0, float(box[3]), c, -PI * 0.5 * facing, true)
+		elif attack.kind == "down_air":
+			FX.slash(global_position + Vector2(0, float(box[1])), facing, 0.0, float(box[3]), c, PI * 0.5 * facing, true)
+		else:
+			FX.slash(global_position + Vector2(float(box[0]) * facing, center.y), facing, 0.0, float(box[2]), c, 0.0, true)
 	elif step.has("arc"):
 		var arc: Array = step["arc"]
 		var rot := 0.0
-		if box[1] > -10:
+		if attack.kind == "down_air":
 			rot = PI * 0.5 * facing
-		elif float(box[1]) < -70:
+		elif attack.kind == "up_air":
 			rot = -PI * 0.5 * facing
 		FX.slash(body_center(), facing, float(arc[0]), float(arc[1]) * AttackRunner.BOX_SCALE, c, rot)
 	Audio.play("swing_heavy" if step.get("dmg", 1.0) > 1.3 else "swing", 0.12, -4.0)
@@ -1339,6 +1345,10 @@ func _moods(d: float) -> void:
 				if b.global_position.distance_to(global_position) < 20.0:
 					emote("?", 1.2)
 					break
+
+
+func _charge_pose() -> bool:
+	return heavy_charging
 
 
 func _animate() -> void:

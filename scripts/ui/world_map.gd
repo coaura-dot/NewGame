@@ -23,16 +23,17 @@ var _marker: MeshInstance3D
 var _t: float = 0.0
 var _dragging: bool = false
 var _ui_root: Control
+var _labels: Control ## nomes das regiões desenhados em 2D (nítidos) sobre o 3D
 
 
 func _ready() -> void:
 	theme = UIKit.theme()
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	FX.clear_time_effects()
 	if not Game.has_game:
 		Game.new_game()
 	var svc := SubViewportContainer.new()
-	svc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	svc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	svc.stretch = true
 	svc.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(svc)
@@ -47,6 +48,11 @@ func _ready() -> void:
 	_ui_root.scale = Vector2(2.0 / 3.0, 2.0 / 3.0)
 	_ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_ui_root)
+	_labels = Control.new()
+	_labels.size = Vector2(480, 270)
+	_labels.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_labels.draw.connect(_draw_labels)
+	_ui_root.add_child(_labels)
 	_build_ui()
 	_selected = Game.profile.get("region", Game.world["start"])
 	_refresh_info()
@@ -128,7 +134,7 @@ func _build_3d() -> void:
 	pr.size = Vector3(0.9, 1.2, 0.9)
 	_marker.mesh = pr
 	_marker.rotation_degrees.z = 180
-	_marker.material_override = _mat(Color(2.4, 1.8, 0.6), 3.0)
+	_marker.material_override = _mat(Color(1.3, 1.0, 0.4), 0.9)
 	root.add_child(_marker)
 
 
@@ -191,7 +197,7 @@ func _region(root: Node3D, id: String, known: bool) -> void:
 			pm.size = Vector3(0.5, 0.9, 0.5)
 			spike.mesh = pm
 			spike.position = Vector3(-0.5, 0.85, 0.0)
-			spike.material_override = _mat(Color(2.2, 0.4, 0.3), 2.0)
+			spike.material_override = _mat(Color(1.6, 0.35, 0.25), 1.0)
 			n.add_child(spike)
 		if r.get("cleared", false):
 			var ring := MeshInstance3D.new()
@@ -199,19 +205,8 @@ func _region(root: Node3D, id: String, known: bool) -> void:
 			tm.inner_radius = 1.6
 			tm.outer_radius = 1.8
 			ring.mesh = tm
-			ring.material_override = _mat(Color(0.5, 2.0, 1.0), 2.0)
+			ring.material_override = _mat(Color(0.5, 1.6, 0.9), 1.0)
 			n.add_child(ring)
-	var label := Label3D.new()
-	label.text = r["name"] if known else "???"
-	label.font = UIKit.FONT
-	label.font_size = 42
-	label.pixel_size = 0.012
-	label.outline_size = 8
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.position = Vector3(0, 1.9, 0)
-	label.modulate = Color(1, 0.9, 0.75) if known else Color(0.5, 0.5, 0.6)
-	label.no_depth_test = true
-	n.add_child(label)
 
 
 func _edge(root: Node3D, e: Dictionary) -> void:
@@ -250,10 +245,35 @@ func _process(delta: float) -> void:
 	for id in _nodes.keys():
 		var s := 1.0 + (0.18 + 0.05 * sin(_t * 5.0) if id == _selected else 0.0)
 		_nodes[id].scale = Vector3(s, s, s)
+	_labels.queue_redraw()
 	if Input.is_action_pressed("move_left"):
 		_yaw -= delta * 1.2
 	if Input.is_action_pressed("move_right"):
 		_yaw += delta * 1.2
+
+
+## Nomes das regiões projetados na tela: nítidos (fora do viewport 3D
+## pixelado); a selecionada em destaque, desconhecidas como "?".
+func _draw_labels() -> void:
+	var known := _known_regions()
+	var font: Font = UIKit.FONT
+	for id in _nodes.keys():
+		var node: Node3D = _nodes[id]
+		var top := node.global_position + Vector3(0, 1.4 * node.scale.y, 0)
+		if _cam.is_position_behind(top):
+			continue
+		var p := _cam.unproject_position(top) * 1.5 ## 320x180 -> 480x270
+		var sel: bool = id == _selected
+		var r: Dictionary = Game.world["regions"][id]
+		var text: String = r["name"] if known.has(id) else ("Região desconhecida" if sel else "?")
+		var fs := 12 if sel else 9
+		var col: Color = UIKit.GOLD if sel else (UIKit.INK if known.has(id) else UIKit.DIM)
+		if r.get("destroyed", false):
+			col = Color(0.6, 0.4, 0.4)
+		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var at := Vector2(p.x - w * 0.5, p.y - 4.0)
+		_labels.draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0.03, 0.02, 0.07, 0.9))
+		_labels.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -414,9 +434,10 @@ func _refresh_info() -> void:
 	if r.get("hub", "") != "":
 		var names := []
 		for npc in Game.social.get("npcs", {}).values():
-			if npc["region"] == _selected:
-				names.append("%s (%s)" % [npc["name"].split(" ")[0], "♥".repeat(SocialSystem.hearts(int(npc["affinity"])))])
-		var hl := UIKit.label("Hub: %s — %s" % [r["hub"], ", ".join(names)], 10, Color(1.0, 0.8, 0.6))
+			if npc["region"] == _selected and npc.get("alive", true):
+				var h := SocialSystem.hearts(int(npc["affinity"]))
+				names.append(str(npc["name"]) + (" " + "♥".repeat(h) if h > 0 else ""))
+		var hl := UIKit.label("%s: %s" % [str(r["hub"]).capitalize(), ", ".join(names)], 10, Color(1.0, 0.8, 0.6))
 		hl.autowrap_mode = TextServer.AUTOWRAP_WORD
 		hl.custom_minimum_size = Vector2(160, 0)
 		_info.add_child(hl)

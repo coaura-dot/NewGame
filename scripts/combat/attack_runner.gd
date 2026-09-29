@@ -148,6 +148,45 @@ func progress() -> float:
 	return 0.0
 
 
+## Fase do golpe inteiro para a animação: 0..0.3 preparação, 0.3..0.75
+## ativo, 0.75..1 recuperação; -1 = parado.
+func swing_phase() -> float:
+	match phase:
+		Phase.STARTUP:
+			return 0.3 * clampf(t / maxf(float(step.get("startup", 0.05)), 0.001), 0.0, 1.0)
+		Phase.ACTIVE:
+			return 0.3 + 0.45 * clampf(t / maxf(float(step.get("active", 0.08)), 0.001), 0.0, 1.0)
+		Phase.RECOVERY:
+			return 0.75 + 0.25 * clampf(t / maxf(float(step.get("recovery", 0.15)), 0.001), 0.0, 1.0)
+	return -1.0
+
+
+## Tipo de movimento da arma (ver CreatureSprite.SWINGS).
+func swing_kind() -> String:
+	if step.get("thrust", false):
+		match kind:
+			"up_air":
+				return "thrust_up"
+			"down_air":
+				return "thrust_down"
+		return "thrust"
+	if step.get("bash", false):
+		return "bash"
+	match kind:
+		"down_air":
+			return "down"
+		"up_air":
+			return "up"
+		"dash":
+			return "dash"
+	if step.get("iai", false):
+		return "dash"
+	var arc: Array = step.get("arc", [150, 40])
+	if absf(float(arc[0])) >= 300.0:
+		return "spin"
+	return "side" if float(arc[0]) >= 0.0 else "side_rev"
+
+
 func _make_info(target: Node) -> DamageInfo:
 	if actor.has_method("build_attack_info"):
 		return actor.build_attack_info(step, kind, charge_mult, target)

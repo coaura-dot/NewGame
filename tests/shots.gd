@@ -27,6 +27,9 @@ func _ready() -> void:
 		Game.pending = {"region": start}
 		await _shot_rooms("regiao")
 		SaveSystem.delete_save(9)
+	if scenario in ["combat", "all"]:
+		Game.pending = {"training": true}
+		await _shot_combat()
 	if scenario in ["map", "all"]:
 		if not Game.has_game:
 			Game.new_game(1234, 9)
@@ -66,6 +69,69 @@ func _shot_pause() -> void:
 	level.queue_free()
 	await _frames(2)
 	Game.end_training()
+
+
+## Sequência de quadros de golpes (leve, pesado carregado, para cima, no ar)
+## com várias armas, recortada e ampliada ao redor do jogador.
+func _shot_combat() -> void:
+	var level: Node = load("res://scenes/level.tscn").instantiate()
+	add_child(level)
+	await _frames(30)
+	var p: Player = level.player
+	var frames: Array[Image] = []
+	var labels: Array[String] = []
+	# 1 passo de física por quadro desenhado: cada foto = 1/60 s de jogo
+	var old_steps := Engine.max_physics_steps_per_frame
+	Engine.max_physics_steps_per_frame = 1
+	for wid in ["katana_andarilho", "montante_ferro", "estoque_duelista", "bastao_carvalho", "guarda_cidadela", "manoplas_pesadelo"]:
+		if not DB.weapons.has(wid):
+			continue
+		p.equip_weapon(wid)
+		for action in ["attack", "attack_up"]:
+			p.velocity = Vector2.ZERO
+			p.facing = 1
+			await _physics(20)
+			if action == "attack_up":
+				Input.action_press("move_up")
+			Input.action_press("attack")
+			await _physics(1)
+			Input.action_release("attack")
+			for i in 7:
+				await _physics(1 if i < 5 else 2)
+				await RenderingServer.frame_post_draw
+				frames.append(_crop_player(level, p))
+				labels.append("%s %s %d" % [wid, action, i])
+			Input.action_release("move_up")
+			await _physics(30)
+	Engine.max_physics_steps_per_frame = old_steps
+	# folha: 7 quadros por linha
+	var cw := frames[0].get_width()
+	var ch := frames[0].get_height()
+	var rows := int(ceil(frames.size() / 7.0))
+	var sheet := Image.create(cw * 7, ch * rows, false, Image.FORMAT_RGBA8)
+	for i in frames.size():
+		sheet.blit_rect(frames[i], Rect2i(0, 0, cw, ch), Vector2i((i % 7) * cw, (i / 7) * ch))
+	sheet.save_png(out_dir.path_join("golpes.png"))
+	level.queue_free()
+	await _frames(2)
+	Game.end_training()
+
+
+func _physics(n: int) -> void:
+	for i in n:
+		await get_tree().physics_frame
+
+
+func _crop_player(level: Node, p: Node2D) -> Image:
+	var img: Image = level.world_vp.get_texture().get_image()
+	img.convert(Image.FORMAT_RGBA8)
+	img.linear_to_srgb() # o viewport do mundo é HDR linear
+	var sp: Vector2 = p.get_global_transform_with_canvas().origin
+	var r := Rect2i(int(sp.x) - 24, int(sp.y) - 30, 48, 36)
+	r = r.intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+	var c := img.get_region(r)
+	c.resize(c.get_width() * 4, c.get_height() * 4, Image.INTERPOLATE_NEAREST)
+	return c
 
 
 ## Coloca o jogador em pé no meio de cada sala e fotografa.

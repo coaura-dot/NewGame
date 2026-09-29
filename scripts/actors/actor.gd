@@ -116,6 +116,21 @@ func _update_visuals(delta: float) -> void:
 		sprite.flip_h = facing < 0
 		sprite.speed_scale = local_time
 		sprite.velocity_hint = velocity
+		var ms = get("moveset")
+		sprite.weapon_class = str(ms.get("class", "")) if ms is Dictionary else ""
+		if attack and attack.is_busy():
+			sprite.swing = attack.swing_phase()
+			sprite.swing_kind = attack.swing_kind()
+		elif _charge_pose():
+			sprite.swing = 0.2 # arma erguida enquanto carrega o pesado
+			sprite.swing_kind = "side"
+		else:
+			sprite.swing = -1.0
+
+
+## Verdadeiro enquanto o ator segura um golpe carregado (pose de preparação).
+func _charge_pose() -> bool:
+	return false
 
 
 func set_dissolve(v: float) -> void:
@@ -165,6 +180,10 @@ func take_hit(info: DamageInfo) -> int:
 		stagger_time = 0.45
 		_on_staggered(info)
 	_flash = 1.0
+	if sprite:
+		# achata na direção do golpe (golpe lateral afina, vertical amassa)
+		var sideways := absf(info.knockback.x) >= absf(info.knockback.y)
+		sprite.squash(Vector2(0.7, 1.25) if sideways else Vector2(1.3, 0.75))
 	Events.damage_dealt.emit(info, self, DamageInfo.Result.HIT)
 	damaged.emit(info, amount)
 	_on_damaged(info, amount)

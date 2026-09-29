@@ -50,6 +50,6 @@ func _physics_process(delta: float) -> void:
 		_fired = true
 		_hitbox.activate()
 		var arc: Array = step.get("arc", [150, 40])
-		FX.slash(global_position + Vector2(0, -22), facing, float(arc[0]), float(arc[1]), Color(0.6, 2.8, 2.6))
+		FX.slash(global_position + Vector2(0, -6), facing, float(arc[0]), float(arc[1]) * AttackRunner.BOX_SCALE, Color(0.5, 1.6, 1.5))
 	if _t >= DELAY + float(step.get("active", 0.08)) + 0.02:
 		queue_free()

@@ -34,13 +34,21 @@ static func create(world: Dictionary, seed_value: int, db: Node) -> Dictionary:
 		var roles: Array = hub["roles"].duplicate()
 		RngUtil.shuffle(rng, roles)
 		var count := rng.randi_range(int(hub["count"][0]), int(hub["count"][1]))
+		var used_first := {}
 		for i in mini(count, roles.size()):
 			var role: String = roles[i]
 			var arch: Dictionary = npc_data["archetypes"][role]
 			var npc_id := "%s_n%d" % [rid, i]
+			# ninguém da mesma vila com o mesmo primeiro nome
+			var first: String = RngUtil.pick(rng, culture["first"])
+			for attempt in 8:
+				if not used_first.has(first):
+					break
+				first = RngUtil.pick(rng, culture["first"])
+			used_first[first] = true
 			social["npcs"][npc_id] = {
 				"id": npc_id,
-				"name": "%s %s" % [RngUtil.pick(rng, culture["first"]), RngUtil.pick(rng, culture["last"])],
+				"name": "%s %s" % [first, RngUtil.pick(rng, culture["last"])],
 				"role": role,
 				"title": arch["title"],
 				"region": rid,

@@ -25,6 +25,24 @@ const EMOTES := {
 const EMOTE_COLORS := {"!": Color(2.2, 1.9, 0.6), "?": Color(1.6, 1.8, 2.4), "...": Color(0.9, 0.9, 1.0),
 	"heart": Color(2.4, 0.5, 0.8), "note": Color(1.8, 1.2, 2.6), "z": Color(0.8, 0.9, 1.6), "drop": Color(0.6, 1.2, 2.4),
 	"anger": Color(2.4, 0.4, 0.3)}
+## Formato da arma desenhada durante o golpe, por classe (data/weapon_classes.json).
+## len = comprimento da lâmina em px; thick = 2 px; dual = segunda lâmina;
+## staff = haste dos dois lados; fist = soco; shield = escudo na frente.
+const BLADES := {
+	"longsword": {"len": 9}, "fine_sword": {"len": 10}, "greatsword": {"len": 11, "thick": true},
+	"katana": {"len": 9}, "daggers": {"len": 5, "dual": true}, "dual_katana": {"len": 7, "dual": true},
+	"heavy_katana": {"len": 13}, "knife": {"len": 4}, "staff": {"len": 10, "staff": true, "color": [0.8, 0.6, 0.38]},
+	"bleed_blade": {"len": 8, "color": [1.0, 0.62, 0.62], "serrated": true}, "sword_shield": {"len": 7, "shield": true},
+	"gauntlets": {"len": 0, "fist": true},
+}
+## Ângulos do golpe (graus; 0 = à frente, -90 = para cima): preparação,
+## fim do corte, repouso. Fases: 0..0.3 preparação, ..0.75 corte, ..1 volta.
+const SWINGS := {
+	"side": Vector3(-130, 40, 50), "side_rev": Vector3(55, -120, -110), "up": Vector3(70, -115, -100),
+	"down": Vector3(-60, 100, 95), "dash": Vector3(-35, 20, 25), "spin": Vector3(-90, 270, 280),
+	"thrust": Vector3(0, 0, 0), "thrust_up": Vector3(-90, -90, -90), "thrust_down": Vector3(90, 90, 90),
+	"bash": Vector3(0, 0, 0),
+}
 
 var spec: Dictionary = {}
 var flip_h: bool = false
@@ -37,6 +55,10 @@ var dissolve: float = 0.0
 var velocity_hint: Vector2 = Vector2.ZERO ## usado para inclinar/olhar
 var attack_pose: float = 0.0 ## 0..1 durante o golpe
 var looking: Vector2 = Vector2.ZERO ## olhar extra (-1..1)
+## Golpe em andamento: fase 0..1 (<0 = sem golpe), tipo (SWINGS) e classe da arma.
+var swing: float = -1.0
+var swing_kind: String = "side"
+var weapon_class: String = ""
 
 var _t: float = 0.0
 var _blink: float = 0.0
@@ -147,6 +169,9 @@ func _draw() -> void:
 			lean = 1.0
 		"attack":
 			lean = 1.0 + attack_pose
+			if swing >= 0.0:
+				# antecipação (recua) -> golpe (avança) -> volta
+				lean = -1.0 if swing < 0.3 else (2.0 if swing < 0.75 else 1.0)
 		"crouch":
 			bob = 1.0
 		"hurt":
@@ -233,9 +258,16 @@ func _draw() -> void:
 		_:
 			_px(ex - 1, ey + (2 - eh), 1, eh, ec)
 			_px(ex + 1, ey + (2 - eh), 1, eh, ec)
-	# arma (ferrão) nas costas
-	if spec.get("weapon", false) and animation != "attack":
+	# arma: animada durante o golpe; fora dele, guardada nas costas
+	var blade: Dictionary = BLADES.get(weapon_class, {})
+	if swing >= 0.0 and not blade.is_empty():
+		_draw_swing(blade, Vector2(bw * 0.5 + lean * 0.5, by + bh * 0.5), a)
+	elif spec.get("weapon", false):
 		_px(-bw * 0.5 - 2 + lean * 0.5, by - 1 + bob, 1, 5, Color(0.85, 0.85, 0.9, a))
+	if blade.get("shield", false):
+		var push := 3.0 if swing_kind == "bash" and swing >= 0.3 and swing < 0.75 else 0.0
+		_px(bw * 0.5 + lean * 0.5 + push, by - 1, 2, 4, Color(0.55, 0.5, 0.6, a))
+		_px(bw * 0.5 + lean * 0.5 + push + 1, by, 1, 2, Color(1.0, 0.85, 0.45, a))
 	# lanterna
 	if spec.get("lantern", false):
 		_px(bw * 0.5 + 1, by + 1, 2, 3, Color(2.4, 1.8, 0.8, a))
@@ -252,6 +284,86 @@ func _draw() -> void:
 			for xx in r.length():
 				if r[xx] == "X":
 					draw_rect(Rect2(roundf(-w * 0.5) + xx, top + yy, 1, 1), c)
+
+
+## Ângulo (graus) da lâmina na fase `p` do golpe atual.
+func _swing_angle(p: float) -> float:
+	var s: Vector3 = SWINGS.get(swing_kind, SWINGS["side"])
+	if p < 0.3:
+		return s.x
+	if p < 0.75:
+		return lerpf(s.x, s.y, ease((p - 0.3) / 0.45, 0.35))
+	return lerpf(s.y, s.z, (p - 0.75) / 0.25)
+
+
+## Quanto a arma avança (estocada/soco/escudo) na fase `p`.
+func _swing_reach(p: float) -> float:
+	if p < 0.3:
+		return -2.0 * (p / 0.3)
+	if p < 0.75:
+		return lerpf(-2.0, 4.0, ease((p - 0.3) / 0.45, 0.3))
+	return lerpf(4.0, 0.0, (p - 0.75) / 0.25)
+
+
+## Linha de pixels de `from` na direção `dir` (1 px por passo).
+func _pixel_line(from: Vector2, dir: Vector2, n0: int, n1: int, c: Color) -> void:
+	for i in range(n0, n1 + 1):
+		var q := from + dir * float(i)
+		_px(roundf(q.x), roundf(q.y), 1, 1, c)
+
+
+func _draw_swing(blade: Dictionary, hand: Vector2, a: float) -> void:
+	var length: int = int(blade.get("len", 8))
+	var bc := _col(blade.get("color", null), Color(0.88, 0.9, 1.0))
+	var striking := swing >= 0.3 and swing < 0.75
+	if striking:
+		bc = bc.lerp(Color(1.9, 1.9, 2.3), 0.5) # brilho sutil no corte (bloom)
+	bc.a = a
+	var hilt := Color(OUTLINE.r, OUTLINE.g, OUTLINE.b, a)
+	var linear := swing_kind.begins_with("thrust") or swing_kind == "bash"
+	var ang := _swing_angle(swing)
+	var reach := _swing_reach(swing) if linear or blade.get("fist", false) else 0.0
+	if blade.get("fist", false):
+		# soco: reto na direção do golpe (frente, cima ou baixo)
+		var fang := 0.0
+		if swing_kind in ["up", "thrust_up"]:
+			fang = -90.0
+		elif swing_kind in ["down", "thrust_down"]:
+			fang = 90.0
+		var fdir := Vector2.from_angle(deg_to_rad(fang))
+		var f := hand + fdir * (2.0 + reach)
+		_px(roundf(f.x) - 1, roundf(f.y) - 1, 3, 3, hilt)
+		_px(roundf(f.x), roundf(f.y), 2, 2, Color(0.75, 0.7, 0.8, a) if not striking else bc)
+		return
+	if swing_kind == "bash":
+		return # o escudo é desenhado à parte
+	var dir := Vector2.from_angle(deg_to_rad(ang))
+	var base := hand + dir * reach
+	# rastro (smear) só no corte: duas lâminas fantasmas atrás, só a ponta
+	if striking and not linear:
+		for k in [0.45, 0.75]:
+			var ga := lerpf(_swing_angle(0.3), ang, k)
+			var gd := Vector2.from_angle(deg_to_rad(ga))
+			_pixel_line(hand, gd, int(length * 0.5), length, Color(bc.r, bc.g, bc.b, a * (0.25 if k < 0.6 else 0.45)))
+	if blade.get("staff", false):
+		_pixel_line(base, dir, -4, length, bc)
+		_px(roundf(base.x + dir.x * length), roundf(base.y + dir.y * length), 1, 1, Color(1.6, 1.3, 2.2, a))
+		return
+	# guarda perpendicular + lâmina
+	var perp := Vector2(-dir.y, dir.x)
+	_px(roundf(base.x + perp.x), roundf(base.y + perp.y), 1, 1, hilt)
+	_px(roundf(base.x - perp.x), roundf(base.y - perp.y), 1, 1, hilt)
+	_pixel_line(base, dir, 1, length, bc)
+	if blade.get("thick", false):
+		_pixel_line(base + perp, dir, 2, length - 1, bc.darkened(0.15))
+	if blade.get("serrated", false):
+		for i in range(3, length, 2):
+			var q := base + dir * float(i) - perp
+			_px(roundf(q.x), roundf(q.y), 1, 1, bc.darkened(0.25))
+	if blade.get("dual", false):
+		# segunda lâmina um pouco atrás no tempo (golpes em sequência)
+		var d2 := Vector2.from_angle(deg_to_rad(0.0 if linear else _swing_angle(maxf(swing - 0.12, 0.0)) + 25.0))
+		_pixel_line(hand + Vector2(-2, 1), d2, 1, maxi(length - 1, 3), Color(bc.r, bc.g, bc.b, a * 0.85))
 
 
 ## Cópia fantasma (rastro do dash/teleporte).
