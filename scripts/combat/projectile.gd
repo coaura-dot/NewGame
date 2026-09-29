@@ -136,7 +136,7 @@ func reflect(new_owner: Node) -> void:
 	color = Color(color.b, color.g, color.r) * 1.2
 	FX.hitstop(0.06)
 	FX.hit_spark(global_position, velocity.normalized(), Color(3, 3, 3), true)
-	Audio.play("parry")
+	Audio.play("reflect", 0.06, -3.0)
 
 
 func _draw() -> void:

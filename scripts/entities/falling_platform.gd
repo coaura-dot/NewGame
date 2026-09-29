@@ -32,12 +32,14 @@ func _physics_process(delta: float) -> void:
 			if p and p.grounded() and absf(p.global_position.x - global_position.x) < W * 0.5 + 4.0 and absf(p.global_position.y - global_position.y) < 2.0:
 				_state = "shaking"
 				_t = 0.0
+				Audio.play("crumble", 0.1, -6.0)
 				if "emote" in p:
 					p.emote.show_emote("!?", 0.5)
 		"shaking":
 			position = _origin + Vector2(randi_range(-1, 1), 0)
 			if _t > 0.45:
 				_state = "falling"
+				Audio.play("crumble", 0.1, -8.0, 0.8)
 				position = _origin
 				_vy = 0.0
 		"falling":

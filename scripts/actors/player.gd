@@ -73,6 +73,8 @@ const HYPER_Y_MULT := 0.5
 const SUPER_WALL_JUMP_SPEED := 160.0
 const SUPER_WALL_JUMP_H := MAX_RUN + JUMP_H_BOOST * 2.0
 const SUPER_WALL_JUMP_VAR := 0.25
+const WALL_KICK_H := 190.0 ## dash + pulo encostado na parede: chute forte para longe dela
+const WALL_KICK_JUMP := 1.1
 # --- Combate (Hollow Knight) ---
 const POGO_SPEED := 150.0
 const RECOIL_X := 120.0
@@ -127,6 +129,8 @@ var auto_jump_t := 0.0 ## quiques (orbe, pogo): age como se o pulo estivesse seg
 var land_grace_t := 0.0
 var air_chain := 0 ## ações encadeadas sem tocar o chão
 var bonus_jumps := 0 ## pulo extra de Pena/Sino (some ao pousar)
+var _wall_refill_ready := true ## parede recarrega o dash uma vez por toque
+var _step_t := 0.0
 var best_chain := 0
 var force_move_x := 0
 var force_move_t := 0.0
@@ -711,7 +715,7 @@ func _try_jump() -> bool:
 		return true
 	if bonus_jumps > 0:
 		bonus_jumps -= 1
-		_jump(DOUBLE_JUMP_SPEED * jmult)
+		_jump(DOUBLE_JUMP_SPEED * jmult, "djump")
 		if input_x != 0.0:
 			velocity.x = maxf(absf(velocity.x), MAX_RUN) * input_x
 		FX.burst(global_position, Color(1.0, 2.4, 1.0, 0.9), 6, 60.0, Vector2.DOWN, 60.0)
@@ -720,7 +724,7 @@ func _try_jump() -> bool:
 		return true
 	if air_jumps > 0:
 		air_jumps -= 1
-		_jump(DOUBLE_JUMP_SPEED * jmult)
+		_jump(DOUBLE_JUMP_SPEED * jmult, "djump")
 		if input_x != 0.0:
 			velocity.x = maxf(absf(velocity.x), MAX_RUN) * input_x
 		FX.burst(global_position, Color(1.8, 1.7, 2.2, 0.9), 6, 60.0, Vector2.DOWN, 60.0)
@@ -738,7 +742,7 @@ func _wall_jump(wd: int, jmult: float) -> void:
 		velocity.x = 0.0
 		_set_state(State.NORMAL)
 		return
-	_jump(JUMP_SPEED * jmult)
+	_jump(JUMP_SPEED * jmult, "walljump")
 	velocity.x = -wd * WALL_JUMP_H
 	add_chain()
 	force_move_x = -wd
@@ -749,14 +753,15 @@ func _wall_jump(wd: int, jmult: float) -> void:
 	rig.bump(Vector2(0.8, 1.2))
 
 
-func _jump(speed: float) -> void:
+func _jump(speed: float, snd: String = "jump") -> void:
 	jump_buffer_t = 0.0
 	coyote_t = 0.0
 	_set_vy(-speed)
 	var_jump_t = VAR_JUMP_TIME
 	var_jump_speed = speed
 	on_ground = false
-	Audio.play("jump", 0.1, -8.0)
+	if snd != "":
+		Audio.play(snd, 0.1, -8.0)
 	FX.dust(global_position, Vector2.UP, 3)
 	rig.bump(Vector2(0.7, 1.35))
 
@@ -962,18 +967,31 @@ func _st_dash(d: float) -> void:
 			FX.shake(0.1)
 			FX.dust(global_position, Vector2(-facing, -0.2), 5)
 			return
-		if dash_dir.y * g_dir < -0.5 and absf(dash_dir.x) < 0.3 and Game.has_ability("wall_jump"):
-			var wd := 1 if _wall_at(1, WALL_JUMP_CHECK) else (-1 if _wall_at(-1, WALL_JUMP_CHECK) else 0)
-			if wd != 0:
-				_jump(SUPER_WALL_JUMP_SPEED * jmult)
+		var wd := 1 if _wall_at(1, WALL_JUMP_CHECK) else (-1 if _wall_at(-1, WALL_JUMP_CHECK) else 0)
+		if wd != 0 and Game.has_ability("wall_jump"):
+			if dash_dir.y * g_dir < -0.5 and absf(dash_dir.x) < 0.3:
+				# wallbounce (dash para cima + pulo encostado): sobe muito
+				_jump(SUPER_WALL_JUMP_SPEED * jmult, "")
 				var_jump_t = SUPER_WALL_JUMP_VAR
 				velocity.x = -wd * SUPER_WALL_JUMP_H
-				force_move_x = -wd
 				force_move_t = 0.2
-				facing = -wd
-				_set_state(State.NORMAL)
-				FX.shake(0.12)
-				return
+			else:
+				# chute de parede (dash + pulo encostado): sai longe com embalo
+				_jump(JUMP_SPEED * WALL_KICK_JUMP * jmult, "")
+				velocity.x = -wd * WALL_KICK_H
+				force_move_t = 0.12
+			force_move_x = -wd
+			facing = -wd
+			_set_state(State.NORMAL)
+			refill_dash() # encostou na parede
+			_wall_refill_ready = false
+			add_chain()
+			FX.shake(0.12)
+			FX.ring(global_position + Vector2(wd * 4, -6), Color(2.4, 1.6, 1.2), 10.0)
+			FX.dust(global_position + Vector2(wd * 4, -6), Vector2(-wd, -0.3), 5)
+			Audio.play("wall_kick", 0.05, -4.0)
+			rig.bump(Vector2(0.7, 1.35))
+			return
 	_dash_through_check()
 	if dash_t <= 0.0:
 		velocity = dash_dir * DASH_END_SPEED
@@ -1272,7 +1290,10 @@ func add_chain() -> void:
 	best_chain = maxi(best_chain, air_chain)
 	Events.air_chain_changed.emit(air_chain)
 	if air_chain >= CHAIN_MIN:
-		Audio.play("pickup", 0.0, -12.0, 0.9 + minf(air_chain, 14) * 0.07)
+		# nota sobe a cada elo (escala pentatônica)
+		var steps := [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24]
+		var st_i: int = steps[mini(air_chain - CHAIN_MIN, steps.size() - 1)]
+		Audio.play("chain", 0.0, -8.0, pow(2.0, st_i / 12.0))
 
 
 func end_chain(reward: bool) -> void:
@@ -1292,7 +1313,7 @@ func end_chain(reward: bool) -> void:
 	gain_focus(n * 3.0)
 	FX.text(body_center() + Vector2(0, -14), "CADEIA x%d!" % n, Color(2.4, 2.0, 0.9) if n >= 6 else Color(1.9, 1.9, 2.2))
 	FX.burst(body_center(), Color(2.2, 1.8, 0.8), mini(4 + n, 14), 90.0)
-	Audio.play("confirmation", 0.0, -8.0, 1.0 + minf(n, 12) * 0.03)
+	Audio.play("chain_end", 0.0, -6.0, 1.0 + minf(n, 12) * 0.02)
 	if n >= 6:
 		emote.show_emote("spark", 0.8, true)
 		rig.set_expression("happy", 0.8)
@@ -1341,6 +1362,7 @@ func _pogo() -> void:
 	var_jump_speed = POGO_SPEED * float(phys.get("jump", 1.0))
 	refill_dash()
 	add_chain()
+	Audio.play("pogo", 0.08, -6.0)
 	buffs.trigger("pogo")
 	FX.burst(global_position + Vector2(0, 3), Color(2.2, 2.2, 2.6), 4, 60.0, Vector2.UP, 60.0)
 	rig.bump(Vector2(0.8, 1.25))
@@ -1550,6 +1572,7 @@ func _st_hurt(d: float) -> void:
 
 func _hazard_respawn() -> void:
 	end_chain(false)
+	Audio.play("respawn", 0.05, -8.0)
 	_set_state(State.RESPAWN)
 	velocity = Vector2.ZERO
 	var tw := create_tween()
@@ -1858,6 +1881,12 @@ func _after_move(d: float) -> void:
 			refill_dash()
 		if not was_on_floor:
 			_on_land()
+		# passinhos correndo
+		if absf(velocity.x) > 40.0 and state == State.NORMAL:
+			_step_t -= d * absf(velocity.x) / MAX_RUN
+			if _step_t <= 0.0:
+				_step_t = 0.2
+				Audio.play("step", 0.2, -12.0)
 		_safe_t += d
 		if _safe_t > 0.15 and velocity.length() < 200.0 and not _near_hazard():
 			last_safe_pos = global_position
@@ -1866,6 +1895,20 @@ func _after_move(d: float) -> void:
 		if was_on_floor:
 			_fall_start_y = global_position.y
 	was_on_floor = on_ground
+	# parede recarrega o dash (e o pulo duplo) — uma vez por toque: é preciso
+	# sair da parede (ou pousar) para recarregar de novo nela
+	if on_ground:
+		_wall_refill_ready = true
+	else:
+		var touch := 1 if _wall_at(1) else (-1 if _wall_at(-1) else 0)
+		if touch == 0:
+			_wall_refill_ready = true
+		elif _wall_refill_ready and state != State.DASH and dash_refill_cd <= 0.0 and state != State.RESPAWN:
+			_wall_refill_ready = false
+			if dashes < max_dashes() or air_jumps < max_air_jumps():
+				refill_dash()
+				FX.hit_spark(global_position + Vector2(touch * 4, -6), Vector2(-touch, 0), Color(2.2, 1.2, 1.4), false)
+				Audio.play("wall_refill", 0.05, -8.0)
 	# parede: encostado E segurando na direção dela
 	wall_dir = 0
 	if not on_ground:

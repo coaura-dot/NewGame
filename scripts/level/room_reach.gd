@@ -29,6 +29,8 @@ const CAPS := {
 ##   ^ acima do fosso = espinho de pogo (golpe para baixo quica ~4 tiles),
 ##   b = sino (golpear: recarrega dash + pulo extra), j = pena (encostar: pulo
 ##   extra), d = cristal duplo (modo dash).
+## No modo dash, encostar numa parede sólida no ar também vira nó (a parede
+## recarrega o dash; dash + pulo nela = chute de parede).
 
 
 static func _ch(g: Array, x: int, y: int) -> String:
@@ -96,6 +98,7 @@ class Grid:
 	var stand := PackedByteArray()
 	var land := PackedInt32Array()
 	var wall := PackedByteArray()
+	var touch: Array = [] ## células no ar encostadas numa parede sólida (recarregam o dash)
 
 	func _init(g_in: Array) -> void:
 		var g := RoomReach.expand_movers(g_in)
@@ -109,6 +112,14 @@ class Grid:
 				wall[i] = 1 if RoomReach.SOLID.contains(RoomReach._ch(g, x, y)) else 0
 				free2[i] = 1 if not RoomReach.blocked(g, x, y) and not RoomReach.blocked(g, x, y - 1) else 0
 				stand[i] = 1 if RoomReach.standable(g, x, y) else 0
+		for y in range(1, H):
+			for x in range(1, W - 1):
+				var i := y * W + x
+				if free2[i] == 1 and stand[i] == 0:
+					var lw: bool = wall[i - 1] == 1 or wall[i - 1 - W] == 1
+					var rw: bool = wall[i + 1] == 1 or wall[i + 1 - W] == 1
+					if lw or rw:
+						touch.append(Vector2i(x, y))
 		for x in W:
 			var below := -1
 			for y in range(H - 1, -1, -1):
@@ -323,6 +334,9 @@ static func reachable_from(g: Array, start: Vector2i, cap: Dictionary, gr: Grid 
 	var springs: Dictionary = sp["springs"]
 	var thorns: Array = sp.get("thorns", [])
 	var touch: Array = sp.get("touch", [])
+	# modo dash: encostar numa parede recarrega o dash (e dá o chute de parede)
+	var walls: Array = gr.touch if int(cap["up"]) >= int(CAPS["dash"]["up"]) else []
+	var wreach: int = int(cap["reach"][0]) + 1
 	var st := [start]
 	seen[start] = true
 	while not st.is_empty():
@@ -349,6 +363,12 @@ static func reachable_from(g: Array, start: Vector2i, cap: Dictionary, gr: Grid 
 			if not seen.has(tnode) and _can_reach_orb(gr, p, o, cap, 1):
 				seen[tnode] = true
 				st.append(tnode)
+		for wc in walls:
+			if seen.has(wc) or absi(wc.x - p.x) > wreach or p.y - wc.y > int(cap["up"]) + 1 or wc.y - p.y > 7:
+				continue
+			if _can_reach_orb(gr, p, Vector2i(wc.x, wc.y - 1), cap, 0):
+				seen[wc] = true
+				st.append(wc)
 		for t in thorns:
 			var tn := Vector2i(t.x, t.y - 1)
 			if not seen.has(tn) and _can_reach_pogo(gr, p, t, cap):

@@ -50,7 +50,7 @@ func _on_body(b: Node) -> void:
 	_down = RESPAWN
 	FX.burst(global_position, Color(1.2, 2.6, 1.2), 8, 90.0)
 	FX.hitstop(0.02)
-	Audio.play("pickup", 0.05, -4.0, 1.7)
+	Audio.play("feather", 0.05, -5.0)
 
 
 func _draw() -> void:

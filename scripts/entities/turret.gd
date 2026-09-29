@@ -84,7 +84,7 @@ func _fire() -> void:
 	p.global_position = global_position + dir * 5.0
 	get_parent().add_child(p)
 	_flash = 1.0
-	Audio.play("spell", 0.1, -14.0, 1.7)
+	Audio.play("turret_shot", 0.1, -10.0)
 
 
 ## Golpe comum: "clang". Bala rebatida: quebra.
@@ -106,7 +106,7 @@ func _break() -> void:
 	FX.hitstop(0.05)
 	FX.burst(global_position, Color(2.4, 1.3, 0.6), 12, 90.0)
 	FX.hit_spark(global_position, -dir, Color(3, 2.4, 1.6), true)
-	Audio.play("explosion", 0.1, -6.0)
+	Audio.play("turret_break", 0.1, -4.0)
 	if level and level.has_method("spawn_currency"):
 		level.spawn_currency(3, global_position)
 	queue_redraw()

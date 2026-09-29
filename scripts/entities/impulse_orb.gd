@@ -89,7 +89,7 @@ func _pop() -> void:
 	FX.shake(0.08)
 	FX.hit_spark(global_position, Vector2.UP, Color(2.6, 2.0, 1.0), true)
 	FX.burst(global_position, Color(2.2, 1.6, 0.6), 6, 70.0)
-	Audio.play("pickup", 0.05, -6.0, 1.6)
+	Audio.play("orb", 0.06, -5.0)
 
 
 func _on_body(b: Node) -> void:

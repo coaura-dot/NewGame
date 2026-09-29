@@ -36,7 +36,10 @@ func set_closed(v: bool, instant: bool = false) -> void:
 	if instant:
 		_amount = 1.0 if v else 0.0
 	else:
-		Audio.play("door", 0.1, -6.0, 0.8 if v else 1.1)
+		if v:
+			Audio.play("gate", 0.05, -5.0)
+		else:
+			Audio.play("door", 0.1, -6.0, 1.1)
 		FX.shake(0.08)
 
 

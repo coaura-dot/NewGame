@@ -467,7 +467,7 @@ func _start_chase(idx: int) -> void:
 	player.hazard_spawn_override = room_spawn
 	player.emote.show_emote("!", 0.9, true)
 	FX.shake(0.25)
-	Audio.play("explosion", 0.1, -10.0, 0.6)
+	Audio.play("rumble", 0.05, -4.0)
 
 
 func _stop_chase() -> void:
@@ -594,7 +594,7 @@ func _mark_cleared(idx: int) -> void:
 		player.refill_dash()
 		player.emote.show_emote("spark", 0.9, true)
 		player.rig.set_expression("happy", 0.9)
-		Audio.play("confirmation", 0.0, -6.0)
+		Audio.play("clear", 0.0, -5.0)
 
 
 func on_enemy_killed(en: Node) -> void:

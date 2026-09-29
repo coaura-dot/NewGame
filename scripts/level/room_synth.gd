@@ -458,7 +458,7 @@ static func _hits(res: Dictionary, x0: int, x1: int) -> bool:
 # ---------------------------------------------------------------------------
 
 const BEATS_EASY := {"hop": 4.0, "leap": 2.0, "orb": 2.5, "crumble": 1.5, "mover": 1.2, "crystal": 1.5, "chimney": 1.0,
-	"thorns": 1.0, "sawgap": 1.0, "needle": 0.8, "bells": 1.2}
+	"thorns": 1.0, "sawgap": 1.0, "needle": 0.8, "bells": 1.2, "kickwalls": 1.2}
 ## Chance de um poço com saída para cima virar torre de escalada.
 const TOWER_CHANCE := 0.75
 
@@ -468,7 +468,7 @@ const SWITCHBACK_CHANCE := 0.35
 ## Batidas que mantêm a altura (evitadas quando o perfil pede subir).
 const FLAT_BEATS := ["needle", "saw", "crumble", "mover", "sawgap", "leap"]
 const BEATS_HARD := {"hop": 1.5, "leap": 2.0, "orb": 3.0, "crumble": 2.0, "mover": 1.0, "crystal": 2.5, "chimney": 1.5, "saw": 2.0, "orbchain": 2.0,
-	"thorns": 2.5, "sawgap": 1.5, "needle": 1.5, "bells": 2.0}
+	"thorns": 2.5, "sawgap": 1.5, "needle": 1.5, "bells": 2.0, "kickwalls": 2.2}
 
 
 ## Plataforma/desafio: sequência de batidas da esquerda para a direita sobre
@@ -609,6 +609,40 @@ static func _beat(g: Array, rng: RandomNumberGenerator, kind: String, x: int, to
 				fill(g, nx, ntop, nx + w - 1, ntop + rng.randi_range(0, 1), "#")
 			if hard and w >= 2 and rng.randf() < 0.3:
 				put(g, nx + w - 1, ntop - 1, "^") # espinho na borda: pouse certinho
+			if kind == "leap" and (hard or rng.randf() < 0.35):
+				# face do pilar com espinhos: nada de encostar para recarregar o dash
+				for yy in range(ntop + 1, mini(ntop + 4, FLOOR)):
+					if at(g, nx - 1, yy) == "." and at(g, nx - 1, yy + 1) != "#":
+						put(g, nx - 1, yy, "^")
+			return {"x": nx + w - 1, "top": ntop, "island": [nx, w, ntop]}
+		"kickwalls":
+			# paredes suspensas sobre o fosso: encoste (recarrega o dash) e passe
+			# por cima de dash; topo com espinho (não dá para pousar) e a face de
+			# trás às vezes com espinhos
+			var n := rng.randi_range(2, 3)
+			var step := rng.randi_range(6, 7) + h
+			while n > 1 and x + step * (n + 1) + 2 > W - 4:
+				n -= 1
+			var cx := x
+			for k in n:
+				cx += step
+				if _hits(res, cx - 1, cx + 1):
+					return {}
+				var wh := rng.randi_range(4, 6)
+				var wtop := clampi(mini(top, want) - rng.randi_range(4, 6), 6, FLOOR - wh - 2)
+				fill(g, cx, wtop, cx, wtop + wh - 1, "#")
+				if rng.randf() < 0.65:
+					put(g, cx, wtop - 1, "^")
+				if hard or rng.randf() < 0.4:
+					for yy in range(wtop, wtop + wh):
+						if at(g, cx + 1, yy) == ".":
+							put(g, cx + 1, yy, "^")
+			var nx := cx + step - 1
+			var w := rng.randi_range(2, 4)
+			if nx + w > W - 4 or _hits(res, nx, nx + w - 1):
+				return {}
+			var ntop: int = toward.call(3, 3)
+			fill(g, nx, ntop, nx + w - 1, FLOOR + 1, "#")
 			return {"x": nx + w - 1, "top": ntop, "island": [nx, w, ntop]}
 		"climb":
 			# escadinha rápida: 2-3 degraus subindo 3 tiles cada
@@ -698,16 +732,18 @@ static func _beat(g: Array, rng: RandomNumberGenerator, kind: String, x: int, to
 			put(g, nx + w / 2, top - 3, "S")
 			return {"x": nx + w - 1, "top": top}
 		"chimney":
-			# torre: sobe por salto de parede numa chaminé de 3 tiles
-			var height := rng.randi_range(5, 7)
+			# torre: sobe por salto de parede numa chaminé (no desafio, larga: só
+			# com chute de parede, dash + pulo, de um lado para o outro)
+			var height := rng.randi_range(5, 7) + h * 2
+			var cw := 3 if not hard else rng.randi_range(5, 6)
 			var ntop := top - height
 			var nx := x + 2
-			if ntop < 7 or nx + 9 > W - 4 or _hits(res, nx, nx + 9):
+			if ntop < 7 or nx + cw + 6 > W - 4 or _hits(res, nx, nx + cw + 6):
 				return {}
-			fill(g, nx, top, nx + 3, FLOOR + 1, "#") # chão da chaminé
-			fill(g, nx + 4, ntop, nx + 5, FLOOR + 1, "#") # parede da direita (vira o topo)
+			fill(g, nx, top, nx + cw, FLOOR + 1, "#") # chão da chaminé
+			fill(g, nx + cw + 1, ntop, nx + cw + 2, FLOOR + 1, "#") # parede da direita (vira o topo)
 			fill(g, nx, ntop + 3, nx, top - 1, "#") # parede da esquerda
-			return {"x": nx + 5, "top": ntop, "island": [nx + 4, 2, ntop]}
+			return {"x": nx + cw + 2, "top": ntop, "island": [nx + cw + 1, 2, ntop]}
 		"thorns":
 			# espinhos de pogo sobre o fosso: golpe para baixo em cada um (HK)
 			var n := rng.randi_range(2, 3) if hard else rng.randi_range(1, 2)
@@ -904,6 +940,19 @@ static func _zigzag(g: Array, rng: RandomNumberGenerator, exits: String, tier: i
 			continue
 		var y := (hi_y if hi else lo_y) + rng.randi_range(-1, 0)
 		var roll := rng.randf()
+		if roll < 0.16 and x + 1 < W - 5:
+			# parede flutuante: encoste (recarrega o dash) e saia de dash/chute;
+			# às vezes uma face tem espinhos (só dá para usar a outra)
+			fill(g, x, y - 2, x, y + 1, "#")
+			if rng.randf() < 0.45:
+				var sx := x + 1 if rng.randf() < 0.6 else x - 1
+				for yy in range(y - 2, y + 2):
+					if at(g, sx, yy) == ".":
+						put(g, sx, yy, "^")
+			nodes.append(Vector2i(x, y))
+			hi = not hi
+			continue
+		roll = rng.randf()
 		if hi:
 			if roll < 0.42:
 				put(g, x, y, "I")
@@ -922,6 +971,8 @@ static func _zigzag(g: Array, rng: RandomNumberGenerator, exits: String, tier: i
 				if top <= FLOOR - 1:
 					fill(g, x, top + 1, x, FLOOR + 1, "#")
 					put(g, x, top, "^")
+					if rng.randf() < 0.6:
+						_spike_sides(g, x, top + 1, mini(top + 4, FLOOR))
 		else:
 			var node_y := y + 1
 			if roll < 0.35:
@@ -943,6 +994,8 @@ static func _zigzag(g: Array, rng: RandomNumberGenerator, exits: String, tier: i
 				if tip > ceil_y + 1:
 					fill(g, x, 1, x, tip - 1, "#")
 					put(g, x, tip, "^")
+					if rng.randf() < 0.6:
+						_spike_sides(g, x, maxi(tip - 3, ceil_y + 1), tip - 1)
 		nodes.append(Vector2i(x, y))
 		hi = not hi
 	# último nó baixo perto da porta da direita (entrar/sair por ela)
@@ -976,6 +1029,15 @@ static func _zigzag(g: Array, rng: RandomNumberGenerator, exits: String, tier: i
 				put(g, 0, LevelConst.EXIT_LR_ROWS[0], "G")
 			elif e == "R":
 				put(g, W - 1, LevelConst.EXIT_LR_ROWS[0], "G")
+
+
+## Espinhos nas duas faces de uma coluna (x) entre as linhas y0..y1: a parede
+## ali não serve para recarregar o dash (mantém a dificuldade).
+static func _spike_sides(g: Array, x: int, y0: int, y1: int) -> void:
+	for yy in range(y0, y1 + 1):
+		for sx in [x - 1, x + 1]:
+			if at(g, sx, yy) == "." and at(g, sx, yy + 1) != "#":
+				put(g, sx, yy, "^")
 
 
 ## Torretas rítmicas no percurso: no teto atirando para baixo (cortina de
@@ -1184,6 +1246,24 @@ static func _tower(g: Array, rng: RandomNumberGenerator, exits: String, tier: in
 			for yy in range(sy, sy + hh):
 				if at(g, fx, yy) == "." and at(g, fx, yy + 1) != "#" and at(g, fx, yy - 1) != "-":
 					put(g, fx, yy, "^")
+	# a parede recarrega o dash: para a torre não virar "escalar a parede",
+	# a maior parte das faces laterais fica coberta de espinhos (sobram trechos
+	# de apoio perto dos degraus e alguns no meio)
+	for wside in [-1, 1]:
+		var fx := xl if wside < 0 else xr
+		var yy := 6
+		while yy < FLOOR - 2:
+			var seg := rng.randi_range(3, 5)
+			var near := false
+			for l in ledges:
+				var touches: bool = int(l[0]) <= xl + 2 if wside < 0 else int(l[1]) >= xr - 2
+				if touches and int(l[2]) - (yy + seg) <= 3 and yy - int(l[2]) <= 3:
+					near = true
+			if not near and rng.randf() < 0.7:
+				for k in range(yy, mini(yy + seg, FLOOR - 2)):
+					if at(g, fx, k) == "." and at(g, fx, k + 1) != "#" and at(g, fx, k - 1) != "-" and at(g, fx - wside, k) == "#":
+						put(g, fx, k, "^")
+			yy += seg + rng.randi_range(0, 2)
 	# torretas na parede atirando através do poço
 	var nt := (1 if tier >= 2 else 0) + (1 if rng.randf() < 0.5 else 0)
 	for i in nt:

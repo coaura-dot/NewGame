@@ -35,7 +35,7 @@ func _on_body(b: Node) -> void:
 			b._set_state(Player.State.NORMAL)
 		b.rig.bump(Vector2(0.7, 1.4))
 		_anim = 0.0
-		Audio.play("jump", 0.05, 0.0, 0.7)
+		Audio.play("spring", 0.05, -4.0)
 		FX.burst(global_position + Vector2(0, -4), Color(1.4, 1.4, 1.2), 4, 60.0, Vector2.UP, 40.0)
 
 

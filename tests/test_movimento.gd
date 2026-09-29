@@ -345,3 +345,84 @@ func test_embalo_no_ar() -> void:
 	check(vx >= 180.0, "embalo no ar se mantém (%.0f px/s)" % vx)
 	await _frames(80)
 	await _teardown()
+
+
+func _wall(x: float, y_top: float, h: float) -> void:
+	var body := StaticBody2D.new()
+	body.collision_layer = Layers.WORLD
+	var cs := CollisionShape2D.new()
+	var r := RectangleShape2D.new()
+	r.size = Vector2(16, h)
+	cs.shape = r
+	cs.position = Vector2(x + 8, y_top + h * 0.5)
+	body.add_child(cs)
+	_root.add_child(body)
+
+
+func test_parede_recarrega_dash() -> void:
+	var p := await _setup()
+	var wx := p.global_position.x + 20.0
+	_wall(wx, -200.0, 200.0)
+	await _frames(4)
+	# no ar, sem dash, encostando na parede => recarrega
+	p.global_position = Vector2(wx - 4.0, -150.0)
+	p._prev_pos = p.global_position
+	p.velocity = Vector2.ZERO
+	p.dashes = 0
+	p.dash_refill_cd = 0.0
+	Input.action_press("move_right")
+	await _frames(4)
+	check(not p.grounded(), "no ar encostado na parede")
+	check(p.dashes >= 1, "encostar na parede recarrega o dash")
+	# gasta o dash ainda grudado: não recarrega de novo sem sair da parede
+	p.dashes = 0
+	await _frames(6)
+	check(p.dashes == 0, "só recarrega uma vez por toque")
+	# salto de parede (sai) e volta: recarrega de novo
+	p.coyote_t = 0.0
+	Input.action_press("jump")
+	await _frames(2)
+	Input.action_release("jump")
+	await _frames(24)
+	var recharged := false
+	for i in 60:
+		await _frames(1)
+		if p.dashes >= 1:
+			recharged = true
+			break
+		if p.grounded():
+			break
+	Input.action_release("move_right")
+	check(recharged, "saiu e voltou para a parede: recarrega de novo")
+	await _teardown()
+
+
+func test_chute_de_parede() -> void:
+	var p := await _setup()
+	var wx := p.global_position.x + 30.0
+	_wall(wx, -200.0, 200.0)
+	await _frames(4)
+	p.global_position = Vector2(wx - 20.0, -60.0)
+	p._prev_pos = p.global_position
+	p.velocity = Vector2.ZERO
+	p.dashes = 1
+	p.facing = 1
+	Input.action_press("move_right")
+	await _frames(1)
+	Input.action_press("dash")
+	for i in 30:
+		await _frames(1)
+		if p._wall_at(1, 2):
+			break
+	Input.action_press("jump")
+	await _frames(2)
+	Input.action_release("jump")
+	Input.action_release("dash")
+	Input.action_release("move_right")
+	var vx := p.velocity.x
+	print("    chute de parede: vx %.0f, vy %.0f, dashes %d" % [vx, p.velocity.y, p.dashes])
+	check(vx <= -150.0, "dash + pulo na parede chuta para longe (%.0f)" % vx)
+	check(p.velocity.y < -80.0, "chute de parede sobe")
+	check(p.dashes >= 1, "chute de parede recarrega o dash")
+	await _frames(60)
+	await _teardown()

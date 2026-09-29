@@ -75,7 +75,11 @@ func cast(spell_id: String, level: int, aim: Vector2, target: Vector2, power: fl
 			actor.ward_charges = int(DB.spell_value(spell_id, "count", level))
 			actor.ward_time = DB.spell_value(spell_id, "duration", level)
 			FX.burst(actor.body_center(), _color(s), 12, 70.0)
-	Audio.play("spell_heavy" if int(s.get("tier", 1)) >= 2 else "spell")
+	var school_snd: String = "spell_" + str(s.get("school", "arcane"))
+	if Audio.has_event(school_snd):
+		Audio.play(school_snd, 0.08, -4.0 if int(s.get("tier", 1)) >= 2 else -6.0)
+	else:
+		Audio.play("spell_heavy" if int(s.get("tier", 1)) >= 2 else "spell")
 	Events.spell_cast.emit(actor, spell_id)
 	cast_done.emit(spell_id)
 	return true

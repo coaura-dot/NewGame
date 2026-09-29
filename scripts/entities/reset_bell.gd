@@ -53,7 +53,7 @@ func take_hit(info: DamageInfo) -> int:
 	FX.hitstop(0.04)
 	FX.hit_spark(global_position, info.direction, Color(2.4, 1.6, 2.6), true)
 	FX.burst(global_position, Color(2.0, 1.2, 2.2), 6, 70.0)
-	Audio.play("hit_metal", 0.05, -6.0, 1.8)
+	Audio.play("bell", 0.04, -5.0)
 	return DamageInfo.Result.HIT
 
 

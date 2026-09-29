@@ -7,6 +7,8 @@ const SlashArc := preload("res://scripts/fx/slash_arc.gd")
 const FloatingText := preload("res://scripts/fx/floating_text.gd")
 const Burst := preload("res://scripts/fx/burst.gd")
 const HitSpark := preload("res://scripts/fx/hit_spark.gd")
+const RingFx := preload("res://scripts/fx/ring_fx.gd")
+const SpeedLines := preload("res://scripts/fx/speed_lines.gd")
 const FONT_SMALL := preload("res://assets/fonts/kenney_mini.ttf")
 
 var camera: Node = null
@@ -165,6 +167,30 @@ func hit_spark(pos: Vector2, dir: Vector2, color: Color = Color(2.2, 2.1, 1.9), 
 	s.dir = dir
 	s.color = color
 	s.big = big
+	_root().add_child(s)
+
+
+## Anel que se expande (dash, chute de parede, quique, estouro de magia).
+func ring(pos: Vector2, color: Color, radius: float = 10.0, life: float = 0.22, squash: Vector2 = Vector2.ONE) -> void:
+	var r := RingFx.new()
+	r.global_position = pos
+	r.color = color
+	r.radius = radius
+	r.life = life
+	r.squash = squash
+	_root().add_child(r)
+
+
+## Riscos de velocidade deixados para trás (dir = direção do movimento).
+func speed_lines(pos: Vector2, dir: Vector2, color: Color = Color(2.0, 2.0, 2.4, 0.9), count: int = 5, length: float = 10.0) -> void:
+	if int(Settings.video("particles")) <= 0:
+		count = mini(count, 2)
+	var s := SpeedLines.new()
+	s.global_position = pos
+	s.dir = dir.normalized() if dir != Vector2.ZERO else Vector2.RIGHT
+	s.color = color
+	s.count = count
+	s.length = length
 	_root().add_child(s)
 
 
