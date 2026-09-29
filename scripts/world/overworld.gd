@@ -88,6 +88,13 @@ func _ready() -> void:
 	_build_gates()
 	_build_npcs()
 	_build_fog()
+	var life := AmbientLife.new()
+	life.overworld = self
+	world_root.add_child(life)
+	var life_glow := AmbientLife.new()
+	life_glow.overworld = self
+	life_glow.glow = true
+	_glow_layer.add_child(life_glow)
 	_spawn_hero()
 	camera = GameCamera.new()
 	camera.target = hero
@@ -356,9 +363,16 @@ func _build_gates() -> void:
 
 
 func _build_npcs() -> void:
+	var doors := {} ## região -> [portas das casas]
+	for o in data["objects"]:
+		if o.get("kind", "") == "house":
+			if not doors.has(o["region"]):
+				doors[o["region"]] = []
+			doors[o["region"]].append(feet_px(o["cell"]) + Vector2(1, 1))
 	for id in data["villages"].keys():
 		var v: Dictionary = data["villages"][id]
 		var cells: Array = v["npc_cells"]
+		var houses: Array = doors.get(id, [])
 		var i := 0
 		for npc in Game.social.get("npcs", {}).values():
 			if npc["region"] != id or not npc.get("alive", true):
@@ -367,6 +381,9 @@ func _build_npcs() -> void:
 			n.npc_id = npc["id"]
 			n.spots = cells.map(func(c): return feet_px(c))
 			n.position = feet_px(cells[i % cells.size()])
+			n.overworld = self
+			if not houses.is_empty():
+				n.home = houses[i % houses.size()]
 			ysort.add_child(n)
 			_track(id, n)
 			var npc_id: String = npc["id"]
@@ -480,7 +497,7 @@ func _update_focus() -> void:
 		var p: Vector2 = it["pos"]
 		if it.has("node"):
 			var nd: Node2D = it["node"]
-			if not is_instance_valid(nd):
+			if not is_instance_valid(nd) or not nd.visible:
 				continue
 			p = nd.global_position
 		var d := hp.distance_to(p)

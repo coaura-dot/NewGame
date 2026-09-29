@@ -6,6 +6,9 @@ extends Node2D
 var npc_id: String = ""
 var npc: Dictionary = {}
 var spots: Array = [] ## Vector2 (pés)
+var home: Vector2 = Vector2.INF ## porta de casa (à noite o morador se recolhe)
+var overworld: Node = null
+var _inside: bool = false
 var emote: EmoteBubble
 var _tex: Texture2D
 var _target: Vector2
@@ -38,6 +41,29 @@ func _process(delta: float) -> void:
 	_blink -= delta
 	if _blink < -3.0 - randf():
 		_blink = 0.15
+	# à noite vai para casa (e some pela porta); de manhã sai de novo
+	var night: float = overworld.night if overworld else 0.0
+	if home != Vector2.INF:
+		if night > 0.62 and not _inside:
+			var to_home := home - position
+			if to_home.length() < 2.0:
+				_inside = true
+				visible = false
+			else:
+				_moving = true
+				position += to_home.normalized() * minf(26.0 * delta, to_home.length())
+				if absf(to_home.x) > 0.5:
+					_face = int(signf(to_home.x))
+			queue_redraw()
+			return
+		if _inside:
+			if night < 0.4:
+				_inside = false
+				visible = true
+				position = home + Vector2(0, 3)
+				_wait = 0.0
+			else:
+				return
 	var hero: Node2D = get_tree().get_first_node_in_group("ow_hero")
 	var near := hero != null and hero.global_position.distance_to(global_position) < 22.0
 	if near:
