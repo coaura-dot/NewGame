@@ -11,6 +11,8 @@ func _ready() -> void:
 	FX.clear_time_effects()
 	get_tree().paused = false
 	Music.play("menu")
+	Music.play_ambience("")
+	Audio.set_space("open")
 	_cam = Camera2D.new()
 	_cam.position = Vector2(160, 90)
 	add_child(_cam)

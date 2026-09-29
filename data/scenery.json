@@ -1,0 +1,243 @@
+{
+ "_doc": "Gerado por tools/build_scenery.py. Estilos de cenário de fundo (camadas em assets/art/scenery/<estilo>/).",
+ "forest": {
+  "far_fill": "#8fb8b8",
+  "mid_fill": "#4d7f63",
+  "near_fill": "#23402f",
+  "fog": "#e8f4e8",
+  "fog_alpha": 0.18,
+  "event": "birds",
+  "birds": true,
+  "rays": true,
+  "weather": "",
+  "underground": false,
+  "water": false,
+  "parallax": [
+   0.08,
+   0.2,
+   0.4
+  ],
+  "vparallax": [
+   0.02,
+   0.04,
+   0.07
+  ],
+  "cloud": "#ffffff"
+ },
+ "castle": {
+  "far_fill": "#5a5478",
+  "mid_fill": "#2e2b48",
+  "near_fill": "#17152a",
+  "fog": "#9a8ab8",
+  "fog_alpha": 0.14,
+  "event": "storm",
+  "birds": false,
+  "rays": false,
+  "weather": "",
+  "underground": false,
+  "water": false,
+  "parallax": [
+   0.08,
+   0.2,
+   0.4
+  ],
+  "vparallax": [
+   0.02,
+   0.04,
+   0.07
+  ],
+  "cloud": "#9a8ab8"
+ },
+ "gothic": {
+  "far_fill": "#3a3c58",
+  "mid_fill": "#20223a",
+  "near_fill": "#101020",
+  "fog": "#6a6a90",
+  "fog_alpha": 0.22,
+  "event": "titan",
+  "birds": false,
+  "rays": false,
+  "weather": "rain",
+  "underground": false,
+  "water": false,
+  "parallax": [
+   0.08,
+   0.2,
+   0.4
+  ],
+  "vparallax": [
+   0.02,
+   0.04,
+   0.07
+  ],
+  "cloud": "#6a6a90"
+ },
+ "ruins": {
+  "far_fill": "#b08aa0",
+  "mid_fill": "#6a4f62",
+  "near_fill": "#35263a",
+  "fog": "#ffd8b8",
+  "fog_alpha": 0.2,
+  "event": "birds",
+  "birds": true,
+  "rays": true,
+  "weather": "",
+  "underground": false,
+  "water": false,
+  "parallax": [
+   0.08,
+   0.2,
+   0.4
+  ],
+  "vparallax": [
+   0.02,
+   0.04,
+   0.07
+  ],
+  "cloud": "#ffe8d8"
+ },
+ "desert": {
+  "far_fill": "#d8b088",
+  "mid_fill": "#c08858",
+  "near_fill": "#8a5a38",
+  "fog": "#f8e0b0",
+  "fog_alpha": 0.2,
+  "event": "sandworm",
+  "birds": false,
+  "rays": false,
+  "weather": "heat",
+  "underground": false,
+  "water": false,
+  "parallax": [
+   0.08,
+   0.2,
+   0.4
+  ],
+  "vparallax": [
+   0.02,
+   0.04,
+   0.07
+  ],
+  "cloud": "#f8e0b0"
+ },
+ "sky": {
+  "far_fill": "#9ab4d8",
+  "mid_fill": "#6a7aa8",
+  "near_fill": "#dfe8f8",
+  "fog": "#ffffff",
+  "fog_alpha": 0.2,
+  "event": "whale",
+  "birds": true,
+  "rays": false,
+  "weather": "",
+  "underground": false,
+  "water": false,
+  "parallax": [
+   0.08,
+   0.2,
+   0.4
+  ],
+  "vparallax": [
+   0.02,
+   0.04,
+   0.07
+  ],
+  "cloud": "#ffffff"
+ },
+ "cave": {
+  "far_fill": "#1e2034",
+  "mid_fill": "#12131f",
+  "near_fill": "#08080f",
+  "fog": "#3a4870",
+  "fog_alpha": 0.12,
+  "event": "eyes",
+  "birds": false,
+  "rays": false,
+  "weather": "",
+  "underground": true,
+  "water": false,
+  "parallax": [
+   0.08,
+   0.2,
+   0.4
+  ],
+  "vparallax": [
+   0.02,
+   0.04,
+   0.07
+  ],
+  "cloud": "#3a4870"
+ },
+ "war": {
+  "far_fill": "#6a3440",
+  "mid_fill": "#321a24",
+  "near_fill": "#180c12",
+  "fog": "#c06050",
+  "fog_alpha": 0.18,
+  "event": "catapults",
+  "birds": false,
+  "rays": false,
+  "weather": "embers",
+  "underground": false,
+  "water": false,
+  "parallax": [
+   0.08,
+   0.2,
+   0.4
+  ],
+  "vparallax": [
+   0.02,
+   0.04,
+   0.07
+  ],
+  "cloud": "#5a3036"
+ },
+ "graveyard": {
+  "far_fill": "#34405a",
+  "mid_fill": "#1e2436",
+  "near_fill": "#0e1220",
+  "fog": "#8898b8",
+  "fog_alpha": 0.24,
+  "event": "bats",
+  "birds": false,
+  "rays": false,
+  "weather": "",
+  "underground": false,
+  "water": false,
+  "parallax": [
+   0.08,
+   0.2,
+   0.4
+  ],
+  "vparallax": [
+   0.02,
+   0.04,
+   0.07
+  ],
+  "cloud": "#8898b8"
+ },
+ "swamp": {
+  "far_fill": "#6a8068",
+  "mid_fill": "#3a4a38",
+  "near_fill": "#1c2418",
+  "fog": "#c8d8b0",
+  "fog_alpha": 0.3,
+  "event": "wisps",
+  "birds": true,
+  "rays": false,
+  "weather": "",
+  "underground": false,
+  "water": true,
+  "parallax": [
+   0.08,
+   0.2,
+   0.4
+  ],
+  "vparallax": [
+   0.02,
+   0.04,
+   0.07
+  ],
+  "cloud": "#c8d8b0"
+ }
+}

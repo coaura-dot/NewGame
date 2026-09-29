@@ -32,6 +32,7 @@ const DEFAULTS := {
 		"master": 0.8,
 		"sfx": 0.9,
 		"music": 0.7,
+		"ambience": 0.8,
 	},
 	"gameplay": {
 		# Modo assistência inspirado em Celeste
@@ -80,12 +81,23 @@ func _ready() -> void:
 
 
 func _ensure_audio_buses() -> void:
-	for bus_name in ["SFX", "Music"]:
+	for bus_name in ["SFX", "Music", "Ambience"]:
 		if AudioServer.get_bus_index(bus_name) == -1:
 			AudioServer.add_bus()
 			var idx := AudioServer.bus_count - 1
 			AudioServer.set_bus_name(idx, bus_name)
 			AudioServer.set_bus_send(idx, "Master")
+	# eco de caverna/salão: reverb no bus de efeitos (ligado por Audio.set_space)
+	var sfx := AudioServer.get_bus_index("SFX")
+	if AudioServer.get_bus_effect_count(sfx) == 0:
+		var rv := AudioEffectReverb.new()
+		rv.room_size = 0.7
+		rv.damping = 0.6
+		rv.wet = 0.25
+		rv.dry = 1.0
+		rv.spread = 0.8
+		AudioServer.add_bus_effect(sfx, rv)
+		AudioServer.set_bus_effect_enabled(sfx, 0, false)
 
 
 func get_value(section: String, key: String) -> Variant:
@@ -158,6 +170,7 @@ func _apply_audio() -> void:
 	_set_bus_volume("Master", get_value("audio", "master"))
 	_set_bus_volume("SFX", get_value("audio", "sfx"))
 	_set_bus_volume("Music", get_value("audio", "music"))
+	_set_bus_volume("Ambience", get_value("audio", "ambience"))
 
 
 func _set_bus_volume(bus_name: String, linear: float) -> void:

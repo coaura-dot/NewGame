@@ -5,6 +5,8 @@ extends Control
 func _ready() -> void:
 	theme = UIKit.theme()
 	Music.play("cerco", 2.5)
+	Music.play_ambience("guerra")
+	Audio.set_space("open")
 	size = Vector2(480, 270)
 	scale = Vector2(2.0 / 3.0, 2.0 / 3.0)
 	var bg := ColorRect.new()

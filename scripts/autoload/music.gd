@@ -8,7 +8,12 @@ const DIR := "res://assets/audio/music/"
 const FADE := 1.2
 
 var current: String = ""
+var ambience: String = ""
 var _players: Array[AudioStreamPlayer] = []
+## Ambiente (natureza, vento, chuva, caverna...): 2 players com crossfade
+var _amb: Array[AudioStreamPlayer] = []
+var _amb_active := 0
+var _amb_tween: Tween
 var _gain: Array[float] = [0.0, 0.0]
 var _active := 0
 var _tween: Tween
@@ -22,6 +27,12 @@ func _ready() -> void:
 		p.volume_db = -80.0
 		add_child(p)
 		_players.append(p)
+	for i in 2:
+		var a := AudioStreamPlayer.new()
+		a.bus = "Ambience"
+		a.volume_db = -80.0
+		add_child(a)
+		_amb.append(a)
 
 
 func has_track(id: String) -> bool:
@@ -46,6 +57,31 @@ func play(id: String, fade: float = FADE) -> void:
 	_set_gain(_active, 0.0)
 	p.play()
 	_fade_to(_active, 1.0, old, 0.0, fade)
+
+
+## Som de ambiente em loop (assets/audio/ambience/<id>.ogg). "" = silêncio.
+func play_ambience(id: String, fade: float = 2.0) -> void:
+	if id == ambience:
+		return
+	ambience = id
+	var path := "res://assets/audio/ambience/%s.ogg" % id
+	var old := _amb[_amb_active]
+	if _amb_tween:
+		_amb_tween.kill()
+	_amb_tween = create_tween().set_parallel(true)
+	_amb_tween.set_ignore_time_scale(true)
+	_amb_tween.tween_property(old, "volume_db", -80.0, fade)
+	if id == "" or not ResourceLoader.exists(path):
+		return
+	var stream: AudioStream = load(path)
+	if stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = true
+	_amb_active = 1 - _amb_active
+	var p := _amb[_amb_active]
+	p.stream = stream
+	p.volume_db = -40.0
+	p.play()
+	_amb_tween.tween_property(p, "volume_db", 0.0, fade)
 
 
 func stop(fade: float = FADE) -> void:

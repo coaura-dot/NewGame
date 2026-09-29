@@ -38,7 +38,10 @@
   "tags": [
    "outdoor",
    "dark"
-  ]
+  ],
+  "scenery": "graveyard",
+  "ambience": "noite",
+  "space": "open"
  },
  "castelo": {
   "music": "castelo",
@@ -73,7 +76,10 @@
   },
   "tags": [
    "indoor"
-  ]
+  ],
+  "scenery": "castle",
+  "ambience": "salao",
+  "space": "hall"
  },
  "catacumbas": {
   "music": "catacumbas",
@@ -109,7 +115,10 @@
    "indoor",
    "underground",
    "dark"
-  ]
+  ],
+  "scenery": "cave",
+  "ambience": "caverna",
+  "space": "cave"
  },
  "cidade_gotica": {
   "music": "castelo",
@@ -150,7 +159,10 @@
   "tags": [
    "outdoor",
    "urban"
-  ]
+  ],
+  "scenery": "gothic",
+  "ambience": "chuva",
+  "space": "open"
  },
  "templo_dourado": {
   "music": "deserto",
@@ -184,7 +196,10 @@
   "tags": [
    "indoor",
    "puzzle"
-  ]
+  ],
+  "scenery": "desert",
+  "ambience": "salao",
+  "space": "hall"
  },
  "ruinas": {
   "music": "floresta",
@@ -218,7 +233,10 @@
   },
   "tags": [
    "outdoor"
-  ]
+  ],
+  "scenery": "ruins",
+  "ambience": "vento",
+  "space": "open"
  },
  "floresta": {
   "music": "floresta",
@@ -257,7 +275,10 @@
   "tags": [
    "outdoor",
    "nature"
-  ]
+  ],
+  "scenery": "forest",
+  "ambience": "floresta",
+  "space": "open"
  },
  "deserto": {
   "music": "deserto",
@@ -297,7 +318,10 @@
   "tags": [
    "outdoor",
    "hot"
-  ]
+  ],
+  "scenery": "desert",
+  "ambience": "deserto",
+  "space": "open"
  },
  "pantano": {
   "music": "floresta",
@@ -331,7 +355,10 @@
   "tags": [
    "outdoor",
    "wet"
-  ]
+  ],
+  "scenery": "swamp",
+  "ambience": "pantano",
+  "space": "open"
  },
  "cidade_ceu": {
   "music": "ceu",
@@ -371,7 +398,10 @@
   "tags": [
    "sky",
    "urban"
-  ]
+  ],
+  "scenery": "sky",
+  "ambience": "ceu",
+  "space": "open"
  },
  "cidade_subterranea": {
   "music": "catacumbas",
@@ -406,7 +436,10 @@
   "tags": [
    "underground",
    "urban"
-  ]
+  ],
+  "scenery": "cave",
+  "ambience": "caverna",
+  "space": "cave"
  },
  "cidade_magos": {
   "music": "castelo",
@@ -440,7 +473,10 @@
   "tags": [
    "indoor",
    "magic"
-  ]
+  ],
+  "scenery": "castle",
+  "ambience": "salao",
+  "space": "hall"
  },
  "fortaleza_orc": {
   "music": "guerra",
@@ -475,7 +511,10 @@
   "tags": [
    "outdoor",
    "war"
-  ]
+  ],
+  "scenery": "war",
+  "ambience": "guerra",
+  "space": "open"
  },
  "acampamento_barbaro": {
   "music": "guerra",
@@ -510,7 +549,10 @@
   "tags": [
    "outdoor",
    "war"
-  ]
+  ],
+  "scenery": "war",
+  "ambience": "guerra",
+  "space": "open"
  },
  "toca_goblin": {
   "music": "catacumbas",
@@ -545,6 +587,9 @@
   "tags": [
    "underground",
    "trap"
-  ]
+  ],
+  "scenery": "cave",
+  "ambience": "caverna",
+  "space": "cave"
  }
 }

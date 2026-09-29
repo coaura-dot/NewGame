@@ -12,6 +12,9 @@ const EVENTS := {
 	"parry": ["g_parry", "swordMetal"],
 	"parry_perfect": ["g_parry"],
 	"kill": ["g_kill"],
+	"birds": ["g_birds"],
+	"thunder": ["g_thunder"],
+	"rumble": ["g_rumble"],
 	"aim": ["g_aim"],
 	"shot": ["g_shot"],
 	"orb": ["g_orb"],
@@ -72,6 +75,30 @@ func _index_files() -> void:
 		var path := DIR + name
 		if ResourceLoader.exists(path) and not _streams[prefix].has(path):
 			_streams[prefix].append(path)
+
+
+## Acústica do lugar: "open" (sem eco), "hall" (salão/castelo), "cave"
+## (caverna/catacumba: eco longo). Reverb no bus de efeitos.
+func set_space(kind: String) -> void:
+	var idx := AudioServer.get_bus_index("SFX")
+	if idx < 0 or AudioServer.get_bus_effect_count(idx) == 0:
+		return
+	var rv := AudioServer.get_bus_effect(idx, 0) as AudioEffectReverb
+	match kind:
+		"cave":
+			rv.room_size = 0.85
+			rv.damping = 0.35
+			rv.wet = 0.32
+			rv.predelay_msec = 60.0
+			AudioServer.set_bus_effect_enabled(idx, 0, true)
+		"hall":
+			rv.room_size = 0.6
+			rv.damping = 0.6
+			rv.wet = 0.18
+			rv.predelay_msec = 30.0
+			AudioServer.set_bus_effect_enabled(idx, 0, true)
+		_:
+			AudioServer.set_bus_effect_enabled(idx, 0, false)
 
 
 func play(event: String, pitch_var: float = 0.08, volume_db: float = 0.0, pitch: float = 1.0) -> void:

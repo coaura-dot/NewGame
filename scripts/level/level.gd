@@ -61,6 +61,8 @@ func _ready() -> void:
 	_spawn_player()
 	_build_layers()
 	Events.player_died.connect(_on_player_died)
+	Music.play_ambience(str(biome.get("ambience", "")))
+	Audio.set_space(str(biome.get("space", "open")))
 	Events.room_entered.emit({"index": 0})
 	if not training:
 		Events.toast.emit(region.get("name", ""))
@@ -412,7 +414,7 @@ func _build_layers() -> void:
 	var tint_a: Array = biome.get("tint", [1, 1, 1])
 	var bg_tint := Color(tint_a[0], tint_a[1], tint_a[2]) * Color(ambient_a[0] * 1.5, ambient_a[1] * 1.5, ambient_a[2] * 1.5)
 	bg.camera = camera
-	bg.build(biome.get("tileset", "castle"), Color(tint_a[0], tint_a[1], tint_a[2]))
+	bg.build(str(biome.get("scenery", "forest")), Color.WHITE, 0.0)
 	world.add_child(bg)
 	postfx = PostFX.new()
 	postfx.camera = camera

@@ -79,7 +79,7 @@ func _video_tab() -> Control:
 func _audio_tab() -> Control:
 	var pair := _scroll("Áudio")
 	var v: VBoxContainer = pair[1]
-	for k in [["master", "Geral"], ["sfx", "Efeitos"], ["music", "Música"]]:
+	for k in [["master", "Geral"], ["sfx", "Efeitos"], ["music", "Música"], ["ambience", "Ambiente (natureza, vento, eco)"]]:
 		var key: String = k[0]
 		v.add_child(UIKit.slider(k[1], float(Settings.get_value("audio", key)), 0.0, 1.0, 0.05, func(val): Settings.set_value("audio", key, val)))
 	return pair[0]

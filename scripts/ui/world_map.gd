@@ -31,6 +31,8 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	FX.clear_time_effects()
 	Music.play("menu")
+	Music.play_ambience("")
+	Audio.set_space("open")
 	if not Game.has_game:
 		Game.new_game()
 	var svc := SubViewportContainer.new()

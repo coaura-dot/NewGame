@@ -215,7 +215,7 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 		room_list.append(room)
 
 	# fase contínua (Dead Cells): salões abertos entre salas e céu aberto
-	_open_up(grid, rooms, connections, min_c, indoor, rng)
+	var sky_rooms := _open_up(grid, rooms, connections, min_c, indoor, rng)
 
 	# chave para salas trancadas: numa sala do caminho antes do fim
 	if key_needed:
@@ -263,6 +263,7 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 		"exit": [exit_tile.x, exit_tile.y],
 		"key_placed": key_placed or not key_needed,
 		"indoor": indoor,
+		"sky_rooms": sky_rooms,
 	}
 
 
@@ -286,7 +287,7 @@ static func _solid(ch: String) -> bool:
 ## salões. Em biomas externos abre o teto das salas mais altas para o céu e
 ## as laterais que dão para o céu. Só REMOVE sólidos cujas duas vizinhas
 ## internas estão livres, então nenhum caminho validado (RoomReach) quebra.
-static func _open_up(grid: Array, rooms: Dictionary, connections: Array, min_c: Vector2i, indoor: bool, rng: RandomNumberGenerator) -> void:
+static func _open_up(grid: Array, rooms: Dictionary, connections: Array, min_c: Vector2i, indoor: bool, rng: RandomNumberGenerator) -> Array:
 	var W := LevelConst.ROOM_W
 	var H := LevelConst.ROOM_H
 	var conn_kind := {}
@@ -310,8 +311,9 @@ static func _open_up(grid: Array, rooms: Dictionary, connections: Array, min_c: 
 		var oy: int = (cell.y - min_c.y) * H
 		var gx: int = ox + W - 1
 		_dissolve_column_pair(grid, gx, oy + 1, oy + H - 2)
+	var sky_rooms: Array = []
 	if indoor:
-		return
+		return sky_rooms
 	# céu: acima da sala mais alta de cada coluna tudo vira ar
 	var top_of := {}
 	for cell in rooms.keys():
@@ -326,6 +328,7 @@ static func _open_up(grid: Array, rooms: Dictionary, connections: Array, min_c: 
 				grid[y][x] = "."
 		# teto da sala mais alta aberto onde a linha de baixo está livre
 		var room: Dictionary = rooms[Vector2i(cx, top_cell_y)]
+		sky_rooms.append([cx - min_c.x, top_cell_y - min_c.y])
 		if room["type"] in CLOSED_TYPES:
 			continue
 		for x in range(ox + 1, ox + W - 1):
@@ -347,6 +350,7 @@ static func _open_up(grid: Array, rooms: Dictionary, connections: Array, min_c: 
 					break
 				if grid[y][inner] != "#" and grid[y][outer] != "#":
 					grid[y][gx] = "."
+	return sky_rooms
 
 
 ## Derruba a parede dupla (colunas gx e gx+1) entre duas salas nas linhas em

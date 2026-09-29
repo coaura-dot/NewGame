@@ -33,6 +33,11 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 	var w: int = layout["width"]
 	var h: int = layout["height"]
 	var room_mask := _room_mask(layout)
+	# fora (céu aberto) só as salas mais altas; as de baixo são subterrâneas
+	# e ganham parede de rocha ao fundo
+	var open_sky := {}
+	for c in layout.get("sky_rooms", []):
+		open_sky[Vector2i(int(c[0]), int(c[1]))] = true
 	var spikes: Array[Vector2i] = []
 	for y in h:
 		var row: String = rows[y]
@@ -42,7 +47,8 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 			if c == "#":
 				_place_solid(solid, trim, ceil, deco, rows, x, y, w, h)
 			else:
-				if indoor and room_mask.has(Vector2i(x / LevelConst.ROOM_W, y / LevelConst.ROOM_H)):
+				var rc := Vector2i(x / LevelConst.ROOM_W, y / LevelConst.ROOM_H)
+				if room_mask.has(rc) and (indoor or not open_sky.has(rc)):
 					bg.set_cell(cell, TileSetBuilder.SOURCE, TileSetBuilder.BG[TileSetBuilder.variant(x, y, 4)])
 				if c == "-":
 					var l := _ch(rows, x - 1, y, w, h) == "-"
