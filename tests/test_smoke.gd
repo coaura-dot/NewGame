@@ -45,11 +45,15 @@ func test_treino() -> void:
 	Input.action_release("dash")
 	check(dashed, "dash")
 	await _frames(60)
-	# combate: esqueleto logo à frente
-	p.facing = 1
-	var en: Enemy = level._make_enemy("skeleton", 1, p.global_position + Vector2(28, 0), -1)
-	level.entities.add_child(en)
+	# combate: esqueleto logo à frente (na área plana do nascimento)
+	p.global_position = level.spawn_pos
+	p.velocity = Vector2.ZERO
+	p.reset_physics_interpolation()
 	await _frames(10)
+	p.facing = 1
+	var en: Enemy = level._make_enemy("skeleton", 1, p.global_position + Vector2(14, 0), -1)
+	level.entities.add_child(en)
+	await _frames(50) # termina de "surgir"
 	var hp0 := en.hp
 	for i in 3:
 		await _tap("attack")
@@ -60,7 +64,8 @@ func test_treino() -> void:
 	p.focus = p.max_focus()
 	var before := tree.get_nodes_in_group("projectiles").size()
 	Game.profile["spell_slots"] = ["chama", "passo_etereo"]
-	await _tap("spell_1")
+	await _frames(20) # o hitstop/câmera lenta da morte do esqueleto acaba
+	await _tap("spell_1", 4)
 	await _frames(2)
 	check(tree.get_nodes_in_group("projectiles").size() > before or p.focus < p.max_focus(), "Chama conjurada")
 	# aparar um projétil inimigo
@@ -117,3 +122,32 @@ func test_regiao_real() -> void:
 	Game.has_game = had
 	Game.slot = old_slot
 	FX.clear_time_effects()
+
+
+## Bug reportado: depois de morrer o personagem ficava invisível (a animação
+## de sumir rodava em câmera lenta e terminava depois do renascimento).
+func test_renasce_visivel() -> void:
+	Game.pending = {"training": true}
+	var level: Node = load("res://scenes/level.tscn").instantiate()
+	tree.root.add_child(level)
+	await _frames(20)
+	var p: Player = level.player
+	var info := DamageInfo.new()
+	info.amount = 99999.0
+	info.team = Layers.Team.ENEMY
+	info.unblockable = true
+	p.invuln_time = 0.0
+	p.take_hit(info)
+	check(p.dead, "jogador morreu")
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 3500:
+		await tree.process_frame
+	check(not p.dead, "renasceu")
+	check(p.sprite.dissolve == 0.0, "sem dissolver depois de renascer (%.2f)" % p.sprite.dissolve)
+	check(p.sprite.modulate.a > 0.99, "opaco depois de renascer")
+	for i in 90:
+		await tree.process_frame
+	check(p.sprite.dissolve == 0.0 and p.sprite.visible, "continua visível")
+	level.queue_free()
+	await _frames(2)
+	Game.end_training()

@@ -1,773 +1,1364 @@
 {
-  "_doc": "Inimigos. loadout usa o MESMO pool de armas/magias/armaduras do jogador e define os drops. weakness: multiplicadores por tipo de dano/escola de magia; class_weakness: por classe de arma. weak_points: caixas de ponto fraco (dano extra). exclusive_drops: itens que só esse inimigo dropa.",
-  "skeleton": {
-    "name": "Esqueleto Errante",
-    "tier": 1,
-    "hp": 30,
-    "speed": 35,
-    "ai": "melee",
-    "body": [
-      6,
-      8
-    ],
-    "contact_damage": 0,
-    "aggro": 80,
-    "attack_range": 14,
-    "loadout": {
-      "weapon": "espada_enferrujada",
-      "spells": [],
-      "armor": [
-        "vigia_noturno_head"
-      ]
-    },
-    "anim": {
-      "idle": "walk",
-      "move": "walk",
-      "attack": "walk",
-      "spawn": "rise"
-    },
-    "weakness": {
-      "blunt": 1.6,
-      "pierce": 0.6,
-      "light": 1.5
-    },
-    "class_weakness": {
-      "greatsword": 1.3,
-      "staff": 1.3
-    },
-    "drops": [
-      {
-        "id": "espada_enferrujada",
-        "chance": 0.06
-      },
-      {
-        "id": "vigia_noturno_head",
-        "chance": 0.03
-      }
-    ],
-    "currency": [
-      4,
-      9
-    ],
-    "look": {
-      "body": [
-        5,
-        4
-      ],
-      "head": [
-        5,
-        4
-      ],
-      "color": [
-        0.55,
-        0.5,
-        0.45
-      ],
-      "shell": [
-        0.9,
-        0.87,
-        0.78
-      ],
-      "eyes": "hollow",
-      "legs": 2
-    }
+ "_doc": "Inimigos. loadout usa o MESMO pool de armas/magias/armaduras do jogador e define os drops. weakness: multiplicadores por tipo de dano/escola de magia; class_weakness: por classe de arma. weak_points: caixas de ponto fraco (dano extra). exclusive_drops: itens que só esse inimigo dropa.",
+ "skeleton": {
+  "name": "Esqueleto Errante",
+  "tier": 1,
+  "hp": 20,
+  "speed": 62,
+  "ai": "melee",
+  "body": [
+   6,
+   8
+  ],
+  "contact_damage": 0,
+  "aggro": 150,
+  "attack_range": 16,
+  "loadout": {
+   "weapon": "espada_enferrujada",
+   "spells": [],
+   "armor": [
+    "vigia_noturno_head"
+   ]
   },
-  "hound": {
-    "name": "Cão Infernal",
-    "tier": 1,
-    "hp": 22,
-    "speed": 75,
-    "ai": "lunger",
-    "body": [
-      10,
-      6
-    ],
-    "contact_damage": 0,
-    "aggro": 100,
-    "attack_range": 40,
-    "loadout": {
-      "weapon": "presas_infernais",
-      "spells": []
-    },
-    "anim": {
-      "idle": "idle",
-      "move": "run",
-      "attack": "jump"
-    },
-    "weakness": {
-      "ice": 1.6,
-      "water": 1.4,
-      "fire": 0.4,
-      "slash": 1.2
-    },
-    "drops": [
-      {
-        "id": "presas_infernais",
-        "chance": 0.07
-      }
-    ],
-    "currency": [
-      3,
-      7
-    ],
-    "look": {
-      "body": [
-        8,
-        3
-      ],
-      "head": [
-        4,
-        3
-      ],
-      "color": [
-        0.3,
-        0.18,
-        0.22
-      ],
-      "shell": [
-        0.42,
-        0.25,
-        0.3
-      ],
-      "eyes": "glow",
-      "eye_color": [
-        1,
-        0.3,
-        0.2
-      ],
-      "legs": 4,
-      "ears": true,
-      "tail": true
-    }
+  "anim": {
+   "idle": "walk",
+   "move": "walk",
+   "attack": "walk",
+   "spawn": "rise"
   },
-  "hellcat": {
-    "name": "Gato do Abismo",
-    "tier": 1,
-    "hp": 18,
-    "speed": 85,
-    "ai": "lunger",
-    "body": [
-      9,
-      5
-    ],
-    "contact_damage": 0,
-    "aggro": 100,
-    "attack_range": 36,
-    "loadout": {
-      "weapon": "garra_felina",
-      "spells": []
-    },
-    "anim": {
-      "idle": "run",
-      "move": "run",
-      "attack": "run"
-    },
-    "weakness": {
-      "blunt": 1.3,
-      "light": 1.3
-    },
-    "drops": [
-      {
-        "id": "garra_felina",
-        "chance": 0.07
-      },
-      {
-        "id": "sombra_andarilha_feet",
-        "chance": 0.03
-      }
-    ],
-    "currency": [
-      3,
-      7
-    ],
-    "look": {
-      "body": [
-        7,
-        3
-      ],
-      "head": [
-        4,
-        3
-      ],
-      "color": [
-        0.3,
-        0.2,
-        0.45
-      ],
-      "shell": [
-        0.4,
-        0.28,
-        0.58
-      ],
-      "eyes": "glow",
-      "eye_color": [
-        1,
-        0.9,
-        0.3
-      ],
-      "legs": 4,
-      "ears": true,
-      "tail": true
-    }
+  "weakness": {
+   "blunt": 1.6,
+   "pierce": 0.6,
+   "light": 1.5
   },
-  "ghost": {
-    "name": "Espectro Encapuzado",
-    "tier": 2,
-    "hp": 24,
-    "speed": 35,
-    "ai": "caster",
-    "flying": true,
-    "body": [
-      8,
-      10
-    ],
-    "contact_damage": 0,
-    "aggro": 110,
-    "attack_range": 70,
-    "loadout": {
-      "weapon": "cajado_espectral",
-      "spells": [
-        "lamento",
-        "golpe_psiquico"
-      ]
-    },
-    "anim": {
-      "idle": "idle",
-      "move": "idle",
-      "cast": "shriek",
-      "spawn": "appear",
-      "death": "vanish"
-    },
-    "weakness": {
-      "light": 2.0,
-      "arcane": 1.5,
-      "slash": 0.5,
-      "pierce": 0.5,
-      "blunt": 0.5
-    },
-    "drops": [
-      {
-        "id": "cajado_espectral",
-        "chance": 0.05
-      },
-      {
-        "id": "lamento",
-        "chance": 0.04
-      },
-      {
-        "id": "arcanista_cloak",
-        "chance": 0.03
-      }
-    ],
-    "currency": [
-      6,
-      12
-    ],
-    "look": {
-      "body": [
-        6,
-        5
-      ],
-      "head": [
-        6,
-        5
-      ],
-      "color": [
-        0.18,
-        0.17,
-        0.3
-      ],
-      "shell": [
-        0.22,
-        0.2,
-        0.36
-      ],
-      "eyes": "glow",
-      "eye_color": [
-        0.4,
-        0.9,
-        1
-      ],
-      "float": true,
-      "legs": 0
-    }
+  "class_weakness": {
+   "greatsword": 1.3,
+   "staff": 1.3
   },
-  "wraith": {
-    "name": "Lampadário",
-    "tier": 1,
-    "hp": 20,
-    "speed": 30,
-    "ai": "caster",
-    "flying": true,
-    "body": [
-      7,
-      10
-    ],
-    "contact_damage": 0,
-    "aggro": 100,
-    "attack_range": 80,
-    "loadout": {
-      "weapon": "bastao_carvalho",
-      "spells": [
-        "seta_arcana"
-      ]
-    },
-    "anim": {
-      "idle": "idle",
-      "move": "idle",
-      "cast": "idle"
-    },
-    "light": {
-      "color": [
-        0.4,
-        0.8,
-        1.6
-      ],
-      "energy": 1.2,
-      "scale": 1.0
-    },
-    "weakness": {
-      "light": 1.8,
-      "water": 1.3,
-      "pierce": 0.7
-    },
-    "drops": [
-      {
-        "id": "seta_arcana",
-        "chance": 0.06
-      },
-      {
-        "id": "anel_foco",
-        "chance": 0.03
-      }
-    ],
-    "currency": [
-      4,
-      9
-    ],
-    "look": {
-      "body": [
-        5,
-        5
-      ],
-      "head": [
-        5,
-        4
-      ],
-      "color": [
-        0.3,
-        0.25,
-        0.5
-      ],
-      "shell": [
-        0.36,
-        0.3,
-        0.6
-      ],
-      "eyes": "glow",
-      "eye_color": [
-        0.5,
-        0.8,
-        1
-      ],
-      "float": true,
-      "legs": 0,
-      "lantern": true
-    }
-  },
-  "fire_skull": {
-    "name": "Crânio Flamejante",
-    "tier": 1,
-    "hp": 16,
-    "speed": 40,
-    "ai": "caster",
-    "flying": true,
-    "body": [
-      8,
-      8
-    ],
-    "contact_damage": 6,
-    "aggro": 100,
-    "attack_range": 75,
-    "loadout": {
-      "weapon": "",
-      "spells": [
-        "chama"
-      ]
-    },
-    "anim": {
-      "idle": "idle",
-      "move": "idle",
-      "cast": "idle"
-    },
-    "light": {
-      "color": [
-        2.0,
-        0.9,
-        0.3
-      ],
-      "energy": 1.4,
-      "scale": 1.2
-    },
-    "weakness": {
-      "ice": 2.0,
-      "water": 2.0,
-      "fire": 0.0
-    },
-    "drops": [
-      {
-        "id": "chama",
-        "chance": 0.06
-      },
-      {
-        "id": "brasa_viva_head",
-        "chance": 0.03
-      }
-    ],
-    "currency": [
-      4,
-      8
-    ],
-    "look": {
-      "body": [
-        0,
-        0
-      ],
-      "head": [
-        6,
-        6
-      ],
-      "color": [
-        0.9,
-        0.85,
-        0.8
-      ],
-      "shell": [
-        0.95,
-        0.9,
-        0.82
-      ],
-      "eyes": "hollow",
-      "float": true,
-      "legs": 0,
-      "flame": true
-    }
-  },
-  "hell_beast": {
-    "name": "Besta do Inferno",
-    "tier": 2,
-    "hp": 40,
-    "speed": 0,
-    "ai": "turret",
-    "body": [
-      8,
-      12
-    ],
-    "contact_damage": 0,
-    "aggro": 120,
-    "attack_range": 100,
-    "loadout": {
-      "weapon": "",
-      "spells": [
-        "sopro_infernal"
-      ]
-    },
-    "anim": {
-      "idle": "idle",
-      "move": "idle",
-      "cast": "breath"
-    },
-    "light": {
-      "color": [
-        1.8,
-        0.7,
-        0.3
-      ],
-      "energy": 0.8,
-      "scale": 0.8
-    },
-    "weakness": {
-      "ice": 1.6,
-      "fire": 0.3,
-      "pierce": 1.2
-    },
-    "drops": [
-      {
-        "id": "sopro_infernal",
-        "chance": 0.06
-      },
-      {
-        "id": "brasa_viva_chest",
-        "chance": 0.03
-      }
-    ],
-    "currency": [
-      8,
-      14
-    ],
-    "look": {
-      "body": [
-        6,
-        6
-      ],
-      "head": [
-        6,
-        5
-      ],
-      "color": [
-        0.55,
-        0.18,
-        0.15
-      ],
-      "shell": [
-        0.75,
-        0.3,
-        0.2
-      ],
-      "eyes": "glow",
-      "eye_color": [
-        1,
-        0.8,
-        0.2
-      ],
-      "legs": 2,
-      "horns": true,
-      "tail": true
-    }
-  },
-  "nightmare": {
-    "name": "Corcel do Pesadelo", "desc": "Investida imparável (não dá para aparar): pule por cima e castigue quando ele bater na parede.",
-    "tier": 2,
-    "hp": 110,
-    "speed": 45,
-    "ai": "charger",
-    "elite": true,
-    "body": [
-      16,
-      12
-    ],
-    "contact_damage": 8,
-    "aggro": 130,
-    "attack_range": 90,
-    "poise": 12,
-    "loadout": {
-      "weapon": "manoplas_pesadelo",
-      "spells": [
-        "campo_lento"
-      ]
-    },
-    "anim": {
-      "idle": "idle",
-      "move": "gallop",
-      "attack": "gallop",
-      "cast": "idle"
-    },
-    "light": {
-      "color": [
-        0.3,
-        1.2,
-        2.0
-      ],
-      "energy": 1.0,
-      "scale": 1.4
-    },
-    "weakness": {
-      "light": 1.5,
-      "blunt": 1.2,
-      "time": 0.5
-    },
-    "drops": [
-      {
-        "id": "manoplas_pesadelo",
-        "chance": 0.25
-      },
-      {
-        "id": "cronomante_legs",
-        "chance": 0.1
-      }
-    ],
-    "currency": [
-      30,
-      50
-    ],
-    "look": {
-      "body": [
-        12,
-        6
-      ],
-      "head": [
-        5,
-        5
-      ],
-      "color": [
-        0.12,
-        0.1,
-        0.18
-      ],
-      "shell": [
-        0.18,
-        0.15,
-        0.26
-      ],
-      "eyes": "glow",
-      "eye_color": [
-        0.3,
-        0.9,
-        1
-      ],
-      "legs": 4,
-      "ears": true,
-      "tail": true
-    }
-  },
-  "archdemon": {
-    "name": "Arquidemônio de Cinzas", "desc": "Chefe final. Três fases; na última, magias em leque.",
-    "tier": 3,
-    "hp": 520,
-    "speed": 35,
-    "ai": "boss_demon",
-    "flying": true,
-    "boss": true,
-    "body": [
-      18,
-      20
-    ],
-    "contact_damage": 10,
-    "aggro": 260,
-    "attack_range": 50,
-    "poise": 30,
-    "loadout": {
-      "weapon": "cutelo_arquidemonio",
-      "spells": [
-        "sopro_infernal",
-        "chama",
-        "poco_gravitacional"
-      ]
-    },
-    "anim": {
-      "idle": "idle",
-      "move": "idle",
-      "attack": "attack",
-      "cast": "attack"
-    },
-    "light": {
-      "color": [
-        0.4,
-        1.4,
-        2.4
-      ],
-      "energy": 1.6,
-      "scale": 2.4
-    },
-    "weak_points": [
-      {
-        "box": [
-          -5,
-          -16,
-          10,
-          8
-        ],
-        "mult": 1.75,
-        "name": "crânio"
-      }
-    ],
-    "weakness": {
-      "ice": 1.4,
-      "light": 1.3,
-      "fire": 0.2
-    },
-    "drops": [
-      {
-        "id": "cutelo_arquidemonio",
-        "chance": 0.35
-      },
-      {
-        "id": "buraco_negro",
-        "chance": 0.2
-      }
-    ],
-    "exclusive_drops": [
-      "cutelo_arquidemonio"
-    ],
-    "refight": {
-      "requires_item": "selo_das_cinzas",
-      "desc": "Queime o Selo das Cinzas no altar da arena para reconjurar o Arquidemônio."
-    },
-    "phases": [
-      1.0,
-      0.66,
-      0.33
-    ],
-    "currency": [
-      200,
-      260
-    ],
-    "look": {
-      "body": [
-        14,
-        10
-      ],
-      "head": [
-        10,
-        8
-      ],
-      "color": [
-        0.14,
-        0.1,
-        0.16
-      ],
-      "shell": [
-        0.85,
-        0.8,
-        0.72
-      ],
-      "eyes": "glow",
-      "eye_color": [
-        0.3,
-        0.9,
-        1.0
-      ],
-      "float": true,
-      "legs": 0,
-      "horns": true,
-      "wings": true
-    }
-  },
-  "duelist": {
-    "name": "Duelista Sombrio", "tier": 2, "hp": 240, "speed": 70, "ai": "boss_duelist", "boss": true,
-    "body": [6, 10], "contact_damage": 0, "aggro": 400, "attack_range": 18, "poise": 16,
-    "loadout": {"weapon": "katana_rubra", "spells": ["passo_etereo"]},
-    "weakness": {"pierce": 1.2, "lightning": 1.3, "light": 1.2}, "class_weakness": {"fine_sword": 1.25},
-    "phases": [1.0, 0.6, 0.3],
-    "look": {"body": [5, 4], "head": [6, 5], "color": [0.1, 0.08, 0.14], "shell": [0.2, 0.17, 0.25], "eyes": "glow", "eye_color": [1.0, 0.25, 0.3], "legs": 2, "horns": true, "weapon": true},
-    "drops": [{"id": "katana_rubra", "chance": 0.4}, {"id": "odachi_luar", "chance": 0.15}, {"id": "fragmento_runico", "chance": 1.0}],
-    "currency": [110, 150],
-    "desc": "Um reflexo seu que aprendeu a lutar sozinho. Postura azul = contra-ataque: não golpeie."
-  },
-  "brood_mother": {
-    "name": "Mãe da Ninhada", "tier": 2, "hp": 200, "speed": 0, "ai": "boss_horde", "boss": true,
-    "body": [16, 12], "contact_damage": 8, "aggro": 400, "attack_range": 80, "poise": 99,
-    "loadout": {"weapon": "", "spells": ["espinho_terra", "sopro_infernal"]},
-    "minions": {"hound": 3, "skeleton": 2, "hellcat": 2},
-    "weakness": {"fire": 1.3, "blunt": 1.2, "ice": 1.2},
-    "weak_points": [{"name": "Olho", "box": [-3, -18, 6, 5], "mult": 2.0}],
-    "phases": [1.0, 0.5],
-    "look": {"body": [14, 7], "head": [9, 7], "color": [0.34, 0.2, 0.28], "shell": [0.62, 0.44, 0.5], "eyes": "glow", "eye_color": [1.0, 0.8, 0.3], "legs": 4, "horns": true, "tail": true},
-    "drops": [{"id": "sopro_infernal", "chance": 0.3}, {"id": "fragmento_runico", "chance": 1.0}, {"id": "fragmento_runico", "chance": 0.5}],
-    "currency": [110, 150],
-    "desc": "Protegida pela ninhada. Derrube cada onda para abrir a guarda."
-  },
-  "colossus": {
-    "name": "Colosso de Pedra", "tier": 2, "hp": 320, "speed": 22, "ai": "boss_colossus", "boss": true,
-    "body": [22, 26], "contact_damage": 10, "aggro": 400, "attack_range": 32, "poise": 99,
-    "loadout": {"weapon": "montante_ferro", "spells": ["espinho_terra"]},
-    "weakness": {"blunt": 1.4, "lightning": 1.2, "slash": 0.75},
-    "class_weakness": {"gauntlets": 1.3, "greatsword": 1.2},
-    "weak_points": [{"name": "Núcleo", "box": [-4, -26, 8, 6], "mult": 2.5}],
-    "phases": [1.0, 0.5],
-    "look": {"body": [24, 14], "head": [14, 11], "color": [0.36, 0.34, 0.31], "shell": [0.6, 0.58, 0.52], "eyes": "glow", "eye_color": [0.4, 1.6, 1.2], "legs": 4, "horns": true},
-    "drops": [{"id": "espinho_terra", "chance": 0.3}, {"id": "fragmento_runico", "chance": 1.0}, {"id": "fragmento_runico", "chance": 1.0}],
-    "currency": [120, 170],
-    "desc": "Lento e enorme. Pule as ondas de choque; o núcleo abaixa depois do pisão."
+  "drops": [
+   {
+    "id": "espada_enferrujada",
+    "chance": 0.06
+   },
+   {
+    "id": "vigia_noturno_head",
+    "chance": 0.03
+   }
+  ],
+  "currency": [
+   4,
+   9
+  ],
+  "look": {
+   "body": [
+    5,
+    4
+   ],
+   "head": [
+    5,
+    4
+   ],
+   "color": [
+    0.55,
+    0.5,
+    0.45
+   ],
+   "shell": [
+    0.9,
+    0.87,
+    0.78
+   ],
+   "eyes": "hollow",
+   "legs": 2
   }
+ },
+ "hound": {
+  "name": "Cão Infernal",
+  "tier": 1,
+  "hp": 15,
+  "speed": 115,
+  "ai": "lunger",
+  "body": [
+   10,
+   6
+  ],
+  "contact_damage": 0,
+  "aggro": 170,
+  "attack_range": 52,
+  "loadout": {
+   "weapon": "presas_infernais",
+   "spells": []
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "run",
+   "attack": "jump"
+  },
+  "weakness": {
+   "ice": 1.6,
+   "water": 1.4,
+   "fire": 0.4,
+   "slash": 1.2
+  },
+  "drops": [
+   {
+    "id": "presas_infernais",
+    "chance": 0.07
+   }
+  ],
+  "currency": [
+   3,
+   7
+  ],
+  "look": {
+   "body": [
+    8,
+    3
+   ],
+   "head": [
+    4,
+    3
+   ],
+   "color": [
+    0.3,
+    0.18,
+    0.22
+   ],
+   "shell": [
+    0.42,
+    0.25,
+    0.3
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    1,
+    0.3,
+    0.2
+   ],
+   "legs": 4,
+   "ears": true,
+   "tail": true
+  }
+ },
+ "hellcat": {
+  "name": "Gato do Abismo",
+  "tier": 1,
+  "hp": 12,
+  "speed": 125,
+  "ai": "lunger",
+  "body": [
+   9,
+   5
+  ],
+  "contact_damage": 0,
+  "aggro": 170,
+  "attack_range": 48,
+  "loadout": {
+   "weapon": "garra_felina",
+   "spells": []
+  },
+  "anim": {
+   "idle": "run",
+   "move": "run",
+   "attack": "run"
+  },
+  "weakness": {
+   "blunt": 1.3,
+   "light": 1.3
+  },
+  "drops": [
+   {
+    "id": "garra_felina",
+    "chance": 0.07
+   },
+   {
+    "id": "sombra_andarilha_feet",
+    "chance": 0.03
+   }
+  ],
+  "currency": [
+   3,
+   7
+  ],
+  "look": {
+   "body": [
+    7,
+    3
+   ],
+   "head": [
+    4,
+    3
+   ],
+   "color": [
+    0.3,
+    0.2,
+    0.45
+   ],
+   "shell": [
+    0.4,
+    0.28,
+    0.58
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    1,
+    0.9,
+    0.3
+   ],
+   "legs": 4,
+   "ears": true,
+   "tail": true
+  }
+ },
+ "ghost": {
+  "name": "Espectro Encapuzado",
+  "tier": 2,
+  "hp": 16,
+  "speed": 60,
+  "ai": "caster",
+  "flying": true,
+  "body": [
+   8,
+   10
+  ],
+  "contact_damage": 0,
+  "aggro": 160,
+  "attack_range": 80,
+  "loadout": {
+   "weapon": "cajado_espectral",
+   "spells": [
+    "lamento",
+    "golpe_psiquico"
+   ]
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "idle",
+   "cast": "shriek",
+   "spawn": "appear",
+   "death": "vanish"
+  },
+  "weakness": {
+   "light": 2.0,
+   "arcane": 1.5,
+   "slash": 0.5,
+   "pierce": 0.5,
+   "blunt": 0.5
+  },
+  "drops": [
+   {
+    "id": "cajado_espectral",
+    "chance": 0.05
+   },
+   {
+    "id": "lamento",
+    "chance": 0.04
+   },
+   {
+    "id": "arcanista_cloak",
+    "chance": 0.03
+   }
+  ],
+  "currency": [
+   6,
+   12
+  ],
+  "look": {
+   "body": [
+    6,
+    5
+   ],
+   "head": [
+    6,
+    5
+   ],
+   "color": [
+    0.18,
+    0.17,
+    0.3
+   ],
+   "shell": [
+    0.22,
+    0.2,
+    0.36
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    0.4,
+    0.9,
+    1
+   ],
+   "float": true,
+   "legs": 0
+  }
+ },
+ "wraith": {
+  "name": "Lampadário",
+  "tier": 1,
+  "hp": 14,
+  "speed": 55,
+  "ai": "caster",
+  "flying": true,
+  "body": [
+   7,
+   10
+  ],
+  "contact_damage": 0,
+  "aggro": 160,
+  "attack_range": 90,
+  "loadout": {
+   "weapon": "bastao_carvalho",
+   "spells": [
+    "seta_arcana"
+   ]
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "idle",
+   "cast": "idle"
+  },
+  "light": {
+   "color": [
+    0.4,
+    0.8,
+    1.6
+   ],
+   "energy": 1.2,
+   "scale": 1.0
+  },
+  "weakness": {
+   "light": 1.8,
+   "water": 1.3,
+   "pierce": 0.7
+  },
+  "drops": [
+   {
+    "id": "seta_arcana",
+    "chance": 0.06
+   },
+   {
+    "id": "anel_foco",
+    "chance": 0.03
+   }
+  ],
+  "currency": [
+   4,
+   9
+  ],
+  "look": {
+   "body": [
+    5,
+    5
+   ],
+   "head": [
+    5,
+    4
+   ],
+   "color": [
+    0.3,
+    0.25,
+    0.5
+   ],
+   "shell": [
+    0.36,
+    0.3,
+    0.6
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    0.5,
+    0.8,
+    1
+   ],
+   "float": true,
+   "legs": 0,
+   "lantern": true
+  }
+ },
+ "fire_skull": {
+  "name": "Crânio Flamejante",
+  "tier": 1,
+  "hp": 10,
+  "speed": 70,
+  "ai": "caster",
+  "flying": true,
+  "body": [
+   8,
+   8
+  ],
+  "contact_damage": 6,
+  "aggro": 160,
+  "attack_range": 80,
+  "loadout": {
+   "weapon": "",
+   "spells": [
+    "chama"
+   ]
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "idle",
+   "cast": "idle"
+  },
+  "light": {
+   "color": [
+    2.0,
+    0.9,
+    0.3
+   ],
+   "energy": 1.4,
+   "scale": 1.2
+  },
+  "weakness": {
+   "ice": 2.0,
+   "water": 2.0,
+   "fire": 0.0
+  },
+  "drops": [
+   {
+    "id": "chama",
+    "chance": 0.06
+   },
+   {
+    "id": "brasa_viva_head",
+    "chance": 0.03
+   }
+  ],
+  "currency": [
+   4,
+   8
+  ],
+  "look": {
+   "body": [
+    0,
+    0
+   ],
+   "head": [
+    6,
+    6
+   ],
+   "color": [
+    0.9,
+    0.85,
+    0.8
+   ],
+   "shell": [
+    0.95,
+    0.9,
+    0.82
+   ],
+   "eyes": "hollow",
+   "float": true,
+   "legs": 0,
+   "flame": true
+  }
+ },
+ "hell_beast": {
+  "name": "Besta do Inferno",
+  "tier": 2,
+  "hp": 28,
+  "speed": 0,
+  "ai": "turret",
+  "body": [
+   8,
+   12
+  ],
+  "contact_damage": 0,
+  "aggro": 170,
+  "attack_range": 130,
+  "loadout": {
+   "weapon": "",
+   "spells": [
+    "sopro_infernal"
+   ]
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "idle",
+   "cast": "breath"
+  },
+  "light": {
+   "color": [
+    1.8,
+    0.7,
+    0.3
+   ],
+   "energy": 0.8,
+   "scale": 0.8
+  },
+  "weakness": {
+   "ice": 1.6,
+   "fire": 0.3,
+   "pierce": 1.2
+  },
+  "drops": [
+   {
+    "id": "sopro_infernal",
+    "chance": 0.06
+   },
+   {
+    "id": "brasa_viva_chest",
+    "chance": 0.03
+   }
+  ],
+  "currency": [
+   8,
+   14
+  ],
+  "look": {
+   "body": [
+    6,
+    6
+   ],
+   "head": [
+    6,
+    5
+   ],
+   "color": [
+    0.55,
+    0.18,
+    0.15
+   ],
+   "shell": [
+    0.75,
+    0.3,
+    0.2
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    1,
+    0.8,
+    0.2
+   ],
+   "legs": 2,
+   "horns": true,
+   "tail": true
+  },
+  "vertical_sight": 80
+ },
+ "nightmare": {
+  "name": "Corcel do Pesadelo",
+  "desc": "Investida imparável (não dá para aparar): pule por cima e castigue quando ele bater na parede.",
+  "tier": 2,
+  "hp": 90,
+  "speed": 65,
+  "ai": "charger",
+  "elite": true,
+  "body": [
+   16,
+   12
+  ],
+  "contact_damage": 8,
+  "aggro": 170,
+  "attack_range": 90,
+  "poise": 12,
+  "loadout": {
+   "weapon": "manoplas_pesadelo",
+   "spells": [
+    "campo_lento"
+   ]
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "gallop",
+   "attack": "gallop",
+   "cast": "idle"
+  },
+  "light": {
+   "color": [
+    0.3,
+    1.2,
+    2.0
+   ],
+   "energy": 1.0,
+   "scale": 1.4
+  },
+  "weakness": {
+   "light": 1.5,
+   "blunt": 1.2,
+   "time": 0.5
+  },
+  "drops": [
+   {
+    "id": "manoplas_pesadelo",
+    "chance": 0.25
+   },
+   {
+    "id": "cronomante_legs",
+    "chance": 0.1
+   }
+  ],
+  "currency": [
+   30,
+   50
+  ],
+  "look": {
+   "body": [
+    12,
+    6
+   ],
+   "head": [
+    5,
+    5
+   ],
+   "color": [
+    0.12,
+    0.1,
+    0.18
+   ],
+   "shell": [
+    0.18,
+    0.15,
+    0.26
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    0.3,
+    0.9,
+    1
+   ],
+   "legs": 4,
+   "ears": true,
+   "tail": true
+  }
+ },
+ "archdemon": {
+  "name": "Arquidemônio de Cinzas",
+  "desc": "Chefe final. Três fases; na última, magias em leque.",
+  "tier": 3,
+  "hp": 520,
+  "speed": 35,
+  "ai": "boss_demon",
+  "flying": true,
+  "boss": true,
+  "body": [
+   18,
+   20
+  ],
+  "contact_damage": 10,
+  "aggro": 260,
+  "attack_range": 50,
+  "poise": 30,
+  "loadout": {
+   "weapon": "cutelo_arquidemonio",
+   "spells": [
+    "sopro_infernal",
+    "chama",
+    "poco_gravitacional"
+   ]
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "idle",
+   "attack": "attack",
+   "cast": "attack"
+  },
+  "light": {
+   "color": [
+    0.4,
+    1.4,
+    2.4
+   ],
+   "energy": 1.6,
+   "scale": 2.4
+  },
+  "weak_points": [
+   {
+    "box": [
+     -5,
+     -16,
+     10,
+     8
+    ],
+    "mult": 1.75,
+    "name": "crânio"
+   }
+  ],
+  "weakness": {
+   "ice": 1.4,
+   "light": 1.3,
+   "fire": 0.2
+  },
+  "drops": [
+   {
+    "id": "cutelo_arquidemonio",
+    "chance": 0.35
+   },
+   {
+    "id": "buraco_negro",
+    "chance": 0.2
+   }
+  ],
+  "exclusive_drops": [
+   "cutelo_arquidemonio"
+  ],
+  "refight": {
+   "requires_item": "selo_das_cinzas",
+   "desc": "Queime o Selo das Cinzas no altar da arena para reconjurar o Arquidemônio."
+  },
+  "phases": [
+   1.0,
+   0.66,
+   0.33
+  ],
+  "currency": [
+   200,
+   260
+  ],
+  "look": {
+   "body": [
+    14,
+    10
+   ],
+   "head": [
+    10,
+    8
+   ],
+   "color": [
+    0.14,
+    0.1,
+    0.16
+   ],
+   "shell": [
+    0.85,
+    0.8,
+    0.72
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    0.3,
+    0.9,
+    1.0
+   ],
+   "float": true,
+   "legs": 0,
+   "horns": true,
+   "wings": true
+  }
+ },
+ "duelist": {
+  "name": "Duelista Sombrio",
+  "tier": 2,
+  "hp": 240,
+  "speed": 70,
+  "ai": "boss_duelist",
+  "boss": true,
+  "body": [
+   6,
+   10
+  ],
+  "contact_damage": 0,
+  "aggro": 400,
+  "attack_range": 18,
+  "poise": 16,
+  "loadout": {
+   "weapon": "katana_rubra",
+   "spells": [
+    "passo_etereo"
+   ]
+  },
+  "weakness": {
+   "pierce": 1.2,
+   "lightning": 1.3,
+   "light": 1.2
+  },
+  "class_weakness": {
+   "fine_sword": 1.25
+  },
+  "phases": [
+   1.0,
+   0.6,
+   0.3
+  ],
+  "look": {
+   "body": [
+    5,
+    4
+   ],
+   "head": [
+    6,
+    5
+   ],
+   "color": [
+    0.1,
+    0.08,
+    0.14
+   ],
+   "shell": [
+    0.2,
+    0.17,
+    0.25
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    1.0,
+    0.25,
+    0.3
+   ],
+   "legs": 2,
+   "horns": true,
+   "weapon": true
+  },
+  "drops": [
+   {
+    "id": "katana_rubra",
+    "chance": 0.4
+   },
+   {
+    "id": "odachi_luar",
+    "chance": 0.15
+   },
+   {
+    "id": "fragmento_runico",
+    "chance": 1.0
+   }
+  ],
+  "currency": [
+   110,
+   150
+  ],
+  "desc": "Um reflexo seu que aprendeu a lutar sozinho. Postura azul = contra-ataque: não golpeie."
+ },
+ "brood_mother": {
+  "name": "Mãe da Ninhada",
+  "tier": 2,
+  "hp": 200,
+  "speed": 0,
+  "ai": "boss_horde",
+  "boss": true,
+  "body": [
+   16,
+   12
+  ],
+  "contact_damage": 8,
+  "aggro": 400,
+  "attack_range": 80,
+  "poise": 99,
+  "loadout": {
+   "weapon": "",
+   "spells": [
+    "espinho_terra",
+    "sopro_infernal"
+   ]
+  },
+  "minions": {
+   "hound": 3,
+   "skeleton": 2,
+   "hellcat": 2
+  },
+  "weakness": {
+   "fire": 1.3,
+   "blunt": 1.2,
+   "ice": 1.2
+  },
+  "weak_points": [
+   {
+    "name": "Olho",
+    "box": [
+     -3,
+     -18,
+     6,
+     5
+    ],
+    "mult": 2.0
+   }
+  ],
+  "phases": [
+   1.0,
+   0.5
+  ],
+  "look": {
+   "body": [
+    14,
+    7
+   ],
+   "head": [
+    9,
+    7
+   ],
+   "color": [
+    0.34,
+    0.2,
+    0.28
+   ],
+   "shell": [
+    0.62,
+    0.44,
+    0.5
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    1.0,
+    0.8,
+    0.3
+   ],
+   "legs": 4,
+   "horns": true,
+   "tail": true
+  },
+  "drops": [
+   {
+    "id": "sopro_infernal",
+    "chance": 0.3
+   },
+   {
+    "id": "fragmento_runico",
+    "chance": 1.0
+   },
+   {
+    "id": "fragmento_runico",
+    "chance": 0.5
+   }
+  ],
+  "currency": [
+   110,
+   150
+  ],
+  "desc": "Protegida pela ninhada. Derrube cada onda para abrir a guarda."
+ },
+ "colossus": {
+  "name": "Colosso de Pedra",
+  "tier": 2,
+  "hp": 320,
+  "speed": 22,
+  "ai": "boss_colossus",
+  "boss": true,
+  "body": [
+   22,
+   26
+  ],
+  "contact_damage": 10,
+  "aggro": 400,
+  "attack_range": 32,
+  "poise": 99,
+  "loadout": {
+   "weapon": "montante_ferro",
+   "spells": [
+    "espinho_terra"
+   ]
+  },
+  "weakness": {
+   "blunt": 1.4,
+   "lightning": 1.2,
+   "slash": 0.75
+  },
+  "class_weakness": {
+   "gauntlets": 1.3,
+   "greatsword": 1.2
+  },
+  "weak_points": [
+   {
+    "name": "Núcleo",
+    "box": [
+     -4,
+     -26,
+     8,
+     6
+    ],
+    "mult": 2.5
+   }
+  ],
+  "phases": [
+   1.0,
+   0.5
+  ],
+  "look": {
+   "body": [
+    24,
+    14
+   ],
+   "head": [
+    14,
+    11
+   ],
+   "color": [
+    0.36,
+    0.34,
+    0.31
+   ],
+   "shell": [
+    0.6,
+    0.58,
+    0.52
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    0.4,
+    1.6,
+    1.2
+   ],
+   "legs": 4,
+   "horns": true
+  },
+  "drops": [
+   {
+    "id": "espinho_terra",
+    "chance": 0.3
+   },
+   {
+    "id": "fragmento_runico",
+    "chance": 1.0
+   },
+   {
+    "id": "fragmento_runico",
+    "chance": 1.0
+   }
+  ],
+  "currency": [
+   120,
+   170
+  ],
+  "desc": "Lento e enorme. Pule as ondas de choque; o núcleo abaixa depois do pisão."
+ },
+ "gunner": {
+  "name": "Atirador de Ferrolho",
+  "tier": 1,
+  "hp": 10,
+  "speed": 0,
+  "ai": "gunner",
+  "body": [
+   6,
+   8
+  ],
+  "contact_damage": 0,
+  "aggro": 180,
+  "attack_range": 180,
+  "vertical_sight": 100,
+  "shot_damage": 14,
+  "shot_speed": 340,
+  "loadout": {
+   "weapon": "",
+   "spells": [],
+   "armor": []
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "walk",
+   "attack": "attack",
+   "spawn": "rise"
+  },
+  "weakness": {
+   "slash": 1.3,
+   "light": 1.2
+  },
+  "class_weakness": {
+   "daggers": 1.3,
+   "knife": 1.3
+  },
+  "drops": [
+   {
+    "id": "fragmento_runico",
+    "chance": 0.05
+   }
+  ],
+  "currency": [
+   5,
+   9
+  ],
+  "look": {
+   "body": [
+    5,
+    4
+   ],
+   "head": [
+    5,
+    4
+   ],
+   "color": [
+    0.35,
+    0.28,
+    0.24
+   ],
+   "shell": [
+    0.78,
+    0.7,
+    0.58
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    2.6,
+    0.5,
+    0.4
+   ],
+   "legs": 2,
+   "ears": true,
+   "lantern": true
+  },
+  "_doc": "Katana Zero: mira laser e tiro rápido. Rebata o tiro (golpe ou aparo) e ele volta fatal."
+ },
+ "leaper": {
+  "name": "Saltador Espinhoso",
+  "tier": 1,
+  "hp": 14,
+  "speed": 85,
+  "ai": "leaper",
+  "body": [
+   7,
+   6
+  ],
+  "contact_damage": 0,
+  "aggro": 160,
+  "attack_range": 64,
+  "loadout": {
+   "weapon": "garra_felina",
+   "spells": [],
+   "armor": []
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "run",
+   "attack": "attack",
+   "spawn": "rise"
+  },
+  "weakness": {
+   "blunt": 1.3
+  },
+  "class_weakness": {
+   "staff": 1.4
+  },
+  "drops": [
+   {
+    "id": "garra_felina",
+    "chance": 0.05
+   }
+  ],
+  "currency": [
+   4,
+   8
+  ],
+  "look": {
+   "body": [
+    6,
+    3
+   ],
+   "head": [
+    5,
+    4
+   ],
+   "color": [
+    0.42,
+    0.55,
+    0.3
+   ],
+   "shell": [
+    0.85,
+    0.9,
+    0.62
+   ],
+   "eyes": "dot",
+   "legs": 4,
+   "tail": true,
+   "horns": true
+  }
+ },
+ "assassin": {
+  "name": "Lâmina Sombria",
+  "tier": 1,
+  "hp": 18,
+  "speed": 95,
+  "ai": "assassin",
+  "body": [
+   6,
+   9
+  ],
+  "contact_damage": 0,
+  "aggro": 170,
+  "attack_range": 70,
+  "loadout": {
+   "weapon": "katana_andarilho",
+   "spells": [],
+   "armor": []
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "run",
+   "attack": "attack",
+   "spawn": "rise"
+  },
+  "weakness": {
+   "light": 1.5,
+   "fire": 1.2
+  },
+  "class_weakness": {
+   "katana": 1.2
+  },
+  "drops": [
+   {
+    "id": "katana_rubra",
+    "chance": 0.02
+   },
+   {
+    "id": "katana_andarilho",
+    "chance": 0.04
+   }
+  ],
+  "currency": [
+   6,
+   11
+  ],
+  "look": {
+   "body": [
+    5,
+    5
+   ],
+   "head": [
+    5,
+    5
+   ],
+   "color": [
+    0.16,
+    0.12,
+    0.22
+   ],
+   "shell": [
+    0.3,
+    0.26,
+    0.38
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    2.4,
+    0.6,
+    1.8
+   ],
+   "legs": 2,
+   "horns": true,
+   "weapon": true
+  }
+ },
+ "shieldbearer": {
+  "name": "Escudeiro de Ferro",
+  "tier": 1,
+  "hp": 30,
+  "speed": 45,
+  "ai": "shield",
+  "body": [
+   8,
+   10
+  ],
+  "poise": 6.0,
+  "contact_damage": 0,
+  "aggro": 140,
+  "attack_range": 18,
+  "loadout": {
+   "weapon": "guarda_cidadela",
+   "spells": [],
+   "armor": [
+    "vigia_noturno_head"
+   ]
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "walk",
+   "attack": "attack",
+   "spawn": "rise"
+  },
+  "weakness": {
+   "lightning": 1.5,
+   "blunt": 1.2
+  },
+  "class_weakness": {
+   "greatsword": 1.4,
+   "gauntlets": 1.3
+  },
+  "drops": [
+   {
+    "id": "guarda_cidadela",
+    "chance": 0.05
+   }
+  ],
+  "currency": [
+   7,
+   12
+  ],
+  "look": {
+   "body": [
+    6,
+    5
+   ],
+   "head": [
+    6,
+    5
+   ],
+   "color": [
+    0.45,
+    0.48,
+    0.55
+   ],
+   "shell": [
+    0.75,
+    0.78,
+    0.82
+   ],
+   "eyes": "dot",
+   "legs": 2,
+   "weapon": true
+  },
+  "_doc": "Bloqueia golpes de frente. Pule por cima (pogo quica no escudo), ataque pelas costas, golpe pesado ou Corte-Relâmpago."
+ },
+ "diver": {
+  "name": "Morcego-Brasa",
+  "tier": 1,
+  "hp": 8,
+  "speed": 85,
+  "ai": "diver",
+  "flying": true,
+  "body": [
+   6,
+   5
+  ],
+  "contact_damage": 8,
+  "aggro": 160,
+  "attack_range": 60,
+  "loadout": {
+   "weapon": "",
+   "spells": [],
+   "armor": []
+  },
+  "anim": {
+   "idle": "idle",
+   "move": "idle",
+   "attack": "attack",
+   "spawn": "rise"
+  },
+  "weakness": {
+   "slash": 1.2
+  },
+  "class_weakness": {},
+  "drops": [],
+  "currency": [
+   2,
+   5
+  ],
+  "look": {
+   "body": [
+    4,
+    3
+   ],
+   "head": [
+    4,
+    3
+   ],
+   "color": [
+    0.5,
+    0.2,
+    0.2
+   ],
+   "shell": [
+    0.95,
+    0.55,
+    0.35
+   ],
+   "eyes": "glow",
+   "eye_color": [
+    2.8,
+    1.6,
+    0.4
+   ],
+   "legs": 0,
+   "wings": true,
+   "float": true
+  },
+  "_doc": "Paira e mergulha. Frágil: ótimo para pogo e para recarregar o dash."
+ }
 }

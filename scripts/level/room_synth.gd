@@ -29,6 +29,7 @@ const STYLES := {
 	"puzzle": {"var": [4.0, 1.0, 0.5, 0.0], "seg": [4, 8], "min_row": 18, "pits": 0.0, "spikes": false, "ceil": 0.2},
 	"flat": {"var": [1.0, 0.0, 0.0, 0.0], "seg": [6, 10], "min_row": 21, "pits": 0.0, "spikes": false, "ceil": 0.0},
 	"terraced": {"var": [4.0, 1.5, 0.6, 0.0], "seg": [5, 9], "min_row": 18, "pits": 0.0, "spikes": false, "ceil": 0.3},
+	"arena": {"var": [6.0, 1.0, 0.0, 0.0], "seg": [6, 10], "min_row": 19, "pits": 0.0, "spikes": false, "ceil": 0.0},
 }
 
 
@@ -36,8 +37,11 @@ static func synth(room_type: String, exits: String, rng: RandomNumberGenerator, 
 	var g := blank()
 	frame(g, exits)
 	var style := "flat"
+	# arena precisa de portões: com saída vertical vira combate aberto
+	if room_type == "arena" and (exits.contains("U") or exits.contains("D")):
+		room_type = "combat"
 	match room_type:
-		"combat", "platforming", "corridor", "shaft", "puzzle":
+		"combat", "platforming", "corridor", "shaft", "puzzle", "arena":
 			style = room_type
 		"entrance", "exit", "treasure":
 			style = "terraced"
@@ -45,6 +49,7 @@ static func synth(room_type: String, exits: String, rng: RandomNumberGenerator, 
 	if STYLES[style]["ceil"] > 0.0 and rng.randf() < float(STYLES[style]["ceil"]):
 		_ceiling(g, rng, exits, fl, room_type == "corridor")
 	match room_type:
+		"arena": _arena(g, rng, exits, fl, opts)
 		"combat": _combat(g, rng, exits, fl, opts)
 		"platforming": _platforming(g, rng, exits, fl)
 		"challenge": _gauntlet(g, rng, exits)
@@ -350,19 +355,57 @@ static func _ground_spot(g: Array, rng: RandomNumberGenerator, x0: int, x1: int,
 
 static func _combat(g: Array, rng: RandomNumberGenerator, exits: String, fl: Array, opts: Dictionary) -> void:
 	var tier := int(opts.get("tier", 1))
-	# verticalidade: 1-2 conjuntos de plataformas
-	for i in rng.randi_range(1, 2):
-		_tiers(g, rng, fl, 6 + i * 14, 12 + i * 14, rng.randi_range(1, 2))
-	# pilar baixo de cobertura (até 2 tiles, dá para pular por cima)
-	if rng.randf() < 0.5:
+	var entry: String = opts.get("entry", "L")
+	var lo := 10 if entry == "L" else 5
+	var hi := W - 11 if entry == "R" else W - 6
+	var used := []
+	# bastião: bloco sólido saindo do chão (degraus <= 3) com inimigos em cima
+	if rng.randf() < 0.55:
+		var bx := rng.randi_range(12, W - 20)
+		var bw := rng.randi_range(5, 8)
+		var ok := true
+		for x in range(bx - 1, bx + bw + 1):
+			if int(fl[x]) != FL or at(g, x, FL - 1) != "." or at(g, x, FL - 5) != "." or ((exits.contains("D") or exits.contains("U")) and x >= 14 and x <= 25):
+				ok = false
+				break
+		if ok:
+			var bh := rng.randi_range(2, 3)
+			fill(g, bx, FL - bh, bx + bw - 1, FL - 1, "#")
+			for x in range(bx, bx + bw):
+				fl[x] = FL - bh
+			put(g, bx + bw / 2, FL - bh - 1, "E")
+			used.append_array([bx + bw / 2 - 1, bx + bw / 2, bx + bw / 2 + 1])
+	# atirador numa plataforma alta (alcançável: 3 linhas acima do chão local)
+	if rng.randf() < 0.5 + 0.1 * tier:
+		var sx := rng.randi_range(6, W - 12) if entry != "R" else rng.randi_range(12, W - 7)
+		var base := FL
+		for i in range(sx - 1, sx + 6):
+			base = mini(base, int(fl[clampi(i, 0, W - 1)]))
+		var py := base - 3
+		if py > 6 and at(g, sx + 2, py) == "." and at(g, sx + 2, py - 1) == "." and at(g, sx + 2, py - 2) == ".":
+			plat(g, sx, sx + 5, py)
+			put(g, sx + 2, py - 1, "U")
+	# uma camada de plataformas para brigar no alto
+	if rng.randf() < 0.6:
+		var cx := rng.randi_range(8, W - 9)
+		_tiers(g, rng, fl, cx - 2, cx + 2, 1)
+	# lanterna de Ímpeto no ar (encadear dash e golpes)
+	if rng.randf() < 0.55:
+		var ox := rng.randi_range(10, W - 11)
+		var oy := int(fl[ox]) - rng.randi_range(6, 8)
+		if oy > 3 and at(g, ox, oy) == "." and at(g, ox, oy + 1) == ".":
+			put(g, ox, oy, "I")
+	# cobertura baixa (pula por cima)
+	if rng.randf() < 0.35:
 		var x := _free_floor_x(rng, exits)
 		var y := int(fl[x])
 		if y == FL and at(g, x, y - 1) == "." and at(g, x + 1, y - 1) == ".":
 			fill(g, x, y - rng.randi_range(1, 2), x + 1, y - 1, "#")
-	var used := []
-	var entry: String = opts.get("entry", "L")
-	var lo := 10 if entry == "L" else 5
-	var hi := W - 11 if entry == "R" else W - 6
+	# serra patrulhando no alto
+	if tier >= 2 and rng.randf() < 0.35:
+		var sx2 := rng.randi_range(10, W - 11)
+		if at(g, sx2, 7) == ".":
+			put(g, sx2, 7, "S")
 	for i in rng.randi_range(2, 3) + (tier - 1):
 		var s := _ground_spot(g, rng, lo, hi, used)
 		if s.x >= 0:
@@ -373,6 +416,51 @@ static func _combat(g: Array, rng: RandomNumberGenerator, exits: String, fl: Arr
 		var fy := rng.randi_range(6, 10)
 		if at(g, fx, fy) == ".":
 			put(g, fx, fy, "F")
+
+
+## Arena trancada (Dead Cells/Katana Zero): portões fecham, inimigos vêm em
+## ondas (o Level divide em 2-3 ondas), atiradores nas laterais, lanternas
+## de Ímpeto no alto para lutar no ar. Nota S/A/B/C ao limpar.
+static func _arena(g: Array, rng: RandomNumberGenerator, exits: String, fl: Array, opts: Dictionary) -> void:
+	var tier := int(opts.get("tier", 1))
+	var sym := rng.randf() < 0.6
+	# pilares baixos de cobertura (2 tiles: dá para subir)
+	var px := rng.randi_range(8, 11)
+	for x in ([px, W - 2 - px] if sym else [px]):
+		if int(fl[x]) == FL and int(fl[x + 1]) == FL:
+			fill(g, x, FL - 2, x + 1, FL - 1, "#")
+			fl[x] = FL - 2
+			fl[x + 1] = FL - 2
+	# plataformas laterais (3 acima do chão) com atiradores e central mais alta
+	plat(g, 3, 8, FL - 3)
+	plat(g, W - 9, W - 4, FL - 3)
+	plat(g, 13, 18, FL - 6)
+	plat(g, W - 19, W - 14, FL - 6)
+	if rng.randf() < 0.6:
+		plat(g, 17, 22, FL - 9)
+	put(g, 5, FL - 4, "U")
+	if tier >= 2 or rng.randf() < 0.5:
+		put(g, W - 6, FL - 4, "U")
+	# lanternas
+	put(g, 10, FL - 9, "I")
+	put(g, W - 11, FL - 9, "I")
+	# inimigos: chão + voadores (divididos em ondas pelo Level)
+	var used := [5, W - 6]
+	for i in 4 + tier:
+		var s := _ground_spot(g, rng, 6, W - 7, used)
+		if s.x >= 0:
+			put(g, s.x, s.y, "E")
+			used.append_array([s.x - 1, s.x, s.x + 1])
+	for i in 1 + tier:
+		var fx := rng.randi_range(8, W - 9)
+		var fy := rng.randi_range(5, 9)
+		if at(g, fx, fy) == ".":
+			put(g, fx, fy, "F")
+	# portões nas saídas laterais
+	if exits.contains("L"):
+		put(g, 0, 17, "G")
+	if exits.contains("R"):
+		put(g, W - 1, 17, "G")
 
 
 ## Plataforma estilo Celeste: relevo acidentado, fossos com espinhos,
@@ -399,12 +487,29 @@ static func _platforming(g: Array, rng: RandomNumberGenerator, exits: String, fl
 	# rotas por cima: plataformas one-way em camadas (atravessáveis por baixo)
 	for i in rng.randi_range(1, 2):
 		_tiers(g, rng, fl, 6 + i * 12, 10 + i * 12, rng.randi_range(1, 3))
-	if rng.randf() < 0.5:
+	# lanternas de Ímpeto sobre os fossos (atalho aéreo: dash → golpe → dash)
+	for x in range(3, W - 3):
+		if at(g, x, FL + 1) == "^" and at(g, x - 1, FL + 1) != "^":
+			var pw := 0
+			while at(g, x + pw, FL + 1) == "^":
+				pw += 1
+			var ox := x + pw / 2
+			if pw >= 3 and at(g, ox, FL - 5) == "." and rng.randf() < 0.75:
+				put(g, ox, FL - 5, "I")
+	# mola para uma rota alta
+	if rng.randf() < 0.35:
+		var sp := _ground_spot(g, rng, 6, W - 7)
+		if sp.x >= 0 and at(g, sp.x, sp.y - 4) == ".":
+			put(g, sp.x, sp.y, "J")
+	if rng.randf() < 0.6:
 		var s := _ground_spot(g, rng, 8, W - 9)
 		if s.x >= 0:
 			put(g, s.x, s.y, "E")
-	if rng.randf() < 0.4:
-		put(g, rng.randi_range(8, W - 9), rng.randi_range(6, 9), "F")
+	for i in rng.randi_range(0, 2):
+		var fx := rng.randi_range(8, W - 9)
+		var fy := rng.randi_range(6, 11)
+		if at(g, fx, fy) == ".":
+			put(g, fx, fy, "F")
 
 
 ## "Caminho da dor": chão todo de espinhos, pilares e blocos com vãos maiores
@@ -443,6 +548,8 @@ static func _pillars(g: Array, rng: RandomNumberGenerator, x_from: int, x_to: in
 			fill(g, nx, ny, nx + width - 1, ny, "#") # bloco flutuante
 		if gap >= 5:
 			put(g, x + gap / 2, mini(ny, top) - 3, "D")
+		elif gap >= 4 and rng.randf() < 0.5:
+			put(g, x + gap / 2, mini(ny, top) - 4, "I")
 		elif rng.randf() < 0.4:
 			put(g, x + gap / 2, mini(ny, top) - 6, "S")
 		x = nx + width
@@ -462,6 +569,11 @@ static func _corridor(g: Array, rng: RandomNumberGenerator, exits: String, fl: A
 			put(g, c.x, c.y, "C")
 	if rng.randf() < 0.5:
 		_tiers(g, rng, fl, 10, W - 11, 1)
+	# emboscada: voadores esperando perto do teto
+	if rng.randf() < 0.5:
+		var fx := rng.randi_range(12, W - 13)
+		if at(g, fx, 8) == ".":
+			put(g, fx, 8, "F")
 
 
 ## Alavanca no alto (plataformas em escada até ela), portões nas outras
@@ -531,8 +643,11 @@ static func _secret(g: Array, rng: RandomNumberGenerator, exits: String) -> void
 static func _entrance(g: Array, exits: String, fl: Array) -> void:
 	var x := 8 if not exits.contains("L") else 30
 	var sx := x
-	while sx < W - 3 and (int(fl[sx]) != FL or at(g, sx, FL - 1) != "."):
-		sx += 1
+	# área plana ao redor do ponto de nascimento (espaço para respirar)
+	for cx in range(maxi(1, sx - 3), mini(W - 1, sx + 12)):
+		if int(fl[cx]) < FL:
+			fill(g, cx, int(fl[cx]), cx, FL - 1, ".")
+			fl[cx] = FL
 	put(g, sx, FL - 1, "P")
 	var hx := 20 if not exits.contains("D") else 26
 	put(g, hx, int(fl[hx]) - 1, "H")
@@ -573,8 +688,18 @@ static func _shaft(g: Array, rng: RandomNumberGenerator, exits: String, fl: Arra
 			else:
 				plat(g, x0, x0 + 4, y)
 			y -= rng.randi_range(4, 6)
-	if rng.randf() < 0.6:
-		put(g, rng.randi_range(10, W - 11), rng.randi_range(6, 12), "F")
+	# lanternas no meio do poço (subir encadeando golpes) e morcegos
+	var oy := FL - 6
+	while oy > 5:
+		var ox := rng.randi_range(12, W - 13)
+		if at(g, ox, oy) == "." and at(g, ox, oy - 1) == "." and at(g, ox, oy + 1) == "." and rng.randf() < 0.6:
+			put(g, ox, oy, "I")
+		oy -= rng.randi_range(5, 7)
+	for i in rng.randi_range(1, 2):
+		var fx := rng.randi_range(10, W - 11)
+		var fy := rng.randi_range(6, 12)
+		if at(g, fx, fy) == ".":
+			put(g, fx, fy, "F")
 
 
 static func _decorate(g: Array, rng: RandomNumberGenerator, opts: Dictionary) -> void:

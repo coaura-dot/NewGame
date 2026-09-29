@@ -1130,6 +1130,7 @@ func _on_damaged(info: DamageInfo, amount: float) -> void:
 	FX.flash(0.8)
 	Audio.play("hurt")
 	combo_count = 0
+	frenzy_tier = 0
 	rhythm_stacks = 0
 	Events.combo_changed.emit(0)
 	Events.player_health_changed.emit(hp, max_hp())
@@ -1161,9 +1162,13 @@ func _st_hurt(d: float) -> void:
 
 
 func _hazard_respawn() -> void:
+	if dead:
+		return
 	_set_state(State.RESPAWN)
 	velocity = Vector2.ZERO
+	_kill_visual_tween()
 	var tw := create_tween()
+	_visual_tween = tw
 	tw.tween_property(sprite, "modulate:a", 0.0, 0.15)
 	tw.tween_callback(func():
 		global_position = last_safe_pos
@@ -1196,9 +1201,23 @@ func _on_death(_info: DamageInfo) -> void:
 	FX.slowmo(0.25, 1.0)
 	FX.shake(0.6)
 	Audio.play("death")
+	_kill_visual_tween()
 	var tw := create_tween()
+	_visual_tween = tw
 	tw.tween_method(set_dissolve, 0.0, 1.0, 0.9)
 	Events.player_died.emit(self)
+
+
+## Animação visual em andamento (sumir na morte / piscar no buraco). Precisa
+## ser cancelada ao renascer, senão ela termina depois e deixa o jogador
+## invisível (a morte roda em câmera lenta e dura mais que a espera do Level).
+var _visual_tween: Tween = null
+
+
+func _kill_visual_tween() -> void:
+	if _visual_tween and _visual_tween.is_valid():
+		_visual_tween.kill()
+	_visual_tween = null
 
 
 func revive(at: Vector2) -> void:
@@ -1207,7 +1226,11 @@ func revive(at: Vector2) -> void:
 	global_position = at
 	reset_physics_interpolation()
 	velocity = Vector2.ZERO
+	_kill_visual_tween()
 	set_dissolve(0.0)
+	if sprite:
+		sprite.modulate.a = 1.0
+		sprite.visible = true
 	status.clear()
 	invuln_time = 1.0
 	refill_dash()

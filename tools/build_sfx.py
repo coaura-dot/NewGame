@@ -186,6 +186,37 @@ def parry(v):
     return finish(mix(d, bell, crack), 0.85)
 
 
+def aim(v):
+    d = 0.35
+    t = t_axis(d)
+    tone = np.sin(2 * np.pi * (1500 + 400 * t / d) * t) * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * 18 * t))) * 0.25
+    return finish(tone * env(d, 0.01, 0.3), 0.45)
+
+
+def shot(v):
+    d = 0.3
+    crack = hp(noise(0.03), 2500) * env(0.03, 0.0003, 0.008) * 1.4
+    zap = sweep_sine(0.18, 2200 + v * 100, 300, 2.0) * env(0.18, 0.001, 0.05) * 0.8
+    boom = sweep_sine(0.2, 160, 50) * env(0.2, 0.001, 0.06) * 0.9
+    return finish(mix(d, crack, zap, boom), 0.8)
+
+
+def orb(v):
+    d = 0.5
+    t = t_axis(d)
+    ding = (np.sin(2 * np.pi * 1318.5 * t) + 0.6 * np.sin(2 * np.pi * 1975.5 * t)) * np.exp(-t / 0.14) * 0.5
+    air = hp(onepole_lp(noise(0.12), 5000), 800) * env(0.12, 0.002, 0.03) * 0.6
+    return finish(mix(d, ding, air), 0.7)
+
+
+def wave(v):
+    d = 0.9
+    t = t_axis(d)
+    low = sweep_sine(d, 70, 140, 1.0) * env(d, 0.05, 0.4) * 1.0
+    shimmer = np.sin(2 * np.pi * 880 * t + 3 * np.sin(2 * np.pi * 7 * t)) * env(d, 0.1, 0.35) * 0.25
+    return finish(mix(d, low, shimmer), 0.75)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     for v in range(3):
@@ -198,6 +229,11 @@ def main():
     for v in range(2):
         save("g_frenzy_%d" % v, frenzy(v))
         save("g_parry_%d" % v, parry(v))
+    for v in range(2):
+        save("g_shot_%d" % v, shot(v))
+    save("g_aim_0", aim(0))
+    save("g_orb_0", orb(0))
+    save("g_wave_0", wave(0))
     for letter in "sabc":
         save("g_rank_" + letter, rank(letter))
 

@@ -69,6 +69,10 @@ func _ready() -> void:
 	Events.frenzy_ended.connect(func(n, bonus):
 		_bonus_text = "%d golpes  +%d brasas" % [n, bonus]
 		_bonus_t = 1.8)
+	Events.wave_started.connect(func(n, total):
+		_announce = "ONDA %d/%d" % [n, total]
+		_announce_t = 1.1
+		_announce_col = Color(2.2, 0.9, 1.8))
 	Events.encounter_ranked.connect(func(rank, time, bonus):
 		_rank = rank
 		_rank_sub = "%.1fs   +%d brasas" % [time, bonus] if bonus > 0 else "%.1fs" % time

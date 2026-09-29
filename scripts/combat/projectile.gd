@@ -18,7 +18,7 @@ var texture: Texture2D = null
 var hframes: int = 1
 var time_scale: float = 1.0 ## campos de tempo alteram isso a cada frame
 var light_enabled: bool = true
-var style: String = "orb" ## "orb" (magia, brilha) ou "rock" (pedra/onda, sem brilho)
+var style: String = "orb" ## "orb" (magia, brilha), "rock" (pedra/onda) ou "bolt" (tiro rápido)
 
 var _hit: Dictionary = {}
 var _trail: Array[Vector2] = []
@@ -114,6 +114,7 @@ func _explode(impact: bool) -> void:
 
 
 func reflect(new_owner: Node) -> void:
+	var shooter = owner_actor
 	team = new_owner.team
 	owner_actor = new_owner
 	info.team = team
@@ -123,6 +124,13 @@ func reflect(new_owner: Node) -> void:
 	var aim := Vector2(new_owner.facing, 0)
 	if new_owner.has_method("aim_direction"):
 		aim = new_owner.aim_direction()
+	# Katana Zero: o tiro volta direto em quem atirou (e é fatal)
+	if style == "bolt":
+		info.amount = maxf(info.amount * 3.0, 60.0)
+		if shooter and is_instance_valid(shooter) and not shooter.dead and shooter.global_position.distance_to(global_position) < 320.0:
+			aim = (shooter.body_center() - global_position).normalized()
+		FX.impact_flash(0.04)
+		FX.slowmo(0.4, 0.25)
 	velocity = aim.normalized() * maxf(velocity.length() * 1.35, 130.0)
 	lifetime = maxf(lifetime, 1.2)
 	_hit.clear()
@@ -133,6 +141,11 @@ func reflect(new_owner: Node) -> void:
 
 
 func _draw() -> void:
+	if style == "bolt":
+		var back := -velocity.normalized() * 7.0
+		draw_line(back, Vector2.ZERO, Color(color.r, color.g, color.b, 0.6), 2.0)
+		draw_line(back * 0.5, Vector2.ZERO, Color(3.2, 3.0, 2.8), 1.0)
+		return
 	if style == "rock":
 		# pedra/onda de choque: bloco de pixels com contorno, sem brilho
 		var r := roundf(radius)

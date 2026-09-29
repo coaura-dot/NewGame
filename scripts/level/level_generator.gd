@@ -13,7 +13,7 @@ extends RefCounted
 
 const DIRS := {"R": Vector2i(1, 0), "L": Vector2i(-1, 0), "U": Vector2i(0, -1), "D": Vector2i(0, 1)}
 const OPP := {"R": "L", "L": "R", "U": "D", "D": "U"}
-const PATH_WEIGHTS := {"combat": 5.0, "platforming": 3.0, "corridor": 2.0, "puzzle": 1.2, "shaft": 0.6}
+const PATH_WEIGHTS := {"combat": 4.0, "arena": 1.6, "platforming": 3.0, "corridor": 1.6, "puzzle": 1.0, "shaft": 0.8, "challenge": 0.8}
 const BRANCH_WEIGHTS := {"treasure": 3.0, "secret": 2.0, "challenge": 1.5, "puzzle": 1.0, "combat": 1.0}
 
 
@@ -26,7 +26,7 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 	var indoor: bool = biome.get("tags", []).has("indoor")
 
 	# 1) caminho crítico
-	var length: int = int(params.get("path_length", 6 + tier * 2 + rng.randi_range(-1, 1)))
+	var length: int = int(params.get("path_length", 8 + tier * 2 + rng.randi_range(-1, 2)))
 	var forced: Array = params.get("force_path", [])
 	if not forced.is_empty():
 		length = forced.size()
@@ -64,7 +64,7 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 				rooms[path[i]]["type"] = "shaft"
 
 	# 2) ramos opcionais
-	var branch_count := rng.randi_range(2, 3) + (1 if tier >= 2 else 0)
+	var branch_count := rng.randi_range(2, 4) + (1 if tier >= 2 else 0)
 	if params.get("no_branches", false):
 		branch_count = 0
 	var key_needed := false
@@ -129,6 +129,9 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 	for cell in rooms.keys():
 		min_c = Vector2i(mini(min_c.x, cell.x), mini(min_c.y, cell.y))
 		max_c = Vector2i(maxi(max_c.x, cell.x), maxi(max_c.y, cell.y))
+	# biomas externos: uma faixa de céu acima da fase
+	if not indoor:
+		min_c.y -= 1
 	var gw := (max_c.x - min_c.x + 1) * LevelConst.ROOM_W
 	var gh := (max_c.y - min_c.y + 1) * LevelConst.ROOM_H
 	var grid := []
@@ -199,7 +202,7 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 					if ch == "G":
 						if room["type"] == "puzzle":
 							ent["data"]["mode"] = "lever"
-						elif room["tags"].has("lock") or room["type"] == "boss":
+						elif room["tags"].has("lock") or room["type"] in ["boss", "arena"]:
 							ent["data"]["mode"] = "combat"
 						else:
 							ent["data"]["mode"] = "open"
@@ -210,6 +213,9 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 		if room.has("rift"):
 			entities.append({"type": "rift", "tile": [origin.x + 20, origin.y + 20], "room": room["index"], "data": {"region": room["rift"]}})
 		room_list.append(room)
+
+	# fase contínua (Dead Cells): salões abertos entre salas e céu aberto
+	_open_up(grid, rooms, connections, min_c, indoor, rng)
 
 	# chave para salas trancadas: numa sala do caminho antes do fim
 	if key_needed:
@@ -258,6 +264,113 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 		"key_placed": key_placed or not key_needed,
 		"indoor": indoor,
 	}
+
+
+## Salas que nunca têm paredes derrubadas (trancas, alavancas, segredos).
+const CLOSED_TYPES := ["boss", "puzzle", "secret"]
+
+
+static func _can_open(room: Dictionary) -> bool:
+	if room["type"] in CLOSED_TYPES or room.has("rift"):
+		return false
+	return not (room["tags"].has("lock") or room["tags"].has("boss"))
+
+
+static func _solid(ch: String) -> bool:
+	return ch == "#"
+
+
+## Deixa a fase contínua, estilo Dead Cells: derruba a parede entre salas
+## vizinhas lado a lado (conectadas por passagem aberta, ou às vezes sem
+## conexão = atalhos/ciclos) onde os dois lados estão livres, formando
+## salões. Em biomas externos abre o teto das salas mais altas para o céu e
+## as laterais que dão para o céu. Só REMOVE sólidos cujas duas vizinhas
+## internas estão livres, então nenhum caminho validado (RoomReach) quebra.
+static func _open_up(grid: Array, rooms: Dictionary, connections: Array, min_c: Vector2i, indoor: bool, rng: RandomNumberGenerator) -> void:
+	var W := LevelConst.ROOM_W
+	var H := LevelConst.ROOM_H
+	var conn_kind := {}
+	for c in connections:
+		conn_kind[[c["a"], c["b"]]] = c["kind"]
+		conn_kind[[c["b"], c["a"]]] = c["kind"]
+	var gh := grid.size()
+	var gw: int = grid[0].size()
+	for cell in rooms.keys():
+		var right: Vector2i = cell + Vector2i(1, 0)
+		if not rooms.has(right):
+			continue
+		var a: Dictionary = rooms[cell]
+		var b: Dictionary = rooms[right]
+		if not _can_open(a) or not _can_open(b):
+			continue
+		var kind: String = conn_kind.get([cell, right], "none")
+		if kind != "open" and not (kind == "none" and rng.randf() < 0.45):
+			continue
+		var ox: int = (cell.x - min_c.x) * W
+		var oy: int = (cell.y - min_c.y) * H
+		var gx: int = ox + W - 1
+		_dissolve_column_pair(grid, gx, oy + 1, oy + H - 2)
+	if indoor:
+		return
+	# céu: acima da sala mais alta de cada coluna tudo vira ar
+	var top_of := {}
+	for cell in rooms.keys():
+		if not top_of.has(cell.x) or cell.y < top_of[cell.x]:
+			top_of[cell.x] = cell.y
+	for cx in top_of.keys():
+		var ox: int = (cx - min_c.x) * W
+		var top_cell_y: int = top_of[cx]
+		var oy_top: int = (top_cell_y - min_c.y) * H
+		for y in range(0, oy_top):
+			for x in range(ox, ox + W):
+				grid[y][x] = "."
+		# teto da sala mais alta aberto onde a linha de baixo está livre
+		var room: Dictionary = rooms[Vector2i(cx, top_cell_y)]
+		if room["type"] in CLOSED_TYPES:
+			continue
+		for x in range(ox + 1, ox + W - 1):
+			if grid[oy_top + 1][x] != "#":
+				grid[oy_top][x] = "."
+		# laterais que dão para o céu (vizinho sem sala mais alto)
+		for side in [-1, 1]:
+			var ncx: int = cx + side
+			var neighbor_top: int = top_of.get(ncx, 1 << 20)
+			if neighbor_top <= top_cell_y:
+				continue
+			var gx: int = ox if side < 0 else ox + W - 1
+			var inner: int = gx - side
+			var outer: int = gx + side
+			if outer < 0 or outer >= gw:
+				continue
+			for y in range(oy_top + 1, mini(oy_top + H - 2, gh)):
+				if (neighbor_top - min_c.y) * H <= y:
+					break
+				if grid[y][inner] != "#" and grid[y][outer] != "#":
+					grid[y][gx] = "."
+
+
+## Derruba a parede dupla (colunas gx e gx+1) entre duas salas nas linhas em
+## que as duas vizinhas internas (gx-1 e gx+2) estão livres. Ignora trechos
+## de só 1 linha (evita buraquinhos).
+static func _dissolve_column_pair(grid: Array, gx: int, y0: int, y1: int) -> void:
+	var rows_ok: Array = []
+	for y in range(y0, y1 + 1):
+		var free_l: bool = not _solid(grid[y][gx - 1])
+		var free_r: bool = not _solid(grid[y][gx + 2])
+		rows_ok.append(free_l and free_r)
+	var i := 0
+	while i < rows_ok.size():
+		if not rows_ok[i]:
+			i += 1
+			continue
+		var j := i
+		while j < rows_ok.size() and rows_ok[j]:
+			j += 1
+		if j - i >= 2:
+			for k in range(i, j):
+				grid[y0 + k][gx] = "."
+				grid[y0 + k][gx + 1] = "."
+		i = j
 
 
 static func _room(cell: Vector2i, t: String, on_path: bool, idx: int) -> Dictionary:
@@ -361,6 +474,7 @@ static func _enemy_pool(params: Dictionary, db: Node, biome: Dictionary) -> Dict
 	var src: Dictionary = dim.get("creatures", biome.get("enemies", {"skeleton": 1}))
 	var ground := {}
 	var flying := {}
+	var ranged := {}
 	for id in src.keys():
 		var e: Dictionary = db.enemy(id)
 		if e.is_empty() or e.get("boss", false) or e.get("elite", false):
@@ -369,11 +483,15 @@ static func _enemy_pool(params: Dictionary, db: Node, biome: Dictionary) -> Dict
 			flying[id] = src[id]
 		else:
 			ground[id] = src[id]
+			if e.get("ai", "") in ["gunner", "turret"]:
+				ranged[id] = src[id]
 	if ground.is_empty():
 		ground = {"skeleton": 1}
 	if flying.is_empty():
 		flying = {"wraith": 1}
-	return {"ground": ground, "flying": flying}
+	if ranged.is_empty():
+		ranged = {"gunner": 1}
+	return {"ground": ground, "flying": flying, "ranged": ranged}
 
 
 static func _make_entity(ch: String, x: int, y: int, room: Dictionary, rng: RandomNumberGenerator, pool: Dictionary, db: Node, params: Dictionary, tier: int) -> Dictionary:
@@ -386,6 +504,9 @@ static func _make_entity(ch: String, x: int, y: int, room: Dictionary, rng: Rand
 	match ch:
 		"E":
 			e["data"]["enemy"] = RngUtil.weighted_key(rng, pool["ground"])
+		"U":
+			e["type"] = "enemy"
+			e["data"]["enemy"] = RngUtil.weighted_key(rng, pool["ranged"])
 		"F":
 			e["data"]["enemy"] = RngUtil.weighted_key(rng, pool["flying"])
 		"M":

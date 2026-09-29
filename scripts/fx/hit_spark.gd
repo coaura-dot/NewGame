@@ -1,3 +1,4 @@
+class_name HitSparkFX
 extends Node2D
 ## Faísca de impacto limpa e legível (Katana Zero / Hollow Knight): um clarão
 ## branco que encolhe, uma LINHA DE CORTE atravessando o alvo e poucos riscos

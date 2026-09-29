@@ -35,10 +35,11 @@ const ENTITY_CHARS := {
 	"J": "jump_pad", "S": "saw", "L": "torch", "W": "light_shaft", "P": "spawn", "X": "exit",
 	"G": "gate", "T": "lever", "N": "npc", "H": "checkpoint", "O": "falling_platform",
 	"R": "relic", "Q": "quest_board", "Y": "rift", "A": "altar", "V": "ability_gate",
+	"I": "impeto_orb", "U": "sniper",
 }
 
 const ROOM_TYPES := ["entrance", "exit", "combat", "platforming", "corridor", "puzzle", "treasure",
-	"secret", "challenge", "hub", "boss", "shaft"]
+	"secret", "challenge", "hub", "boss", "shaft", "arena"]
 
 
 static func room_origin(cell: Vector2i) -> Vector2i:

@@ -14,6 +14,13 @@ extends Actor
 ##   boss_horde    - invoca ondas; protegida por escudo até a onda cair
 ##   boss_colossus - gigante: pisão com ondas de choque, varrida, chuva de
 ##                   pedras; o núcleo (ponto fraco) abaixa após o pisão
+##   gunner   - atirador (Katana Zero): mira laser que trava e dispara um
+##              tiro rápido; rebata o tiro de volta e ele morre
+##   leaper   - saltador: pula em arcos e dá o bote pelo ar
+##   assassin - lâmina sombria: pisca e atravessa você num dash cortante
+##   shield   - escudeiro: bloqueia golpes de frente (pule por cima, ataque
+##              pelas costas, golpe pesado ou Corte-Relâmpago)
+##   diver    - enxame: voador que paira e mergulha (ótimo para pogo)
 
 signal phase_changed(phase: int)
 
@@ -48,6 +55,12 @@ var shielded: bool = false ## Mãe da Ninhada: imune enquanto a ninhada vive
 var lowered: bool = false ## Colosso: abaixado após o pisão (núcleo acessível)
 var _minions: Array = []
 var _wave: int = 0
+# atirador / assassino
+var _aim_dir: Vector2 = Vector2.RIGHT
+var _laser: float = 0.0 ## 0..1 intensidade da mira laser
+var _laser_locked: bool = false
+var _dash_dir: Vector2 = Vector2.ZERO
+var _sight: Node2D = null
 
 
 func setup(id: String, enemy_tier: int, dimension_id: String = "prima") -> void:
@@ -177,6 +190,11 @@ func _actor_physics(d: float, raw: float) -> void:
 		"boss_duelist": _ai_duelist(d)
 		"boss_horde": _ai_horde(d)
 		"boss_colossus": _ai_colossus(d)
+		"gunner": _ai_gunner(d)
+		"leaper": _ai_leaper(d)
+		"assassin": _ai_assassin(d)
+		"shield": _ai_melee(d)
+		"diver": _ai_diver(d)
 		_: _ai_melee(d)
 	_gravity(d)
 	_move(d, raw)
@@ -217,7 +235,7 @@ func _target_valid() -> bool:
 	var range_mult := 1.3 if aggressive else 1.0
 	if dist > aggro * range_mult:
 		return false
-	if not flying and absf(target.global_position.y - global_position.y) > 50.0:
+	if not flying and absf(target.global_position.y - global_position.y) > float(data.get("vertical_sight", 50.0)):
 		return false
 	return _line_of_sight()
 
@@ -505,6 +523,279 @@ func _ai_charger(d: float) -> void:
 			_anim("idle")
 			if ai_t <= 0.0:
 				ai_state = "chase"
+
+
+# ---------------------------------------------------------------------------
+# Inimigos rápidos (sessão 4)
+# ---------------------------------------------------------------------------
+
+func _muzzle() -> Vector2:
+	return body_center() + Vector2(facing * 4.0, -1.0)
+
+
+## Atirador: mira (laser acompanha o alvo), trava nos últimos instantes e
+## dispara um tiro rápido e rebatível.
+func _ai_gunner(d: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+	if _sight == null:
+		_sight = LaserSight.new()
+		_sight.enemy = self
+		add_child(_sight)
+	match ai_state:
+		"spawn":
+			if ai_t <= 0.0:
+				ai_state = "idle"
+		"idle", "patrol", "chase":
+			_laser = maxf(_laser - d * 6.0, 0.0)
+			_anim("idle")
+			if _target_valid():
+				_face_target()
+				if ai_t <= 0.0:
+					ai_state = "aim"
+					ai_t = maxf(0.75 - 0.08 * (tier - 1), 0.45) * (0.8 if aggressive else 1.0)
+					_laser_locked = false
+					emote("!", ai_t)
+					Audio.play("aim", 0.05, -6.0)
+		"aim":
+			if not _target_valid() and not _laser_locked:
+				ai_state = "idle"
+				ai_t = 0.4
+				return
+			_laser = minf(_laser + d * 3.0, 1.0)
+			if ai_t > 0.2:
+				_face_target()
+				_aim_dir = (target.body_center() - _muzzle()).normalized()
+			elif not _laser_locked:
+				_laser_locked = true
+				_flash = 0.8
+			if ai_t <= 0.0:
+				_fire_bolt()
+				_laser = 0.0
+				ai_state = "recover"
+				ai_t = rng.randf_range(0.9, 1.5) * (0.7 if aggressive else 1.0)
+		"recover":
+			if ai_t <= 0.0:
+				ai_state = "idle"
+
+
+func _fire_bolt() -> void:
+	var p := Projectile.new()
+	p.team = team
+	p.owner_actor = self
+	var info := DamageInfo.new()
+	info.amount = float(data.get("shot_damage", 14.0)) * (1.0 + 0.3 * (tier - 1))
+	info.damage_type = "pierce"
+	info.source = self
+	info.team = team
+	info.is_projectile = true
+	info.parryable = true
+	info.knockback = _aim_dir * 90.0 + Vector2(0, -40)
+	p.info = info
+	p.velocity = _aim_dir * float(data.get("shot_speed", 340.0))
+	p.radius = 2.0
+	p.style = "bolt"
+	p.color = Color(2.8, 0.8, 0.5)
+	p.lifetime = 1.4
+	p.light_enabled = false
+	p.global_position = _muzzle()
+	get_parent().add_child(p)
+	FX.burst(_muzzle(), Color(2.8, 1.4, 0.6), 4, 120.0, _aim_dir, 30.0)
+	Audio.play("shot", 0.08, -3.0)
+
+
+## Saltador: pulinhos rápidos na direção do alvo; perto, bote pelo ar.
+func _ai_leaper(d: float) -> void:
+	match ai_state:
+		"spawn":
+			if ai_t <= 0.0:
+				ai_state = "idle"
+		"idle", "patrol":
+			if _target_valid():
+				ai_state = "chase"
+			else:
+				_patrol(d)
+		"chase":
+			if not _target_valid():
+				ai_state = "patrol"
+				return
+			_face_target()
+			if is_on_floor():
+				velocity.x = move_toward(velocity.x, 0.0, 900.0 * d)
+				if ai_t <= 0.0:
+					if absf(_dx()) <= attack_range:
+						ai_state = "windup"
+						ai_t = _windup_time() * 0.7
+						_telegraph()
+						sprite.squash(Vector2(1.3, 0.7))
+					else:
+						velocity = Vector2(facing * speed, -150.0)
+						ai_t = rng.randf_range(0.25, 0.45)
+			_anim("move" if not is_on_floor() else "idle")
+		"windup":
+			velocity.x = 0.0
+			if ai_t <= 0.0:
+				var dx := clampf(_dx(), -attack_range * 1.3, attack_range * 1.3)
+				velocity = Vector2(dx / 0.42, -215.0)
+				_melee_attack("light")
+				ai_state = "leap"
+				ai_t = 0.9
+				Audio.play("dash", 0.1, -8.0, 1.3)
+		"leap":
+			if attack.phase == AttackRunner.Phase.RECOVERY and not is_on_floor():
+				attack.t = 0.0
+				attack.phase = AttackRunner.Phase.ACTIVE
+				attack.hitbox.activate()
+			if (is_on_floor() and velocity.y >= 0.0 and ai_t < 0.75) or ai_t <= 0.0:
+				attack.cancel()
+				ai_state = "recover"
+				ai_t = rng.randf_range(0.35, 0.6)
+		"recover":
+			velocity.x = move_toward(velocity.x, 0.0, 1200.0 * d)
+			_anim("idle")
+			if ai_t <= 0.0:
+				ai_state = "chase"
+
+
+## Lâmina Sombria: aproxima rápido; perto, pisca e atravessa num dash.
+func _ai_assassin(d: float) -> void:
+	match ai_state:
+		"spawn":
+			if ai_t <= 0.0:
+				ai_state = "idle"
+		"idle", "patrol":
+			if _target_valid():
+				ai_state = "chase"
+			else:
+				_patrol(d)
+		"chase":
+			if not _target_valid():
+				ai_state = "patrol"
+				return
+			_face_target()
+			var dist := absf(_dx())
+			if dist <= attack_range and ai_t <= 0.0 and is_on_floor():
+				ai_state = "windup"
+				ai_t = _windup_time() * 0.85
+				velocity.x = 0.0
+				_telegraph(true)
+				Audio.play("draw_blade", 0.05, -4.0)
+			elif _ledge_ahead() and dist > 20.0:
+				velocity.x = move_toward(velocity.x, 0.0, 900.0 * d)
+			else:
+				velocity.x = move_toward(velocity.x, facing * speed * (1.0 if dist > 40.0 else 0.4), 900.0 * d)
+				_anim("move")
+		"windup":
+			velocity.x = 0.0
+			_face_target()
+			if ai_t <= 0.0:
+				_dash_dir = Vector2(facing, 0)
+				ai_state = "dash"
+				ai_t = 0.24
+				charge_dist = 0.0
+				_melee_attack("light")
+				invuln_time = 0.1
+		"dash":
+			velocity = _dash_dir * 300.0
+			charge_dist += 300.0 * d
+			if attack.phase == AttackRunner.Phase.RECOVERY:
+				attack.t = 0.0
+				attack.phase = AttackRunner.Phase.ACTIVE
+				attack.hitbox.activate()
+			var ai_img := AfterImage.from_sprite(sprite, Color(1.6, 0.4, 0.8, 0.8), 0.18)
+			if ai_img:
+				get_parent().add_child(ai_img)
+			if ai_t <= 0.0 or _wall_ahead() or charge_dist > 90.0:
+				attack.cancel()
+				velocity.x = _dash_dir.x * 60.0
+				ai_state = "recover"
+				ai_t = rng.randf_range(0.6, 0.9)
+				emote("...", ai_t)
+		"recover":
+			velocity.x = move_toward(velocity.x, 0.0, 700.0 * d)
+			_anim("idle")
+			if ai_t <= 0.0:
+				ai_state = "chase"
+				ai_t = rng.randf_range(0.2, 0.6)
+
+
+## Enxame: paira acima do alvo e mergulha em linha reta.
+func _ai_diver(d: float) -> void:
+	_bob += d * 3.0
+	var valid := _target_valid()
+	match ai_state:
+		"spawn":
+			if ai_t <= 0.0:
+				ai_state = "idle"
+		"idle", "patrol", "chase":
+			var want := home + Vector2(sin(_bob * 0.6) * 18.0, sin(_bob) * 5.0)
+			if valid:
+				want = target.body_center() + Vector2(sin(_bob * 0.8) * 26.0, -38.0)
+				_face_target()
+			var to := want - global_position
+			velocity = velocity.move_toward(to.limit_length(1.0) * speed * minf(to.length() / 16.0, 1.0), 400.0 * d)
+			if valid and ai_t <= 0.0 and absf(_dx()) < 50.0:
+				ai_state = "windup"
+				ai_t = _windup_time() * 0.7
+				_telegraph()
+		"windup":
+			velocity *= 0.85
+			if ai_t <= 0.0:
+				_dash_dir = (target.body_center() - global_position).normalized() if target else Vector2.DOWN
+				ai_state = "dive"
+				ai_t = 0.5
+				Audio.play("dash", 0.1, -10.0, 1.5)
+		"dive":
+			velocity = _dash_dir * 230.0
+			if ai_t <= 0.0 or is_on_floor() or is_on_wall():
+				ai_state = "recover"
+				ai_t = rng.randf_range(0.7, 1.2)
+		"recover":
+			velocity = velocity.move_toward(Vector2(0, -60.0), 500.0 * d)
+			if ai_t <= 0.0:
+				ai_state = "idle"
+				ai_t = rng.randf_range(0.4, 0.9)
+
+
+## Escudeiro: bloqueia golpes que vêm pela frente. Pesado, Corte-Relâmpago
+## e golpes de cima passam; pogo no escudo quica.
+func _shield_blocks(info: DamageInfo) -> bool:
+	if ai != "shield" or info.is_hazard or info.is_spell or stagger_time > 0.0:
+		return false
+	if info.is_heavy or info.is_dash_attack or info.direction.y > 0.5:
+		return false
+	var src = info.source
+	if src == null or not is_instance_valid(src) or not (src is Node2D):
+		return false
+	var from_front := signf(src.global_position.x - global_position.x) == float(facing)
+	return from_front
+
+
+## Linha da mira do atirador (desenhada em coordenadas do mundo).
+class LaserSight extends Node2D:
+	var enemy: Node = null
+
+	func _ready() -> void:
+		z_index = 30
+		top_level = true
+
+	func _process(_delta: float) -> void:
+		queue_redraw()
+
+	func _draw() -> void:
+		if enemy == null or not is_instance_valid(enemy) or enemy.dead or enemy._laser <= 0.01:
+			return
+		var from: Vector2 = enemy._muzzle()
+		var dir: Vector2 = enemy._aim_dir
+		var space: PhysicsDirectSpaceState2D = enemy.get_world_2d().direct_space_state
+		var q := PhysicsRayQueryParameters2D.create(from, from + dir * 260.0, Layers.WORLD)
+		var hit := space.intersect_ray(q)
+		var to: Vector2 = hit["position"] if not hit.is_empty() else from + dir * 260.0
+		var locked: bool = enemy._laser_locked
+		var blink := locked and int(Time.get_ticks_msec() / 50) % 2 == 0
+		var a: float = enemy._laser * (1.0 if not locked else (1.0 if blink else 0.5))
+		var c := Color(2.6, 0.3, 0.25, a * 0.8) if not locked else Color(3.0, 2.6, 2.4, a)
+		draw_line(from, to, c, 1.0)
+		draw_rect(Rect2(to - Vector2(1, 1), Vector2(2, 2)), c)
 
 
 func _check_phase() -> void:
@@ -996,6 +1287,14 @@ func _contact_info(_t: Node) -> DamageInfo:
 func _before_hit(info: DamageInfo) -> int:
 	if info.is_hazard:
 		return -1
+	if _shield_blocks(info):
+		FX.burst(body_center() + Vector2(facing * 4, 0), Color(2.4, 2.2, 1.6), 6, 120.0)
+		FX.hitstop(0.04)
+		Audio.play("hit_metal", 0.1, -3.0)
+		sprite.squash(Vector2(0.85, 1.1))
+		if info.pogo and info.source and info.source.has_method("_pogo"):
+			info.source._pogo()
+		return DamageInfo.Result.BLOCKED
 	if shielded:
 		FX.burst(body_center(), Color(0.6, 1.6, 2.4), 8, 90.0)
 		Audio.play("block", 0.1, -4.0)

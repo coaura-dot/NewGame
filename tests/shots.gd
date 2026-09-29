@@ -36,6 +36,19 @@ func _ready() -> void:
 	if scenario in ["combat", "all"]:
 		Game.pending = {"training": true}
 		await _shot_combat()
+	if scenario in ["overview", "all"]:
+		for biome in ["castelo", "floresta"]:
+			Game.new_game(1234, 9)
+			var rid := ""
+			for r in Game.world["regions"].keys():
+				if Game.world["regions"][r]["biome"] == biome:
+					rid = r
+					break
+			if rid == "":
+				rid = Game.world["start"]
+			Game.pending = {"region": rid}
+			await _shot_overview("fase_" + biome)
+			SaveSystem.delete_save(9)
 	if scenario in ["juice", "all"]:
 		Game.pending = {"training": true}
 		await _shot_juice()
@@ -242,6 +255,29 @@ func _shot_juice() -> void:
 	level.queue_free()
 	await _frames(2)
 	Game.end_training()
+
+
+## A fase inteira numa imagem só (mapa do layout renderizado de verdade).
+func _shot_overview(name: String) -> void:
+	var level: Node = load("res://scenes/level.tscn").instantiate()
+	add_child(level)
+	await _frames(20)
+	var size := Vector2i(int(level.layout["width"]) * LevelConst.TILE, int(level.layout["height"]) * LevelConst.TILE)
+	size = size.min(Vector2i(8192, 8192))
+	level.world_vp.size = size
+	level.camera.enabled = false
+	level.world_vp.canvas_transform = Transform2D.IDENTITY
+	for c in level.world.get_children():
+		if c is CanvasLayer:
+			c.visible = false
+	await _frames(6)
+	await RenderingServer.frame_post_draw
+	var img: Image = level.world_vp.get_texture().get_image()
+	img.convert(Image.FORMAT_RGBA8)
+	img.linear_to_srgb()
+	img.save_png(out_dir.path_join(name + ".png"))
+	level.queue_free()
+	await _frames(2)
 
 
 func _physics(n: int) -> void:

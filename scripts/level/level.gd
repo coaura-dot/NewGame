@@ -35,6 +35,9 @@ var _current_room: int = -1
 var _cleared: Dictionary = {}
 ## Encontro trancado em andamento (para a nota S/A/B/C): sala, início, vida, inimigos
 var _encounter: Dictionary = {}
+## Arenas: ondas ainda não invocadas. sala -> Array[Array[entidade]]
+var _waves: Dictionary = {}
+var _wave_total: Dictionary = {}
 var _completed: bool = false
 var rng := RandomNumberGenerator.new()
 ## O mundo é renderizado aqui dentro (256x144, pixel perfeito) e escalado
@@ -180,10 +183,16 @@ func _spawn_entities() -> void:
 	var torch_color := Color(torch_a[0], torch_a[1], torch_a[2])
 	var tex: Texture2D = load("res://assets/art/tilesets/%s.png" % biome.get("tileset", "castle"))
 	var tint_a: Array = biome.get("tint", [1, 1, 1])
+	var arena_ents: Dictionary = {}
 	for e in layout["entities"]:
 		var room: int = int(e.get("room", 0))
 		var data: Dictionary = e.get("data", {})
 		var node: Node2D = null
+		if e["type"] in ["enemy", "flyer"] and _room_type(room) == "arena":
+			if not arena_ents.has(room):
+				arena_ents[room] = []
+			arena_ents[room].append(e)
+			continue
 		match e["type"]:
 			"spawn":
 				spawn_pos = _tile_feet(e["tile"])
@@ -277,6 +286,10 @@ func _spawn_entities() -> void:
 				al.boss_id = params.get("boss", "") if params.get("boss", "") != "" else region.get("boss", "")
 				al.position = _tile_feet(e["tile"])
 				node = al
+			"impeto_orb":
+				var orb := ImpetoOrb.new()
+				orb.position = _tile_center(e["tile"])
+				node = orb
 			"ability_gate":
 				var ag := AbilityGate.new()
 				ag.requires_item = data.get("requires", "") if data.get("kind", "") == "locked" else ""
@@ -298,6 +311,60 @@ func _spawn_entities() -> void:
 			if "room_index" in node:
 				node.room_index = room
 			entities.add_child(node)
+	# arenas: 1ª onda já está lá; as outras entram quando a anterior cair
+	for room in arena_ents.keys():
+		var list: Array = arena_ents[room]
+		var n := list.size()
+		var count := 1 if n <= 3 else (2 if n <= 6 else 3)
+		var waves: Array = []
+		for w in count:
+			waves.append([])
+		for i in n:
+			waves[mini(i * count / n, count - 1)].append(list[i])
+		for e in waves.pop_front():
+			entities.add_child(_enemy_from_entity(e, tier))
+		_waves[room] = waves
+		_wave_total[room] = count
+
+
+func _room_type(idx: int) -> String:
+	if idx < 0 or idx >= layout["rooms"].size():
+		return ""
+	return str(layout["rooms"][idx].get("type", ""))
+
+
+func _enemy_from_entity(e: Dictionary, tier: int) -> Enemy:
+	var id: String = e.get("data", {}).get("enemy", "skeleton")
+	var pos := _tile_feet(e["tile"]) if e["type"] == "enemy" else _tile_center(e["tile"])
+	return _make_enemy(id, tier, pos, int(e.get("room", 0)))
+
+
+## Invoca a próxima onda da arena (portais primeiro, inimigos logo depois).
+func _next_wave(room: int) -> void:
+	var wave: Array = _waves[room].pop_front()
+	var total: int = int(_wave_total.get(room, 1))
+	var num: int = total - _waves[room].size()
+	Events.wave_started.emit(num, total)
+	Audio.play("wave", 0.0, -2.0)
+	var tier: int = int(params.get("tier", 1))
+	for e in wave:
+		var en := _enemy_from_entity(e, tier)
+		var portal := SpawnPortal.new()
+		portal.position = en.position
+		entities.add_child(portal)
+		en.visible = false
+		en.process_mode = Node.PROCESS_MODE_DISABLED
+		entities.add_child(en)
+		var tw := create_tween()
+		tw.tween_interval(0.35)
+		tw.tween_callback(func():
+			if is_instance_valid(en):
+				en.visible = true
+				en.process_mode = Node.PROCESS_MODE_INHERIT
+				en.ai_state = "spawn"
+				en.ai_t = 0.35
+				en.invuln_time = 0.35
+				FX.burst(en.body_center(), Color(2.4, 0.8, 1.8), 8, 90.0))
 
 
 func _shaft_height(tile: Array) -> float:
@@ -382,7 +449,8 @@ func _physics_process(_delta: float) -> void:
 		_on_room_entered(idx)
 	if player.global_position.y > layout["height"] * T + 32:
 		player.take_status_damage(10.0, "fall")
-		player._hazard_respawn()
+		if not player.dead:
+			player._hazard_respawn()
 
 
 func _on_room_entered(idx: int) -> void:
@@ -401,7 +469,10 @@ func _on_room_entered(idx: int) -> void:
 		if locked and player:
 			player.emote("!", 0.8)
 			camera.lock_room(room_rect(idx))
-			_encounter = {"room": idx, "t0": Time.get_ticks_msec(), "hp": player.hp, "count": alive}
+			var total := alive
+			for w in _waves.get(idx, []):
+				total += w.size()
+			_encounter = {"room": idx, "t0": Time.get_ticks_msec(), "hp": player.hp, "count": total}
 		if room.get("type", "") == "boss" and boss_node and is_instance_valid(boss_node):
 			if hud and hud.has_method("show_boss"):
 				hud.show_boss(boss_node)
@@ -444,7 +515,7 @@ func _room_locked(idx: int) -> bool:
 ## Último inimigo vivo de um encontro trancado (arena/chefe)? Câmera lenta.
 func is_last_enemy(en: Node) -> bool:
 	var room: int = int(en.get_meta("room", -1))
-	if room < 0 or not _room_locked(room):
+	if room < 0 or not _room_locked(room) or not _waves.get(room, []).is_empty():
 		return false
 	for other in _room_enemies.get(room, []):
 		if other != en and is_instance_valid(other) and not other.dead:
@@ -530,6 +601,9 @@ func on_enemy_killed(en: Node) -> void:
 		if hud and hud.has_method("hide_boss"):
 			hud.hide_boss()
 	var room: int = int(en.get_meta("room", -1))
+	if room >= 0 and _alive_enemies(room) == 0 and not _waves.get(room, []).is_empty():
+		_next_wave(room)
+		return
 	if room >= 0 and _alive_enemies(room) == 0 and room == _current_room:
 		_mark_cleared(room)
 	elif room >= 0 and _alive_enemies(room) == 0:

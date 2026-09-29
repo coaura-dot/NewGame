@@ -20,6 +20,7 @@ signal frenzy_tier(tier: int, label: String)
 signal frenzy_ended(count: int, bonus: int)
 ## Encontro (arena/onda) terminado: nota S/A/B/C e tempo
 signal encounter_ranked(rank: String, time: float, bonus: int)
+signal wave_started(number: int, total: int)
 signal parry(defender: Node, attacker: Node, perfect: bool)
 signal perfect_dodge(actor: Node)
 signal spell_cast(caster: Node, spell_id: String)
