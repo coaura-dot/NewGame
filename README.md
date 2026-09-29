@@ -82,6 +82,21 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
   machucar, volta ao começo da sala e a muralha recomeça.
 - **Golpe em velocidade**: acertar enquanto se move muito rápido (super, rasante, quique) causa +25% de dano
   com faísca dourada — manter o embalo compensa.
+- **Sala Zigue-zague** (nova): o chão INTEIRO é espinho. Atravesse encadeando nós que alternam alto/baixo —
+  orbes, espinhos de pogo, sinos, penas, cristais — com estalactites/estalagmites fechando o canal e voadores
+  no meio (abater no ar recarrega o dash e dá um quique). Pode ser caçada (fecha até matar todos).
+- **Fases FRENESI** (~40% das regiões, aparece no mapa-múndi e no título da fase): o caminho é dominado por
+  salas zigue-zague, com arenas suspensas sobre espinhos intercaladas. O Treino tem 2 salas zigue-zague.
+- **Resets de pulo e dash**: **Pena verde** (encoste no ar: +1 pulo, mesmo sem pulo duplo), **Sino** (golpeie:
+  recarrega o dash e dá um pulo sem mudar a trajetória; ↓+golpe = pogo), **Cristal rosa** (2 dashes), além do
+  Orbe dourado (quique) e do Cristal azul. O HUD mostra dash extra (rosa) e pulo extra (verde).
+- **Inércia**: acima da velocidade máxima o embalo dura bem mais no ar (segurando ou soltando a direção),
+  pousar e pular logo em seguida mantém a velocidade (bunny hop), golpear correndo rápido não te freia.
+- **CADEIA aérea**: cada orbe, pogo, sino, pena, cristal, abate, rebate ou salto de parede sem tocar o chão
+  soma na cadeia (mostrada no topo da tela). Ao pousar, cadeias de 3+ dão brasas e foco (bônus em 6 e 10);
+  se machucar, perde. A maior cadeia aparece no resumo da fase.
+- **Torre de escalada**: poços com saída para cima viram escaladas com degraus alternados, orbes/sinos/penas,
+  espinhos de pogo, tábuas, paredes irregulares com espinhos e torretas atravessando o poço.
 - Validador entende espinhos de pogo; salas em andares/caçada/fuga não viram salas largas.
 - `tools/screenshot.gd -- <prefixo> salas <seed> <bioma> <tier>` tira print de cada sala com outra seed/bioma;
   `tools/room_sheet.gd -- <png> <tipo> LR <tier> 8` gera prancha ampliada.

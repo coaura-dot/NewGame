@@ -327,6 +327,8 @@ static func _ledge(g: Array, x: int, y: int, w: int, solid: bool) -> void:
 static func _combat(g: Array, rng: RandomNumberGenerator, exits: String, opts: Dictionary) -> void:
 	var tier := int(opts.get("tier", 1))
 	var roll := rng.randf()
+	if opts.get("theme", "") == "frenesi":
+		roll *= 0.5 # fase Frenesi: arenas quase sempre suspensas sobre espinhos
 	if roll < 0.4:
 		_arena_suspensa(g, rng, exits, tier)
 	elif roll < 0.65:

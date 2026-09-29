@@ -399,6 +399,8 @@ func _refresh_info() -> void:
 		return
 	var layer_name := {"sky": "Céu", "surface": "Superfície", "underground": "Subterrâneo"}
 	_info.add_child(UIKit.label("%s • %s • Tier %d" % [DB.biome(r["biome"]).get("name", r["biome"]), layer_name.get(r["layer"], ""), int(r["tier"])], 10))
+	if Level.region_theme(r) == "frenesi":
+		_info.add_child(UIKit.label("FRENESI: zigue-zague sobre espinhos, sem chão", 10, Color(0.75, 0.3, 0.1)))
 	if r.get("dimension", "prima") != "prima":
 		var d := DB.dimension(r["dimension"])
 		var dl := UIKit.label("Mundo paralelo: %s — %s" % [d.get("name", ""), d.get("desc", "")], 10, Color(1.4, 0.8, 2.2))

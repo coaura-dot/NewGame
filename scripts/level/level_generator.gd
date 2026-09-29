@@ -183,7 +183,7 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 			var chase: bool = not hunt and room["type"] in ["platforming", "corridor"] and room["exits"] == "LR" \
 				and room.get("on_path", false) and rng.randf() < CHASE_CHANCE
 			g = RoomSynth.from_rows(RoomSynth.synth(room["type"], room["exits"], rng,
-				{"tier": tier, "entry": entry, "indoor": indoor, "hunt": hunt, "chase": chase}))
+				{"tier": tier, "entry": entry, "indoor": indoor, "hunt": hunt, "chase": chase, "theme": params.get("theme", "")}))
 			room["template"] = "synth:" + room["type"]
 			if room["type"] == "combat":
 				room["tags"] = PackedStringArray(["lock"])
