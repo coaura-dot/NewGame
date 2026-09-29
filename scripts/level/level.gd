@@ -597,7 +597,7 @@ const HINTS := {
 	"pogo": "Golpe para baixo no ar QUICA em espinhos e inimigos.",
 	"waves": "Arena fechada: derrote todas as ondas para abrir.",
 	"hunt": "Caçada: a sala só abre quando todos os inimigos caírem!",
-	"chase": "FUJA! A muralha de espinhos avança — não pare de correr!",
+	"chase": "FUJA! A Escuridão avança atrás de você — não pare de correr!",
 	"zigzag": "Chão de espinhos! Encadeie orbes, pogos e inimigos sem pousar.",
 	"dark": "Sala sombria! Passe raspando nas LAMPARINAS para acendê-las e devolver a luz.",
 	"lamp": "LAMPARINA apagada: encoste ou golpeie para acender (+brasas). Acenda todas da fase!",

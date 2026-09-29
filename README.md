@@ -89,8 +89,8 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
   volta sozinha para a torreta e a destrói. Vale para magias inimigas também.
 - **Caçada**: parte das salas de plataforma fecha as portas até você derrotar todos os inimigos espalhados
   pelo percurso — combate obrigatório no meio do parkour.
-- **Fuga**: em algumas salas uma **muralha de espinhos** avança a partir da porta de entrada. Não pare! Se se
-  machucar, volta ao começo da sala e a muralha recomeça.
+- **Fuga**: em algumas salas **a Escuridão** (antes uma muralha de espinhos; desde a sessão 8 uma parede de fumaça
+  com olhos) avança a partir da porta de entrada. Não pare! Se se machucar, volta ao começo da sala e ela recomeça.
 - **Golpe em velocidade**: acertar enquanto se move muito rápido (super, rasante, quique) causa +25% de dano
   com faísca dourada — manter o embalo compensa.
 - **Sala Zigue-zague** (nova): o chão INTEIRO é espinho. Atravesse encadeando nós que alternam alto/baixo —

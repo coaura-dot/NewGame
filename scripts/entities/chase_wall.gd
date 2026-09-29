@@ -1,7 +1,7 @@
 class_name ChaseWall
 extends Node2D
-## Sala de fuga: uma muralha de espinhos avança pela sala a partir da porta
-## de entrada — não dá para parar. Se o herói se machucar (ou cair), volta
+## Sala de fuga: A ESCURIDÃO (muralha de fumaça com olhos) avança pela sala a
+## partir da porta de entrada — não dá para parar. Se o herói se machucar (ou cair), volta
 ## ao começo da sala e a muralha recomeça atrás dele. Se ele abrir muita
 ## vantagem, a muralha acelera um pouco (pressão constante).
 
@@ -80,25 +80,39 @@ func _update_shape() -> void:
 
 
 func _draw() -> void:
-	# desenha em coordenadas do mundo (o nó fica na origem)
+	# A ESCURIDÃO: massa de fumaça quase preta com a borda em tentáculos que
+	# ondulam, um fio de luz violeta na ponta (é perigo!) e olhos piscando lá
+	# dentro. Desenha em coordenadas do mundo (o nó fica na origem).
 	var x0 := minf(_back(), front)
 	var x1 := maxf(_back(), front)
 	var top := rect.position.y
 	var h := rect.size.y
-	var mass := Color(0.16, 0.1, 0.22)
+	var mass := Color(0.035, 0.025, 0.065)
+	var edge := Color(1.3, 0.45, 1.8, 0.75)
 	draw_rect(Rect2(Vector2(x0, top).round(), Vector2(x1 - x0, h).round()), mass)
-	# dentes na borda da frente, balançando
 	var fx := roundf(front)
-	var y := 0.0
-	var k := 0
-	while y < h:
-		var wob := roundf(2.0 * sin(_t * 9.0 + k * 1.3))
-		var p0 := Vector2(fx, top + y)
-		var tip := Vector2(fx + dir * (5.0 + wob), top + y + 3.0)
-		var p1 := Vector2(fx, top + y + 6.0)
-		draw_colored_polygon(PackedVector2Array([p0, tip, p1]), mass)
-		draw_line(p0, tip, Color(1.8, 0.5, 1.2), 1.0)
-		y += 6.0
-		k += 1
-	# brilho da borda (HDR = bloom)
-	draw_line(Vector2(fx - dir, top), Vector2(fx - dir, top + h), Color(2.2, 0.7, 1.6, 0.8), 1.0)
+	var i := 0
+	while float(i) * 2.0 < h:
+		var yy := top + float(i) * 2.0
+		var reach := roundf(3.0 + 2.5 * sin(_t * 5.0 + i * 0.7) + 2.0 * sin(_t * 2.3 + i * 0.23))
+		var x_from := fx if dir > 0 else fx - reach
+		draw_rect(Rect2(Vector2(x_from, yy), Vector2(reach, 2)), mass)
+		var tip_x := fx + dir * reach - (0.0 if dir > 0 else 1.0)
+		draw_rect(Rect2(Vector2(tip_x, yy), Vector2(1, 2)), edge)
+		i += 1
+	# fumaça solta na frente
+	for k in 6:
+		var py := top + fposmod(k * 29.0 + _t * 14.0, h)
+		var px := fx + dir * (6.0 + fposmod(k * 7.0 + _t * 20.0, 10.0))
+		draw_rect(Rect2(Vector2(px, py).round(), Vector2(2, 1)), Color(0.12, 0.08, 0.2, 0.7))
+	# olhos lá dentro (piscam de vez em quando)
+	for k in 8:
+		if fposmod(_t * 0.7 + k * 0.37, 3.0) < 0.12:
+			continue
+		var ey := top + 6.0 + fposmod(k * 37.0, maxf(h - 12.0, 1.0))
+		var ex := front - dir * (9.0 + fposmod(k * 23.0, 70.0))
+		if (ex - x0) < 2.0 or (x1 - ex) < 2.0:
+			continue
+		var c := Color(0.6, 2.0, 2.2) if k % 3 else Color(2.0, 0.6, 1.4)
+		draw_rect(Rect2(Vector2(ex, ey).round(), Vector2.ONE), c)
+		draw_rect(Rect2(Vector2(ex + 3.0, ey).round(), Vector2.ONE), c)

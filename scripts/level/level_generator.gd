@@ -198,7 +198,7 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 		if g.is_empty():
 			# caçada: sala de plataforma do caminho que fecha até matar todos
 			var hunt: bool = room["type"] in ["platforming", "zigzag"] and room.get("on_path", false) and rng.randf() < HUNT_CHANCE
-			# fuga: muralha de espinhos avança pela sala (só salas L-R do caminho)
+			# fuga: a Escuridão avança pela sala (só salas L-R do caminho)
 			var chase: bool = not hunt and room["type"] in ["platforming", "corridor"] and room["exits"] == "LR" \
 				and room.get("on_path", false) and rng.randf() < CHASE_CHANCE
 			g = RoomSynth.from_rows(RoomSynth.synth(room["type"], room["exits"], rng,

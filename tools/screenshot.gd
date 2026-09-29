@@ -13,6 +13,7 @@ extends SceneTree
 ## sombria [seed] [bioma]: a sala sombria do treino apagada e depois acesa.
 ## paineis: últimas palavras de um guardião, Bestiário e Lembranças.
 ## mapafase [seed] [bioma]: passa por metade das salas e abre o mapa da fase (M).
+## fuga [seed] [bioma]: a Escuridão das salas de fuga avançando.
 ## chefe <id>: um guardião duelando com o herói (vários quadros).
 ## loja [seed]: diálogo e painéis de loja/forja/estudo/venda na vila inicial.
 
@@ -80,6 +81,8 @@ func _process(_d: float) -> bool:
 		return _paineis()
 	if _mode == "mapafase":
 		return _mapafase()
+	if _mode == "fuga":
+		return _fuga()
 	if _mode != "menu":
 		if _n == 60:
 			Input.action_press("move_right")
@@ -598,5 +601,27 @@ func _mapafase() -> bool:
 		_level.hud.toggle_map()
 	if _n == 20 + 6 * (rooms.size() * 2 / 3) + 30:
 		_save("mapa")
+		quit()
+	return false
+
+
+func _fuga() -> bool:
+	if _level == null or _level.player == null:
+		return false
+	var p = _level.player
+	if _n == 20:
+		p.invuln_time = 999.0
+		var idx := 1
+		var r: Rect2 = _level.room_rect(idx)
+		p.global_position = Vector2(r.position.x + 120, r.end.y - 24)
+		p._prev_pos = p.global_position
+		p.reset_physics_interpolation()
+		_level.room_spawn = Vector2(r.position.x + 16, r.end.y - 24)
+	if _n == 40:
+		_level._start_chase(1)
+	if _n == 150:
+		_save("0")
+	if _n == 200:
+		_save("1")
 		quit()
 	return false
