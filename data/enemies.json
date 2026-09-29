@@ -732,5 +732,42 @@
       "horns": true,
       "wings": true
     }
+  },
+  "duelist": {
+    "name": "Duelista Sombrio", "tier": 2, "hp": 240, "speed": 70, "ai": "boss_duelist", "boss": true,
+    "body": [6, 10], "contact_damage": 0, "aggro": 400, "attack_range": 18, "poise": 16,
+    "loadout": {"weapon": "katana_rubra", "spells": ["passo_etereo"]},
+    "weakness": {"pierce": 1.2, "lightning": 1.3, "light": 1.2}, "class_weakness": {"fine_sword": 1.25},
+    "phases": [1.0, 0.6, 0.3],
+    "look": {"body": [5, 4], "head": [6, 5], "color": [0.1, 0.08, 0.14], "shell": [0.2, 0.17, 0.25], "eyes": "glow", "eye_color": [1.0, 0.25, 0.3], "legs": 2, "horns": true, "weapon": true},
+    "drops": [{"id": "katana_rubra", "chance": 0.4}, {"id": "odachi_luar", "chance": 0.15}, {"id": "fragmento_runico", "chance": 1.0}],
+    "currency": [110, 150],
+    "desc": "Um reflexo seu que aprendeu a lutar sozinho. Postura azul = contra-ataque: não golpeie."
+  },
+  "brood_mother": {
+    "name": "Mãe da Ninhada", "tier": 2, "hp": 200, "speed": 0, "ai": "boss_horde", "boss": true,
+    "body": [16, 12], "contact_damage": 8, "aggro": 400, "attack_range": 80, "poise": 99,
+    "loadout": {"weapon": "", "spells": ["espinho_terra", "sopro_infernal"]},
+    "minions": {"hound": 3, "skeleton": 2, "hellcat": 2},
+    "weakness": {"fire": 1.3, "blunt": 1.2, "ice": 1.2},
+    "weak_points": [{"name": "Olho", "box": [-3, -18, 6, 5], "mult": 2.0}],
+    "phases": [1.0, 0.5],
+    "look": {"body": [14, 7], "head": [9, 7], "color": [0.34, 0.2, 0.28], "shell": [0.62, 0.44, 0.5], "eyes": "glow", "eye_color": [1.0, 0.8, 0.3], "legs": 4, "horns": true, "tail": true},
+    "drops": [{"id": "sopro_infernal", "chance": 0.3}, {"id": "fragmento_runico", "chance": 1.0}, {"id": "fragmento_runico", "chance": 0.5}],
+    "currency": [110, 150],
+    "desc": "Protegida pela ninhada. Derrube cada onda para abrir a guarda."
+  },
+  "colossus": {
+    "name": "Colosso de Pedra", "tier": 2, "hp": 320, "speed": 22, "ai": "boss_colossus", "boss": true,
+    "body": [22, 26], "contact_damage": 10, "aggro": 400, "attack_range": 32, "poise": 99,
+    "loadout": {"weapon": "montante_ferro", "spells": ["espinho_terra"]},
+    "weakness": {"blunt": 1.4, "lightning": 1.2, "slash": 0.75},
+    "class_weakness": {"gauntlets": 1.3, "greatsword": 1.2},
+    "weak_points": [{"name": "Núcleo", "box": [-4, -26, 8, 6], "mult": 2.5}],
+    "phases": [1.0, 0.5],
+    "look": {"body": [24, 14], "head": [14, 11], "color": [0.36, 0.34, 0.31], "shell": [0.6, 0.58, 0.52], "eyes": "glow", "eye_color": [0.4, 1.6, 1.2], "legs": 4, "horns": true},
+    "drops": [{"id": "espinho_terra", "chance": 0.3}, {"id": "fragmento_runico", "chance": 1.0}, {"id": "fragmento_runico", "chance": 1.0}],
+    "currency": [120, 170],
+    "desc": "Lento e enorme. Pule as ondas de choque; o núcleo abaixa depois do pisão."
   }
 }

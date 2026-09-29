@@ -9,6 +9,11 @@ extends Actor
 ##   turret   - fixo, cospe fogo
 ##   charger  - investe atravessando a sala
 ##   boss_demon - chefe voador com 3 fases
+##   boss_duelist  - espadachim 1v1: combos, iai, postura de contra-ataque,
+##                   salto com estocada para baixo, teleporte (fase 3)
+##   boss_horde    - invoca ondas; protegida por escudo até a onda cair
+##   boss_colossus - gigante: pisão com ondas de choque, varrida, chuva de
+##                   pedras; o núcleo (ponto fraco) abaixa após o pisão
 
 signal phase_changed(phase: int)
 
@@ -38,6 +43,11 @@ var contact_hitbox: Hitbox
 var _weak_points: Array = [] ## [Hurtbox, Vector2 base]
 var _bob: float = 0.0
 var _wander_dir: int = 1
+# chefes
+var shielded: bool = false ## Mãe da Ninhada: imune enquanto a ninhada vive
+var lowered: bool = false ## Colosso: abaixado após o pisão (núcleo acessível)
+var _minions: Array = []
+var _wave: int = 0
 
 
 func setup(id: String, enemy_tier: int, dimension_id: String = "prima") -> void:
@@ -145,7 +155,7 @@ func _actor_physics(d: float, raw: float) -> void:
 	if target == null or not is_instance_valid(target):
 		target = get_tree().get_first_node_in_group("player")
 	for wp in _weak_points:
-		wp[0].position = Vector2(wp[1].x * facing, wp[1].y)
+		wp[0].position = Vector2(wp[1].x * facing, wp[1].y + (12.0 if lowered else 0.0))
 	if status.disabled() or stagger_time > 0.0:
 		attack.cancel()
 		velocity.x = move_toward(velocity.x, 0.0, 400.0 * d)
@@ -164,6 +174,9 @@ func _actor_physics(d: float, raw: float) -> void:
 		"turret": _ai_turret(d)
 		"charger": _ai_charger(d)
 		"boss_demon": _ai_boss(d)
+		"boss_duelist": _ai_duelist(d)
+		"boss_horde": _ai_horde(d)
+		"boss_colossus": _ai_colossus(d)
 		_: _ai_melee(d)
 	_gravity(d)
 	_move(d, raw)
@@ -196,6 +209,8 @@ func _move(d: float, raw: float) -> void:
 func _target_valid() -> bool:
 	if target == null or not is_instance_valid(target) or target.dead:
 		return false
+	if boss:
+		return true # na arena o chefe sempre sabe onde você está
 	if status.has("blind"):
 		return false
 	var dist := body_center().distance_to(target.body_center())
@@ -568,6 +583,376 @@ func _ai_boss(d: float) -> void:
 
 
 # ---------------------------------------------------------------------------
+# Chefes novos
+# ---------------------------------------------------------------------------
+
+## Retângulo da arena (sala do chefe) em pixels.
+func _arena() -> Rect2:
+	var room := int(get_meta("room", -1))
+	if level and level.has_method("room_rect") and room >= 0:
+		return level.room_rect(room)
+	return Rect2(home - Vector2(160, 150), Vector2(320, 192))
+
+
+## y dos pés no chão principal da arena (linha 21 da sala).
+func _arena_floor() -> float:
+	var a := _arena()
+	return a.position.y + LevelConst.FLOOR_ROW * LevelConst.TILE
+
+
+func _clamp_to_arena(x: float, margin: float = 16.0) -> float:
+	var a := _arena()
+	return clampf(x, a.position.x + margin, a.end.x - margin)
+
+
+# --- Duelista Sombrio -------------------------------------------------------
+
+func _ai_duelist(d: float) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	var dist := absf(_dx())
+	match ai_state:
+		"spawn", "idle", "patrol", "chase", "stalk":
+			_face_target()
+			var want := 26.0
+			if dist > want + 8.0:
+				velocity.x = move_toward(velocity.x, facing * speed, 700.0 * d)
+			elif dist < want - 10.0:
+				velocity.x = move_toward(velocity.x, -facing * speed * 0.7, 700.0 * d)
+			else:
+				velocity.x = move_toward(velocity.x, 0.0, 700.0 * d)
+			_anim("move" if absf(velocity.x) > 10.0 else "idle")
+			if ai_t <= 0.0 and is_on_floor():
+				_duelist_choose(dist)
+		"windup":
+			velocity.x = move_toward(velocity.x, 0.0, 900.0 * d)
+			if ai_t <= 0.0:
+				combo_step = 0
+				combo_left = 1 + phase_idx
+				_melee_attack()
+				ai_state = "attack"
+		"attack":
+			var step := attack.step
+			if attack.is_busy() and attack.phase != AttackRunner.Phase.RECOVERY:
+				velocity.x = facing * float(step.get("lunge", 0.0)) * 0.7
+			else:
+				velocity.x = move_toward(velocity.x, 0.0, 900.0 * d)
+			if not attack.is_busy():
+				if combo_left > 0:
+					combo_left -= 1
+					_face_target()
+					_melee_attack()
+				else:
+					ai_state = "recover"
+					ai_t = 0.55 - 0.1 * phase_idx
+		"iai_windup":
+			velocity.x = move_toward(velocity.x, 0.0, 900.0 * d)
+			_anim("crouch")
+			if ai_t <= 0.0:
+				attack.start(moveset.get("heavy", {}), "heavy", facing)
+				ai_state = "iai"
+				ai_t = 0.3
+				Audio.play("draw_blade")
+		"iai":
+			velocity.x = facing * 300.0
+			_anim("attack")
+			var a := _arena()
+			var near_wall := (facing > 0 and global_position.x > a.end.x - 14.0) or (facing < 0 and global_position.x < a.position.x + 14.0)
+			if ai_t <= 0.0 or _wall_ahead() or near_wall:
+				attack.cancel()
+				velocity.x = 0.0
+				ai_state = "recover"
+				ai_t = 0.75 - 0.15 * phase_idx
+		"guard":
+			velocity.x = move_toward(velocity.x, 0.0, 900.0 * d)
+			_face_target()
+			_anim("crouch")
+			if ai_t <= 0.0:
+				ai_state = "stalk"
+				ai_t = 0.25
+		"riposte":
+			velocity.x = 0.0
+			if ai_t <= 0.0:
+				combo_step = 2
+				combo_left = 0
+				_face_target()
+				_melee_attack()
+				ai_state = "attack"
+		"leap":
+			_anim("attack" if attack.is_busy() else "jump")
+			if not attack.is_busy() and velocity.y > -40.0 and absf(_dx()) < 14.0:
+				attack.start(moveset.get("down_air", {}), "down_air", facing)
+				velocity = Vector2(0, 260.0)
+			if is_on_floor() and ai_t < 0.5:
+				attack.cancel()
+				FX.shake(0.25)
+				var ring := NovaFX.new()
+				ring.radius = 30
+				ring.color = Color(1.6, 0.5, 0.6)
+				ring.global_position = global_position
+				get_parent().add_child(ring)
+				ai_state = "recover"
+				ai_t = 0.7
+		"blink_windup":
+			velocity.x = 0.0
+			if ai_t <= 0.0:
+				var behind: float = target.global_position.x - float(target.facing) * 18.0
+				FX.burst(body_center(), Color(1.4, 0.3, 0.5), 10, 90.0)
+				global_position.x = _clamp_to_arena(behind)
+				reset_physics_interpolation()
+				FX.burst(body_center(), Color(1.4, 0.3, 0.5), 10, 90.0)
+				_face_target()
+				combo_step = 1
+				combo_left = 1
+				_melee_attack()
+				ai_state = "attack"
+		"recover":
+			velocity.x = move_toward(velocity.x, 0.0, 900.0 * d)
+			_anim("idle")
+			if ai_t <= 0.0:
+				ai_state = "stalk"
+				ai_t = rng.randf_range(0.2, 0.6) - 0.1 * phase_idx
+
+
+func _duelist_choose(dist: float) -> void:
+	var r := rng.randf()
+	if dist < 32.0 and r < 0.45:
+		ai_state = "windup"
+		ai_t = _windup_time()
+		_telegraph()
+	elif dist > 44.0 and r < 0.6:
+		ai_state = "iai_windup"
+		ai_t = 0.55 - 0.08 * phase_idx
+		_telegraph(true)
+	elif r < 0.72 - 0.1 * phase_idx:
+		# postura de contra-ataque (azul): quem golpear leva o troco
+		ai_state = "guard"
+		ai_t = 1.1
+		emote("...", 1.1)
+	elif phase_idx >= 1 and r < 0.9:
+		ai_state = "leap"
+		ai_t = 1.2
+		velocity = Vector2(signf(_dx()) * minf(dist * 1.8, 150.0), -250.0)
+		_telegraph()
+	elif phase_idx >= 2:
+		ai_state = "blink_windup"
+		ai_t = 0.35
+		emote("anger", 0.35)
+	else:
+		ai_state = "windup"
+		ai_t = _windup_time()
+		_telegraph()
+
+
+# --- Mãe da Ninhada (chefe de horda) ----------------------------------------
+
+func _alive_minions() -> int:
+	var n := 0
+	for m in _minions:
+		if is_instance_valid(m) and not m.dead:
+			n += 1
+	return n
+
+
+func _summon_wave() -> void:
+	_wave += 1
+	var pool: Dictionary = data.get("minions", {"skeleton": 1})
+	var count := 2 + mini(_wave, 3) + phase_idx
+	var a := _arena()
+	var y := _arena_floor()
+	for i in count:
+		var id: String = RngUtil.weighted_key(rng, pool)
+		var side := -1.0 if i % 2 == 0 else 1.0
+		var x := a.get_center().x + side * rng.randf_range(80.0, 130.0)
+		var pos := Vector2(_clamp_to_arena(x, 24.0), y)
+		FX.burst(pos + Vector2(0, -6), Color(1.2, 0.5, 0.9), 10, 80.0, Vector2.UP, 60.0)
+		if level and level.has_method("spawn_minion"):
+			var m: Node = level.spawn_minion(id, maxi(tier - 1, 1), pos)
+			if m:
+				_minions.append(m)
+	shielded = true
+	Audio.play("spell_heavy")
+
+
+func _ai_horde(d: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+	_face_target()
+	match ai_state:
+		"spawn", "idle", "patrol", "chase":
+			shielded = true
+			_anim("idle")
+			if ai_t <= 0.0:
+				ai_state = "summon_windup"
+				ai_t = 0.9
+				_telegraph(true)
+		"summon_windup":
+			_anim("cast")
+			if ai_t <= 0.0:
+				_summon_wave()
+				ai_state = "guard"
+				ai_t = 2.2
+		"guard":
+			_anim("idle")
+			if _alive_minions() == 0:
+				shielded = false
+				ai_state = "exposed"
+				ai_t = 4.0
+				FX.shake(0.3)
+				emote("drop", 3.5)
+				Audio.play("break")
+			elif ai_t <= 0.0 and not spells.is_empty():
+				var sp: String = spells[0] if phase_idx == 0 else RngUtil.pick(rng, spells)
+				caster.cooldowns.erase(sp)
+				var aim: Vector2 = (target.body_center() - body_center()).normalized()
+				caster.cast(sp, phase_idx, aim, target.body_center())
+				ai_t = 3.0 - 0.9 * phase_idx
+		"exposed":
+			_anim("hurt")
+			if ai_t <= 0.0:
+				ai_state = "summon_windup"
+				ai_t = 0.9
+				_telegraph(true)
+
+
+# --- Colosso de Pedra -------------------------------------------------------
+
+func _ai_colossus(d: float) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	var dist := absf(_dx())
+	match ai_state:
+		"spawn", "idle", "patrol", "chase":
+			lowered = false
+			_face_target()
+			velocity.x = move_toward(velocity.x, facing * speed * (1.0 + 0.3 * phase_idx), 300.0 * d)
+			_anim("move")
+			if ai_t <= 0.0 and is_on_floor():
+				var r := rng.randf()
+				if dist < 48.0 and r < 0.55:
+					ai_state = "slam_windup"
+					ai_t = 0.8 - 0.15 * phase_idx
+					_telegraph(true)
+					if sprite:
+						sprite.squash(Vector2(0.85, 1.2))
+				elif dist < 34.0:
+					ai_state = "sweep_windup"
+					ai_t = 0.6
+					_telegraph()
+				elif r < 0.55 + 0.2 * phase_idx:
+					ai_state = "rocks_windup"
+					ai_t = 0.7
+					emote("anger", 0.7)
+				else:
+					ai_t = 0.6
+		"slam_windup":
+			velocity.x = 0.0
+			_anim("idle")
+			if ai_t <= 0.0:
+				_slam()
+				ai_state = "slam_recover"
+				ai_t = 1.5 - 0.3 * phase_idx
+				lowered = true
+		"slam_recover":
+			velocity.x = 0.0
+			_anim("crouch")
+			if ai_t <= 0.0:
+				lowered = false
+				ai_state = "recover"
+				ai_t = 0.3
+		"sweep_windup":
+			velocity.x = 0.0
+			if ai_t <= 0.0:
+				attack.start(moveset.get("heavy", {}), "heavy", facing)
+				_anim("attack")
+				ai_state = "attack"
+		"attack":
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+			if not attack.is_busy():
+				ai_state = "recover"
+				ai_t = 0.8
+		"rocks_windup":
+			velocity.x = 0.0
+			_anim("cast")
+			if ai_t <= 0.0:
+				_rocks(4 + 2 * phase_idx)
+				ai_state = "recover"
+				ai_t = 1.0
+		"recover":
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+			_anim("idle")
+			if ai_t <= 0.0:
+				ai_state = "chase"
+				ai_t = rng.randf_range(0.3, 0.8)
+
+
+## Pisão: tremor + ondas de choque rasteiras para os dois lados (pule!).
+func _slam() -> void:
+	FX.shake(0.7)
+	Audio.play("explosion")
+	var ring := NovaFX.new()
+	ring.radius = 44
+	ring.color = Color(1.4, 1.2, 0.9)
+	ring.global_position = global_position
+	get_parent().add_child(ring)
+	var waves := 1 + phase_idx
+	for k in waves:
+		for side in [-1.0, 1.0]:
+			var p := Projectile.new()
+			p.team = team
+			p.owner_actor = self
+			var info := DamageInfo.new()
+			info.amount = 12.0
+			info.damage_type = "blunt"
+			info.team = team
+			info.source = self
+			info.parryable = false
+			info.unblockable = true
+			info.knockback = Vector2(side * 120.0, -120.0)
+			p.info = info
+			p.radius = 3.0
+			p.style = "rock"
+			p.color = Color(0.72, 0.64, 0.52)
+			p.velocity = Vector2(side * (130.0 + 40.0 * k), 0.0)
+			p.lifetime = 1.6
+			p.reflectable = false
+			p.light_enabled = false
+			p.global_position = global_position + Vector2(side * 14.0, -5.0)
+			get_parent().add_child(p)
+
+
+## Chuva de pedras: poeira avisa onde cada pedra vai cair.
+func _rocks(n: int) -> void:
+	FX.shake(0.3)
+	var a := _arena()
+	for i in n:
+		var x := _clamp_to_arena(target.global_position.x + rng.randf_range(-70.0, 70.0), 12.0)
+		var top := Vector2(x, a.position.y + 14.0)
+		FX.burst(top, Color(0.8, 0.7, 0.6), 5, 40.0, Vector2.DOWN, 30.0, 0.5, 1.0)
+		var delay := 0.55 + i * 0.12
+		get_tree().create_timer(delay, false).timeout.connect(func():
+			if dead or not is_inside_tree():
+				return
+			var p := Projectile.new()
+			p.team = team
+			p.owner_actor = self
+			var info := DamageInfo.new()
+			info.amount = 10.0
+			info.damage_type = "blunt"
+			info.team = team
+			info.source = self
+			p.info = info
+			p.radius = 3.0
+			p.style = "rock"
+			p.color = Color(0.58, 0.55, 0.5)
+			p.velocity = Vector2(0, 30.0)
+			p.gravity_y = 520.0
+			p.lifetime = 2.0
+			p.light_enabled = false
+			p.global_position = top
+			get_parent().add_child(p))
+
+
+# ---------------------------------------------------------------------------
 # Combate
 # ---------------------------------------------------------------------------
 
@@ -605,6 +990,36 @@ func _contact_info(_t: Node) -> DamageInfo:
 	info.knockback = info.direction * 80.0 + Vector2(0, -60)
 	info.parryable = true
 	return info
+
+
+## Duelista em postura: contra-ataca. Mãe da Ninhada com escudo: bloqueia.
+func _before_hit(info: DamageInfo) -> int:
+	if info.is_hazard:
+		return -1
+	if shielded:
+		FX.burst(body_center(), Color(0.6, 1.6, 2.4), 8, 90.0)
+		Audio.play("block", 0.1, -4.0)
+		return DamageInfo.Result.BLOCKED
+	if ai == "boss_duelist" and ai_state == "guard" and not info.is_spell and info.source != self:
+		ai_state = "riposte"
+		ai_t = 0.12
+		_face_target()
+		FX.burst(body_center(), Color(2.4, 2.4, 3.0), 10, 120.0)
+		FX.hitstop(0.08)
+		Audio.play("parry")
+		emote("!", 0.4)
+		return DamageInfo.Result.PARRIED
+	return -1
+
+
+func _update_visuals(delta: float) -> void:
+	super._update_visuals(delta)
+	if sprite == null:
+		return
+	if shielded:
+		sprite.status_color = Color(0.5, 1.4, 2.2) # escudo da ninhada
+	elif ai == "boss_duelist" and ai_state == "guard":
+		sprite.status_color = Color(0.4, 0.8, 2.4) # postura: não golpeie!
 
 
 func on_parried(_by: Node, perfect: bool) -> void:
@@ -650,6 +1065,11 @@ func _on_staggered(_info: DamageInfo) -> void:
 
 func _on_death(info: DamageInfo) -> void:
 	attack.cancel()
+	shielded = false
+	for m in _minions:
+		if is_instance_valid(m) and not m.dead:
+			m.take_status_damage(99999.0, "fall")
+	_minions.clear()
 	if contact_hitbox:
 		contact_hitbox.deactivate()
 	collision_layer = 0

@@ -27,6 +27,10 @@ func _ready() -> void:
 		Game.pending = {"region": start}
 		await _shot_rooms("regiao")
 		SaveSystem.delete_save(9)
+	if scenario in ["bosses", "all"]:
+		for b in ["duelist", "brood_mother", "colossus"]:
+			Game.pending = {"training": true}
+			await _shot_boss(b)
 	if scenario in ["shop", "all"]:
 		await _shot_shop()
 	if scenario in ["combat", "all"]:
@@ -68,6 +72,40 @@ func _shot_pause() -> void:
 	await _frames(10)
 	await _save("pausa")
 	get_tree().paused = false
+	level.queue_free()
+	await _frames(2)
+	Game.end_training()
+
+
+## Luta contra um chefe: 8 quadros espaçados (jogador parado, invencível).
+func _shot_boss(id: String) -> void:
+	var level: Node = load("res://scenes/level.tscn").instantiate()
+	add_child(level)
+	await _frames(30)
+	Settings.data["gameplay"]["invincible"] = true
+	var p: Player = level.player
+	var boss: Enemy = level._make_enemy(id, 2, p.global_position + Vector2(70, -2), level._current_room)
+	level.entities.add_child(boss)
+	level.boss_node = boss
+	level.hud.show_boss(boss)
+	var frames: Array[Image] = []
+	for i in 8:
+		await _physics(40)
+		if id == "brood_mother" and i == 4:
+			for m in boss._minions:
+				if is_instance_valid(m) and not m.dead:
+					m.take_status_damage(9999.0, "fall")
+		await RenderingServer.frame_post_draw
+		var img: Image = get_viewport().get_texture().get_image()
+		img.resize(640, 360, Image.INTERPOLATE_NEAREST)
+		frames.append(img)
+	var sheet := Image.create(640 * 4, 360 * 2, false, Image.FORMAT_RGBA8)
+	for i in frames.size():
+		var f := frames[i]
+		f.convert(Image.FORMAT_RGBA8)
+		sheet.blit_rect(f, Rect2i(0, 0, 640, 360), Vector2i((i % 4) * 640, (i / 4) * 360))
+	sheet.save_png(out_dir.path_join("chefe_%s.png" % id))
+	Settings.data["gameplay"]["invincible"] = false
 	level.queue_free()
 	await _frames(2)
 	Game.end_training()

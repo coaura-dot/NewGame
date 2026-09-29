@@ -221,6 +221,9 @@ func _validate() -> void:
 		for d in e.get("drops", []):
 			if kind_of(d.get("id", "")) == "":
 				errors.append("inimigo %s dropa item inexistente %s" % [id, d.get("id", "")])
+		for m in e.get("minions", {}).keys():
+			if not enemies.has(m):
+				errors.append("inimigo %s invoca inimigo inexistente %s" % [id, m])
 		var refight: Dictionary = e.get("refight", {})
 		if refight.has("requires_item") and kind_of(refight["requires_item"]) == "":
 			errors.append("inimigo %s exige item inexistente %s" % [id, refight["requires_item"]])

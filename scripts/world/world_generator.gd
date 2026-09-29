@@ -150,7 +150,10 @@ static func generate(seed_value: int, db: Node = null) -> Dictionary:
 		elif hub_type != "" and rng.randf() < 0.4:
 			r["hub"] = hub_type
 
-	# chefes que concedem habilidades: um por faixa (menos a última)
+	# chefes que concedem habilidades: um por faixa (menos a última), cada
+	# faixa com um chefe diferente (duelo, horda, colosso, corcel...)
+	var boss_pool: Array = ["duelist", "brood_mother", "colossus", "nightmare"]
+	RngUtil.shuffle(rng, boss_pool)
 	for b in gate_abilities.size():
 		var candidates: Array = []
 		for i in n:
@@ -164,7 +167,7 @@ static func generate(seed_value: int, db: Node = null) -> Dictionary:
 		var gi: int = candidates[0]
 		var gr: Dictionary = world["regions"][ids[gi]]
 		gr["grants"] = gate_abilities[b]
-		gr["boss"] = "nightmare"
+		gr["boss"] = boss_pool[b % boss_pool.size()]
 
 	# final: a região mais distante
 	var finale_idx := 0

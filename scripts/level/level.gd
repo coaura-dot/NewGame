@@ -69,7 +69,7 @@ func _resolve_params() -> void:
 	if training:
 		Game.setup_training_profile()
 		params = {
-			"seed": 20260926, "biome": "castelo", "tier": 1, "boss": "nightmare", "hub": "",
+			"seed": 20260926, "biome": "castelo", "tier": 1, "boss": "duelist", "hub": "",
 			"dimension": "prima", "npcs": [], "abilities": Game.profile["abilities"],
 			"force_path": ["entrance", "corridor", "platforming", "combat", "shaft", "puzzle", "challenge", "combat", "boss", "exit"],
 		}
@@ -440,12 +440,15 @@ func _mark_cleared(idx: int) -> void:
 func on_enemy_killed(en: Node) -> void:
 	result["kills"] = int(result["kills"]) + 1
 	var pos: Vector2 = en.body_center()
-	for id in en.roll_drops():
-		spawn_pickup(id, pos, Vector2(rng.randf_range(-60, 60), -180))
-	var cur: Array = en.data.get("currency", [2, 5])
-	spawn_currency(rng.randi_range(int(cur[0]), int(cur[1])), pos)
-	if rng.randf() < 0.06:
-		spawn_pickup("pocao_vida", pos, Vector2(0, -150))
+	if en.get_meta("minion", false):
+		spawn_currency(rng.randi_range(1, 2), pos)
+	else:
+		for id in en.roll_drops():
+			spawn_pickup(id, pos, Vector2(rng.randf_range(-60, 60), -180))
+		var cur: Array = en.data.get("currency", [2, 5])
+		spawn_currency(rng.randi_range(int(cur[0]), int(cur[1])), pos)
+		if rng.randf() < 0.06:
+			spawn_pickup("pocao_vida", pos, Vector2(0, -150))
 	if en == boss_node:
 		boss_defeated = true
 		result["boss_killed"] = true
@@ -491,6 +494,15 @@ func set_checkpoint(cp: Node) -> void:
 # ---------------------------------------------------------------------------
 # Drops
 # ---------------------------------------------------------------------------
+
+## Invocado por chefes de horda: entra na sala atual (as portas só abrem
+## quando chefe e lacaios morrem). Lacaios dão poucas brasas e nenhum item.
+func spawn_minion(id: String, tier: int, pos: Vector2) -> Enemy:
+	var en := _make_enemy(id, tier, pos, _current_room)
+	en.set_meta("minion", true)
+	entities.add_child(en)
+	return en
+
 
 func spawn_pickup(id: String, pos: Vector2, vel: Vector2 = Vector2(0, -150)) -> void:
 	var p := Pickup.new()

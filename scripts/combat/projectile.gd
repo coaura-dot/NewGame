@@ -18,6 +18,7 @@ var texture: Texture2D = null
 var hframes: int = 1
 var time_scale: float = 1.0 ## campos de tempo alteram isso a cada frame
 var light_enabled: bool = true
+var style: String = "orb" ## "orb" (magia, brilha) ou "rock" (pedra/onda, sem brilho)
 
 var _hit: Dictionary = {}
 var _trail: Array[Vector2] = []
@@ -41,8 +42,9 @@ func _ready() -> void:
 	add_child(cs)
 	body_entered.connect(_on_body)
 	z_index = 25
-	material = CanvasItemMaterial.new()
-	(material as CanvasItemMaterial).blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	if style == "orb":
+		material = CanvasItemMaterial.new()
+		(material as CanvasItemMaterial).blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	if light_enabled:
 		var l := LightUtil.make_light(Color(color.r, color.g, color.b).clamp() , 0.9, 0.25 + radius * 0.02)
 		if l:
@@ -131,6 +133,14 @@ func reflect(new_owner: Node) -> void:
 
 
 func _draw() -> void:
+	if style == "rock":
+		# pedra/onda de choque: bloco de pixels com contorno, sem brilho
+		var r := roundf(radius)
+		draw_rect(Rect2(-r - 1, -r - 1, r * 2 + 2, r * 2 + 2), Color(0.09, 0.07, 0.12))
+		draw_rect(Rect2(-r, -r, r * 2, r * 2), color)
+		draw_rect(Rect2(-r, -r, r * 2, 1), color.lightened(0.3))
+		draw_rect(Rect2(-r + 1, r - 2, r, 1), color.darkened(0.3))
+		return
 	var inv := get_global_transform().affine_inverse()
 	for i in _trail.size():
 		var f := 1.0 - float(i) / _trail.size()
