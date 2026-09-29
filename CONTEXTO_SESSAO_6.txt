@@ -1,0 +1,209 @@
+===============================================================================
+ CONTEXTO PARA A SESSÃO 6 — projeto "NewGame" (subtítulo: "Cindária — a
+ última brasa"). ARQUIVO DE CONTEXTO ATUAL (substitui CONTEXTO_SESSAO_5.txt,
+ que continua útil como referência técnica detalhada da sessão 4).
+ Leia INTEIRO antes de mexer em qualquer coisa.
+===============================================================================
+
+Repositório: coaura-dot/NewGame · Branch: claude/arcade-stages-procedural-939gyg
+(desenvolver e dar push SEMPRE nela; não abrir PR sem pedido).
+Engine: Godot 4.7 (GDScript). Idioma: português (código comentado, textos e
+docs em PT-BR). O usuário tem POUCOS créditos: seja eficiente, faça commits e
+push cedo e com frequência, e mantenha este arquivo atualizado ao final.
+Download para o usuário (ZIP da branch):
+https://github.com/coaura-dot/NewGame/archive/refs/heads/claude/arcade-stages-procedural-939gyg.zip
+O usuário abre no Godot 4.7 (em C:\Users\igo\Downloads\godot, sem instalar):
+Import -> project.godot -> F5.
+
+-------------------------------------------------------------------------------
+1. FEEDBACK DO USUÁRIO APÓS A SESSÃO 4 (instruções para a sessão 6 — íntegra)
+-------------------------------------------------------------------------------
+"O jogo está ok mas com alguns problemas.
+
+1- Os mapas estão completamente disconexos. Não há uma direção a seguir ou o
+que fazer, só se anda aleatoriamente entre as salas.
+
+2- tem um problema com as portas. Ao entrar numa sala com porta, é comum ficar
+preso 'do lado de fora' da porta, pois quando entro lá, ela já está fechada.
+Isso aconteceu com um boss também
+
+2.5- os efeitos visuais, principalmente por padrão, estão muito fortes. Há um
+efeito constante na tela que deixa a imagem meio borrada, tire isso. Hollow
+knight é dark sem nenhum efeito assim. é dark pela ambientacao, e é linda.
+Faça um estilo semelhante
+
+Além disso, o pause do hit quando o inimigo toma dano, está ativando até
+quando o inimigo morre sozinho ou toma dano por fontes que não é o player,
+tire isso.
+
+Nosso personagem tá muito pequeno; é só um borrãozinho com espada. O knight
+tem identidade por ter resolucao maior, Quero que faça um scale nesse jogo pra
+nao ser mais 8bit assim, mas de fato um jogo com identidade e arte unicos, com
+efeitos de reflexao de luz, arte linda, etc.
+
+3- o jogo ainda está em escala pequena demais, ele tem que ser maior. Não no
+sentido de dar um zoom, mas no sentido de aumentar o tamanho das coisas. Meu
+personagem tem uns 14 pixels de altura, os inimigos tambem, isso é muito
+pequeno. O jogo está em 8bit, devia ter uma resolução maior, devia ser mais
+detalhado, com artes mais detalhadas, bonitas, animadas, paisagens lindas,
+cenários bonitos com reflexão de luz, animações, e nexo. Os mapas estão sem
+nexo, sem sentido.
+
+4- O jogo mantém a premissa errada de 'uma sala com um monte de plataformas e
+inimigos pra enfrentar'. Seria legal ele ser mais de exploração, e com
+inimigos que realmente tenham sentido, tipo hollow knight. Os personagens la
+tem identidade, caracteristicas, por ser em uma resolucao maior. Quero que o
+nosso funcione assim... o jogo está bem bullet hell, e não exploração com
+ação, igual hollow knight ou dead cells/katana zero. Misture os conceitos.
+
+5- Melhore as artes, faça-as mais detalhadas, realmente dando uma identidade
+ao lugar. Pelo fato de o jogo estar em 8 bits, está tudo MUITO simples., não
+deve ser um jogo tipo 8 bits, mas assim como kingdom two crowns, um jogo de
+pixel art moderno.
+
+6- para fins de debug, coloca um botao no menu pra acessar o mapa mundi / area
+de exploração livre entre os mundos.
+
+Faça um mapa realmente interativo, mas pode por fast travel caso fique grande
+demais
+
+Faça um bom trabalho."
+
+-------------------------------------------------------------------------------
+2. O QUE JÁ FOI FEITO NO FIM DA SESSÃO 5 (correções rápidas, testadas)
+-------------------------------------------------------------------------------
+ [x] Item 2 (portas): as portas de combate/chefe só trancam quando o jogador
+     está BEM dentro da sala (4 tiles das bordas laterais, 2 das de cima/
+     baixo). Level._pending_lock + Level._lock_room (scripts/level/level.gd).
+     Antes a porta fechava em cima do jogador e o empurrava para fora.
+ [x] Item 2.5 (efeito borrado): era o MOTION BLUR (a câmera livre anda sempre).
+     Padrões novos (Settings.VERSION=4 reseta o vídeo antigo): motion_blur
+     desligado, bloom 0.35, quadro de impacto desligado, tremor 0.7.
+ [x] Item 2.5 (pausa do hit): FX.impact/FX.kill_impact (hitstop, tremor,
+     zoom) só acontecem quando quem causou o dano é o JOGADOR (ou chefe
+     morrendo). Status, dano ambiental e morte "sozinho" não pausam mais
+     (scripts/actors/enemy.gd: _on_damaged/_on_death, variável by_player).
+ [x] Item 6 (debug): botão "Explorar mundo (debug)" no menu principal
+     (Game.start_debug_explore): cria um mundo no slot 7 (não mexe no save
+     normal), libera todas as habilidades, revela todas as regiões, libera
+     viagem rápida para qualquer uma e abre o mapa ao chegar (M reabre).
+ Suíte de testes: ~6700 verificações OK, 0 falhas.
+
+-------------------------------------------------------------------------------
+3. O QUE FALTA — PLANO PARA A SESSÃO 6 (ordem sugerida)
+-------------------------------------------------------------------------------
+A) ESCALA / RESOLUÇÃO / IDENTIDADE (itens 3, 5 e "personagem pequeno") —
+   a mudança mais importante. Hoje: mundo 256x144 com tiles de 8 px e
+   personagem ~12-14 px desenhado em código (scripts/fx/creature_sprite.gd).
+   O usuário quer pixel art MODERNA (Kingdom Two Crowns / Hollow Knight),
+   personagens com identidade e bem maiores, animados, cenários detalhados.
+   Proposta técnica:
+    1. Resolução interna maior: mundo 480x270 (ou 640x360) com tiles de 16 px.
+       - LevelConst.TILE = 16; LevelConst.VIEW = (480, 270); VIEW_SCALE
+         para caber na tela base (hoje a UI é 320x180 com layouts em
+         480x270 escalados 2/3 — com base 480x270 a UI fica em escala 1).
+         project.godot: viewport 480x270 (1280x720 = 2,67x; 1920x1080 = 4x;
+         o shader de pixel nítido já cuida da escala não inteira).
+       - Física em pixels x2 (MAX_RUN, JUMP_SPEED, GRAVITY, DASH_SPEED,
+         WALL_JUMP_H, POGO, etc. no topo de scripts/actors/player.gd) e
+         BODY do jogador ~12x24. Em TILES tudo continua igual, então as 131
+         estruturas (tools/build_rooms.py) e o RoomReach continuam válidos
+         (RoomReach usa as constantes do Player e LevelConst.TILE — conferir
+         HALF_W/BODY_H em scripts/level/room_reach.gd).
+       - AttackRunner: BOX/LUNGE/KB x2; SpellCaster.SPACE x2; velocidades
+         e distâncias em data/enemies.json e na IA de enemy.gd x2.
+    2. Personagens com identidade: trocar a criaturinha procedural por
+       sprites de verdade (sprite sheets PNG) com animação (parado, correr,
+       pular, cair, dash, 3 golpes, ferido, morte) — protagonista ~32-40 px
+       de altura, silhueta marcante (capa, chifres, lâmina), olhos
+       expressivos; inimigos com design e comportamento temáticos por bioma
+       (Hollow Knight: cada inimigo tem identidade). Pode gerar com Python
+       (PIL) desenhando pixel art detalhada em camadas, ou usar arte CC0 de
+       qualidade (só o GitHub é acessível no container). O usuário vai
+       editar a arte depois: manter tudo em PNG simples por animação.
+    3. Tiles 16 px detalhados por material (tools/build_tiles.py já tem os
+       13 materiais em 8 px: reescrever em 16 px com mais detalhe, bordas,
+       variações, musgo, rachaduras) e cenários (tools/build_scenery.py) em
+       480x270 com mais camadas e detalhe.
+    4. Luz: estilo Hollow Knight — ambiente escuro e atmosférico, luz de
+       tochas/janelas/cristais (PointLight2D com sombras suaves), reflexos
+       (a água com reflexo já existe: shaders/water.gdshader), SEM
+       pós-processamento pesado (sem blur, sem granulação, bloom sutil).
+B) MAPAS COM NEXO E DIREÇÃO (itens 1 e 4) — hoje cada região é um caminho
+   aleatório de salas com muitas arenas; o jogador não sabe o que fazer.
+    1. Objetivo claro por região, mostrado na HUD e no mapa: "encontrar o
+       Dom X", "derrotar o guardião Y", "abrir o portão Z", "resgatar NPC".
+       Marcador no mapa (map_screen.gd) e placas/NPCs dando dicas.
+    2. Estrutura de região com sentido (Hollow Knight): entrada -> área
+       central com santuário -> ramos com segredos/atalhos -> covil do
+       chefe; marcos visuais (landmarks) por região; atalhos que se abrem
+       por um lado só (portas de mão única), paredes quebráveis,
+       retorno com habilidades novas (backtracking).
+    3. MENOS combate em arena: a maioria das salas é EXPLORAÇÃO (plataforma,
+       segredos, lore, poucos inimigos posicionados com propósito:
+       patrulhas, sentinelas, emboscadas); arenas trancadas só de vez em
+       quando (e na frente de recompensas/chefes). Reduzir inimigos por
+       sala em tools/build_rooms.py/room_synth.gd e pesos em
+       LevelGenerator.PATH_WEIGHTS (arena, combat).
+    4. Inimigos "com sentido": cada bioma com 3-4 criaturas temáticas, com
+       comportamento ligado ao lugar (ex.: pássaros no céu, aranhas em
+       cavernas, guardas em castelos), animadas e com identidade visual.
+C) MAPA INTERATIVO: o mapa (M) já existe (scripts/ui/map_screen.gd):
+   corte lateral céu/superfície/subsolo, salas exploradas, cadeados,
+   viagem rápida por santuários. Melhorar: zoom, marcadores de objetivo,
+   ícones de NPC/loja/chefe/segredo, legenda, controle por gamepad, e
+   (se o mundo ficar grande) manter a viagem rápida.
+D) Depois: hubs/vilas com casas e NPCs andando, missões com objetivos reais,
+   mundos paralelos com criaturas próprias, música por bioma, limpeza de
+   código legado (scenes/world_map.tscn + scripts/ui/world_map.gd, as ilhas
+   3D antigas, não são mais usados), export para Windows.
+
+-------------------------------------------------------------------------------
+4. ESTADO ATUAL DO PROJETO (resumo — detalhes em CONTEXTO_SESSAO_5.txt)
+-------------------------------------------------------------------------------
+ - Combate: Corte-Relâmpago (atacar durante o dash), Ímpeto (acerto
+   recarrega dash e pulo), peso do golpe -> hitstop/tremor/coice/zoom,
+   morte estilo Katana Zero (metades cortadas), Frenesi (contador),
+   nota S/A/B/C por arena, aparo/rebate (Katana Zero), pogo, super/hyper.
+ - Inimigos: 8 comuns antigos + 5 novos (gunner, leaper, assassin,
+   shieldbearer, diver) + chefes (duelista, mãe da ninhada, colosso,
+   corcel, arquidemônio). data/enemies.json + scripts/actors/enemy.gd.
+ - Salas: 131 estruturas feitas em código (tools/build_rooms.py ->
+   data/rooms/estruturas.txt; espelhadas = 262) com partes aleatórias
+   + salas procedurais (scripts/level/room_synth.gd). Validadas pela
+   física (tests/test_room_reach.gd). Arenas com ondas. Lanterna de Ímpeto.
+ - Fases grandes contínuas (LevelGenerator._open_up), câmera livre
+   (scripts/level/game_camera.gd), portões nas bordas para as regiões
+   vizinhas (mundo contínuo; WorldGenerator em grade céu/superfície/
+   subsolo; Game.travel), santuários = viagem rápida, mapa (M).
+ - Arte: 10 cenários pintados (tools/build_scenery.py + BackgroundLayer
+   com eventos animados), 13 tilesets 8 px (tools/build_tiles.py), água
+   com reflexo, janelas nos castelos, adereços animados (PropsLayer).
+ - Som: 71 efeitos sintetizados (tools/build_sfx.py), 10 ambientes
+   (tools/build_ambience.py), eco em cavernas/salões, música procedural
+   (tools/build_music.py).
+ - História: data/lore.json (Cindária, Chama Primeira, Maré, Ignara, a
+   Faísca...), abertura ilustrada (scenes/intro.tscn), inscrições nas fases,
+   cartões de título de região/chefe, Códice na pausa.
+ - Menu: Novo jogo (abertura + mundo), Treino, Arena de chefes,
+   Explorar mundo (debug), Opções.
+
+-------------------------------------------------------------------------------
+5. COMO TRABALHAR NO CONTAINER (resumo — ver CONTEXTO_SESSAO_5.txt §4)
+-------------------------------------------------------------------------------
+ - Godot: /usr/local/bin/godot (headless) e /opt/godot-gfx (com janela, para
+   screenshots via xvfb-run). Se não existirem, compilar do GitHub
+   (instruções em CONTEXTO_SESSAO_4.txt).
+ - Testes: godot --headless --path . --import  (após class_name novos)
+           godot --headless --path . res://tests/test_runner.tscn
+   (~5 min; use `ulimit -v 8000000` e timeout — travas podem derrubar o
+   container). TEST_ONLY=test_x roda um arquivo; REACH_VERBOSE=1 mostra a
+   sala que falhou no teste de alcançabilidade.
+ - Screenshots: xvfb-run -a -s "-screen 0 1280x720x24" /opt/godot-gfx
+   --path . --rendering-driver vulkan res://tests/shots.tscn -- <pasta>
+   <cenário: rooms region menu pause map combat shop bosses juice overview
+   biomes intro>
+ - Python: pip install numpy pillow soundfile scipy. Depois de gerar PNG/OGG
+   novos, rodar o --import.
+ - Rede: só o GitHub é acessível (sites de assets/sons são bloqueados).
+===============================================================================

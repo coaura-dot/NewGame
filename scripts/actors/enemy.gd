@@ -1348,7 +1348,8 @@ func _on_damaged(info: DamageInfo, amount: float) -> void:
 	var w := info.weight
 	if info.weak_point_mult > 1.0 and w >= 0.0:
 		w = minf(w + 0.2, 1.0)
-	if hp > 0.0:
+	var by_player: bool = info.source != null and is_instance_valid(info.source) and info.source is Player
+	if hp > 0.0 and by_player:
 		FX.impact(body_center(), info.direction, amount, info.is_crit or info.weak_point_mult > 1.0, heavy, Color(2.0, 1.8, 1.4), w)
 	else:
 		FX.damage_number(body_center(), amount, info.is_crit)
@@ -1384,7 +1385,9 @@ func _on_death(info: DamageInfo) -> void:
 	var dir := info.direction if info.direction != Vector2.ZERO else Vector2(-facing, 0)
 	var w := clampf(info.weight if info.weight >= 0.0 else 0.3, 0.0, 1.0)
 	var last: bool = level != null and level.has_method("is_last_enemy") and level.is_last_enemy(self)
-	FX.kill_impact(body_center(), dir, 1.0 if boss else w, last or boss)
+	var by_player: bool = info.source != null and is_instance_valid(info.source) and info.source is Player
+	if by_player or boss:
+		FX.kill_impact(body_center(), dir, 1.0 if boss else w, last or boss)
 	Audio.play("enemy_death", 0.1, -4.0)
 	Events.enemy_killed.emit(self, info)
 	if level and level.has_method("on_enemy_killed"):

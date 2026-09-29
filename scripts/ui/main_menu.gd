@@ -77,6 +77,7 @@ func _show_main() -> void:
 	box.add_child(UIKit.button("Novo jogo", _show_new_game))
 	box.add_child(UIKit.button("Treino (movimento e combate)", func(): Game.start_training(), 180))
 	box.add_child(UIKit.button("Arena de chefes", _show_arena, 180))
+	box.add_child(UIKit.button("Explorar mundo (debug)", func(): Game.start_debug_explore(), 180))
 	box.add_child(UIKit.button("Opções", _show_options))
 	box.add_child(UIKit.button("Créditos", _show_credits))
 	box.add_child(UIKit.button("Sair", func(): get_tree().quit()))

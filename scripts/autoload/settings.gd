@@ -4,7 +4,7 @@ extends Node
 ## motion blur, sombras...) pode ser desligado aqui.
 
 const PATH := "user://settings.cfg"
-const VERSION := 3 ## mudou o visual padrão => reseta as opções de vídeo antigas
+const VERSION := 4 ## mudou o visual padrão => reseta as opções de vídeo antigas
 
 const DEFAULTS := {
 	"video": {
@@ -12,9 +12,9 @@ const DEFAULTS := {
 		"vsync": true,
 		"integer_scaling": false,
 		"bloom": true,
-		"bloom_intensity": 0.8,
+		"bloom_intensity": 0.35,
 		"god_rays": false, # raios em tela: sutis, mas deixam rastro em luzes pontuais
-		"motion_blur": true,
+		"motion_blur": false, # a câmera anda sempre: deixava a tela borrada
 		"motion_blur_strength": 0.35,
 		"dynamic_lights": true,
 		"shadows": true,
@@ -23,9 +23,9 @@ const DEFAULTS := {
 		"film_grain": false,
 		"afterimages": true,
 		"particles": 0, # 0 = mínimo, 1 = médio, 2 = alto
-		"screen_shake": 1.0,
+		"screen_shake": 0.7,
 		"hitstop": true,
-		"impact_frames": true, # quadro de impacto em 2 tons ao matar (desligue se incomodar)
+		"impact_frames": false, # quadro de impacto em 2 tons ao matar (desligue se incomodar)
 		"damage_numbers": false,
 	},
 	"audio": {

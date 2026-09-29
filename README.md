@@ -8,7 +8,7 @@ estilo Dead Cells montadas com uma biblioteca de estruturas feitas à mão, hist
 1. Baixe o projeto: no GitHub, repositório `coaura-dot/NewGame`, branch **`claude/arcade-stages-procedural-939gyg`** → botão **Code → Download ZIP** (ou `git clone -b claude/arcade-stages-procedural-939gyg <url>`).
 2. Godot não precisa instalar: extraia o zip do Godot 4.7 (ou 4.4+) em `C:\Users\igo\Downloads\godot` e rode o `.exe`.
 3. No Project Manager: **Import** → selecione o `project.godot` desta pasta → **Import & Edit** → aperte **F5**.
-4. No menu: **Novo jogo** (abertura + mundo gerado pela seed), **Treino** (tudo liberado) ou **Arena de chefes**.
+4. No menu: **Novo jogo** (abertura + mundo gerado pela seed), **Treino** (tudo liberado), **Arena de chefes** ou **Explorar mundo (debug)** (tudo liberado, viagem rápida para qualquer região).
 
 ## Controles (teclado)
 | Ação | Tecla | Ação | Tecla |
@@ -74,4 +74,4 @@ Técnicas: **atacar durante o dash = Corte-Relâmpago** (atravessa cortando, em 
 Screenshots de vários cenários: `godot --path . res://tests/shots.tscn -- <pasta> [all|rooms|region|menu|pause|map|combat|shop|bosses|juice|overview|biomes|intro]`.
 
 ## Pendências conhecidas (próxima sessão)
-Veja `CONTEXTO_SESSAO_5.txt` (contexto completo e lista priorizada).
+Veja `CONTEXTO_SESSAO_6.txt` (feedback do usuário, estado atual e plano: escala/resolução maior com arte detalhada, mapas com objetivo e mais exploração).

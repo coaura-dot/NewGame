@@ -151,6 +151,25 @@ func enter_region(region_id: String) -> void:
 	travel(region_id, "", "shrine")
 
 
+## DEBUG: mundo livre para explorar — todas as habilidades, todas as regiões
+## reveladas e viagem rápida para qualquer uma (save no slot 7, não mexe no
+## save normal). Abre o mapa ao chegar.
+func start_debug_explore() -> void:
+	new_game(-1, 7)
+	for ab in DB.abilities.keys():
+		if DB.abilities[ab].get("implemented", false):
+			unlock_ability(ab)
+	profile["shrines"] = []
+	for id in world["regions"].keys():
+		world["regions"][id]["visited"] = true
+		profile["shrines"].append(id)
+	profile["debug_travel"] = true
+	profile["region"] = world["start"]
+	save()
+	travel(str(world["start"]))
+	pending["open_map"] = true
+
+
 ## Começo da jornada (depois de Novo jogo): a abertura (história) e então a
 ## região inicial.
 func start_new_journey() -> void:

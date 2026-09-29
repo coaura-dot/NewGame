@@ -22,6 +22,8 @@ var _ports: Array = [] ## [{dir, to, requires, rect (gatilho), room_rect}]
 var _leaving: bool = false
 var _entry_boost: bool = false
 var map_screen: Node = null
+var _pending_lock: int = -1
+var _open_map_on_start: bool = false
 
 var player: Player
 var camera: GameCamera
@@ -72,8 +74,11 @@ func _ready() -> void:
 		player.velocity.y = -Player.JUMP_SPEED * 1.2
 	if world_mode:
 		Game.record_map(region_id, layout)
+
 	_build_layers()
 	Events.player_died.connect(_on_player_died)
+	if _open_map_on_start and map_screen:
+		map_screen.call_deferred("open")
 	Music.play_ambience(str(biome.get("ambience", "")))
 	Audio.set_space(str(biome.get("space", "open")))
 	Events.room_entered.emit({"index": 0})
@@ -121,6 +126,7 @@ func _resolve_params() -> void:
 		elif e["kind"] == "rift" and e["b"] == region_id:
 			rift = e["a"] # mundo paralelo: fenda de volta
 	world_mode = true
+	_open_map_on_start = pending.get("open_map", false)
 	came_from = str(pending.get("from", ""))
 	arrive_at = str(pending.get("at", ""))
 	params = {
@@ -545,6 +551,11 @@ func _physics_process(_delta: float) -> void:
 				_leave_by(pt)
 				return
 	var idx := room_at(player.global_position)
+	if _pending_lock >= 0:
+		if idx != _pending_lock:
+			_pending_lock = -1
+		elif room_rect(idx).grow_individual(-4 * T, -2 * T, -4 * T, -2 * T).has_point(player.global_position):
+			_lock_room(idx)
 	if idx != _current_room and idx >= 0:
 		var prev := _current_room
 		_current_room = idx
@@ -568,11 +579,33 @@ func _on_room_entered(idx: int) -> void:
 		return
 	var alive := _alive_enemies(idx)
 	if alive > 0:
-		var locked := false
+		var has_gates := false
 		for g in _room_gates.get(idx, []):
 			if g.mode == "combat":
-				g.set_closed(true)
-				locked = true
+				has_gates = true
+		if has_gates:
+			# tranca só quando o jogador estiver bem dentro (senão a porta
+			# fecha em cima dele e ele fica preso do lado de fora)
+			_pending_lock = idx
+		if room.get("type", "") == "boss" and boss_node and is_instance_valid(boss_node):
+			if hud and hud.has_method("show_boss"):
+				hud.show_boss(boss_node)
+	else:
+		_mark_cleared(idx)
+
+
+## Fecha as portas de combate da sala e começa o encontro.
+func _lock_room(idx: int) -> void:
+	_pending_lock = -1
+	if _cleared.has(idx) or _alive_enemies(idx) == 0:
+		return
+	var alive := _alive_enemies(idx)
+	var locked := false
+	for g in _room_gates.get(idx, []):
+		if g.mode == "combat":
+			g.set_closed(true)
+			locked = true
+	if true:
 		if locked and player:
 			player.emote("!", 0.8)
 			camera.lock_room(room_rect(idx))
@@ -580,11 +613,6 @@ func _on_room_entered(idx: int) -> void:
 			for w in _waves.get(idx, []):
 				total += w.size()
 			_encounter = {"room": idx, "t0": Time.get_ticks_msec(), "hp": player.hp, "count": total}
-		if room.get("type", "") == "boss" and boss_node and is_instance_valid(boss_node):
-			if hud and hud.has_method("show_boss"):
-				hud.show_boss(boss_node)
-	else:
-		_mark_cleared(idx)
 
 
 ## Retângulo (em pixels) da sala `idx`.

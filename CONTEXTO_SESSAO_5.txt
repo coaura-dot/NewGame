@@ -1,4 +1,9 @@
 ===============================================================================
+ ATENÇÃO: o contexto ATUAL é CONTEXTO_SESSAO_6.txt (feedback novo do usuário
+ e plano da próxima sessão). Este arquivo segue como referência técnica.
+===============================================================================
+
+===============================================================================
  CONTEXTO PARA A SESSÃO 5 — projeto "NewGame" (título provisório)
  Subtítulo em jogo: "Cindária — a última brasa"
  Este é o arquivo de contexto ATUAL (substitui CONTEXTO_SESSAO_4.txt).
