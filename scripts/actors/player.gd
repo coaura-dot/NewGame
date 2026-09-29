@@ -64,6 +64,9 @@ const BODY := Vector2(6, 10)
 const COMBO_TIMEOUT := 1.3
 const FOCUS_MAX_BASE := 100.0
 const ATTACK_BUFFER := 0.16
+## Impulso de transição (como no Celeste): quando o centro do corpo (pés - 8)
+## cruza o topo da sala subindo, o pulo é renovado para pousar na sala nova.
+const TRANSITION_PROBE := 8.0
 
 var state: int = State.NORMAL
 var level: Node = null ## a fase (Level) — define respawn, checkpoints etc.
@@ -195,6 +198,10 @@ func apply_profile() -> void:
 func equip_weapon(id: String) -> void:
 	weapon_id = id
 	moveset = DB.moveset(id)
+	# forja: +12% de dano por nível (Commerce)
+	var lvl := Commerce.weapon_level(Game.profile, id)
+	if lvl > 0 and moveset.has("damage"):
+		moveset["damage"] = float(moveset["damage"]) * Commerce.weapon_mult(lvl)
 	var w: Dictionary = DB.weapon(id)
 	stats.set_source("weapon", w.get("stats", {}))
 	combo_index = 0
@@ -1349,6 +1356,15 @@ func _moods(d: float) -> void:
 
 func _charge_pose() -> bool:
 	return heavy_charging
+
+
+## Chamado pela fase ao subir para a sala de cima (ver TRANSITION_PROBE).
+func transition_boost() -> void:
+	if dead or g_dir < 0.0 or _vy() >= 0.0:
+		return
+	_set_vy(minf(_vy(), -JUMP_SPEED))
+	var_jump_t = VAR_JUMP_TIME
+	var_jump_speed = JUMP_SPEED
 
 
 func _animate() -> void:

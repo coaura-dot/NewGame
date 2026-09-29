@@ -353,8 +353,12 @@ func _physics_process(_delta: float) -> void:
 		return
 	var idx := room_at(player.global_position)
 	if idx != _current_room and idx >= 0:
+		var prev := _current_room
 		_current_room = idx
 		camera.set_room(room_rect(idx))
+		# subiu pela saída de cima: renova o pulo para pousar na sala nova
+		if prev >= 0 and room_rect(idx).position.y < room_rect(prev).position.y:
+			player.transition_boost()
 		_on_room_entered(idx)
 	if player.global_position.y > layout["height"] * T + 32:
 		player.take_status_damage(10.0, "fall")
@@ -389,7 +393,7 @@ func room_rect(idx: int) -> Rect2:
 
 
 func room_at(pos: Vector2) -> int:
-	var cell := Vector2i(int(pos.x) / (LevelConst.ROOM_W * T), int(pos.y - 8) / (LevelConst.ROOM_H * T))
+	var cell := Vector2i(int(pos.x) / (LevelConst.ROOM_W * T), int(pos.y - Player.TRANSITION_PROBE) / (LevelConst.ROOM_H * T))
 	return _room_index_by_cell.get(cell, -1)
 
 

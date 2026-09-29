@@ -36,6 +36,15 @@ func test_upgrade_nao_quebra_tier_acima() -> void:
 		check(sc <= cap.y * 1.35, "magia %s no nível máximo forte demais: %.1f" % [id, sc])
 
 
+func test_forja_nao_quebra_tier_acima() -> void:
+	# arma forjada no nível máximo não pode passar do teto do tier seguinte
+	for id in DB.weapons.keys():
+		var tier := int(DB.weapon(id).get("tier", 1))
+		var cap: Vector2 = PowerBudget.WEAPON_BUDGET.get(mini(tier + 1, 3), Vector2(0, 999))
+		var sc := PowerBudget.weapon_score(id, DB) * Commerce.weapon_mult(Commerce.MAX_WEAPON_LEVEL)
+		check(sc <= cap.y * 1.35, "arma %s forjada no máximo forte demais: %.1f" % [id, sc])
+
+
 func test_inimigos_usam_pool_do_jogador() -> void:
 	for id in DB.enemies.keys():
 		var lo: Dictionary = DB.enemy(id).get("loadout", {})
