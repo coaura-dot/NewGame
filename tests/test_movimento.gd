@@ -564,3 +564,93 @@ func test_respiro_do_combo() -> void:
 	print("    golpes em 0,6 s martelando: %d" % starts[0])
 	check(starts[0] >= 3 and starts[0] <= 5, "combo de 3 + respiro (golpes: %d)" % starts[0])
 	await _teardown()
+
+
+## Inimigos novos: mariposa circula e mergulha; Guarda bloqueia de frente e
+## o pesado quebra o escudo; Sopro sopra uma rajada que empurra o herói.
+func test_inimigos_novos() -> void:
+	var p := await _setup()
+	p.invuln_time = 0.0
+	# --- mariposa ---
+	var m := Enemy.new()
+	m.setup("moth", 1)
+	m.position = p.global_position + Vector2(40, -30)
+	_root.add_child(m)
+	var states := {}
+	for i in 600:
+		await _frames(1)
+		p.invuln_time = 99.0
+		states[m.ai_state] = true
+		if states.has("dive") and states.has("recover"):
+			break
+	print("    mariposa: %s" % str(states.keys()))
+	check(states.has("chase") and states.has("windup") and states.has("dive"), "mariposa circula, avisa e mergulha")
+	m.queue_free()
+	# --- Guarda de Cinzas ---
+	var k := Enemy.new()
+	k.setup("ash_knight", 2)
+	k.position = p.global_position + Vector2(60, -2)
+	_root.add_child(k)
+	await _frames(3)
+	k.stats.set_source("teste", {"max_hp": 5000.0})
+	k.hp = k.max_hp()
+	k.ai_state = "chase"
+	k.facing = -1
+	var light := DamageInfo.new()
+	light.amount = 5.0
+	light.source = p
+	light.team = p.team
+	light.direction = Vector2(1, 0)
+	k.invuln_time = 0.0
+	eq(k.take_hit(light.duplicate_info()), DamageInfo.Result.BLOCKED, "Guarda bloqueia golpe leve de frente")
+	var pogo := light.duplicate_info()
+	pogo.pogo = true
+	pogo.direction = Vector2(0, 1)
+	k.invuln_time = 0.0
+	check(k.take_hit(pogo) != DamageInfo.Result.BLOCKED, "pogo por cima passa pelo escudo")
+	k.ai_state = "chase"
+	k.stagger_time = 0.0
+	var heavy := light.duplicate_info()
+	heavy.is_heavy = true
+	k.invuln_time = 0.0
+	var hp0 := k.hp
+	k.take_hit(heavy)
+	check(k.hp < hp0 and k._shield_broken > 0.0 and k.punish_t > 0.0, "golpe pesado quebra o escudo e abre a janela")
+	# ataca: escudada e estocada
+	k._shield_broken = 0.0
+	k.ai_state = "chase"
+	k.stagger_time = 0.0
+	k.punish_t = 0.0
+	var kst := {}
+	for i in 600:
+		await _frames(1)
+		p.invuln_time = 99.0
+		kst[k.ai_state] = true
+		if kst.has("thrust"):
+			break
+	print("    guarda: %s" % str(kst.keys()))
+	check(kst.has("bash") and kst.has("thrust"), "Guarda faz escudada e emenda a estocada")
+	k.queue_free()
+	# --- Sopro ---
+	await _frames(2)
+	p.invuln_time = 0.0
+	p.hp = p.max_hp()
+	var g := Enemy.new()
+	g.setup("gust", 2)
+	g.position = p.global_position + Vector2(60, -10)
+	_root.add_child(g)
+	var x0 := p.global_position.x
+	var shots := 0
+	var pushed := false
+	for i in 900:
+		await _frames(1)
+		for c in _root.get_children():
+			if c is GustShot:
+				shots = maxi(shots, 1)
+		if p.hp < p.max_hp() and x0 - p.global_position.x > 12.0:
+			pushed = true
+			break
+	check(shots > 0, "Sopro sopra uma rajada")
+	check(pushed, "rajada acerta e empurra o herói para longe (%.0f px)" % (x0 - p.global_position.x))
+	g.queue_free()
+	await _teardown()

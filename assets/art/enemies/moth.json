@@ -1,0 +1,28 @@
+{
+ "size": [
+  16,
+  12
+ ],
+ "feet": [
+  8,
+  6
+ ],
+ "cols": 7,
+ "anims": {
+  "idle": {
+   "start": 0,
+   "count": 4,
+   "fps": 14
+  },
+  "windup": {
+   "start": 4,
+   "count": 2,
+   "fps": 20
+  },
+  "attack": {
+   "start": 6,
+   "count": 1,
+   "fps": 1
+  }
+ }
+}

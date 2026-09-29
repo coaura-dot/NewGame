@@ -1592,6 +1592,10 @@ func _on_damaged(info: DamageInfo, amount: float) -> void:
 	hurt_t = HURT_TIME
 	var kb_dir := signf(info.direction.x) if info.direction.x != 0.0 else -float(facing)
 	velocity = Vector2(kb_dir * HURT_KNOCK_X, -HURT_KNOCK_Y * g_dir)
+	if info.tags.has("gust"):
+		# rajada do Sopro: empurra bem mais longe (cuidado com espinhos)
+		velocity.x *= 2.0
+		velocity.y *= 0.6
 	facing = -int(kb_dir) if kb_dir != 0.0 else facing
 	_set_state(State.HURT)
 

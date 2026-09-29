@@ -545,6 +545,7 @@ const HINTS := {
 	"yellow_attack": "Brilho AMARELO + \"!\" = dá para APARAR (L) no instante do golpe. Depois do golpe, ele fica exposto: puna!",
 	"red_attack": "Brilho VERMELHO + \"!!\" = não dá para aparar: ESQUIVE (Ctrl) ou saia de perto!",
 	"guard": "Bater sem parar faz o inimigo DEFENDER e contra-atacar. Golpe PESADO (K) quebra a guarda; por trás e pogo passam.",
+	"shield": "O Guarda de Cinzas bloqueia tudo de frente. Golpe PESADO quebra o escudo; por trás ou pogo por cima também passam!",
 }
 
 

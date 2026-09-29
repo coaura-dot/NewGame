@@ -8,7 +8,8 @@ extends SceneTree
 ## duelo: esqueleto telegrafando (amarelo/vermelho), guarda e janela de punição;
 ## mapa [seed]: mapa-múndi explorável (vila inicial, entradas, noite);
 ## intro: os cartões da introdução do novo jogo;
-## regiao [seed]: fase da região inicial (tábua de pedra com a inscrição).
+## regiao [seed]: fase da região inicial (tábua de pedra com a inscrição);
+## bichos: os inimigos novos (mariposa, Guarda de Cinzas, Sopro) em ação.
 
 var _out := "user://shot"
 var _mode := "treino"
@@ -64,6 +65,8 @@ func _process(_d: float) -> bool:
 		return _efeitos()
 	if _mode == "duelo":
 		return _duelo()
+	if _mode == "bichos":
+		return _bichos()
 	if _mode != "menu":
 		if _n == 60:
 			Input.action_press("move_right")
@@ -360,5 +363,39 @@ func _regiao() -> bool:
 				n.interact(_level.player)
 	if _n == 60:
 		_save("tabua")
+		quit()
+	return false
+
+
+var _bichos_list: Array = []
+
+
+func _bichos() -> bool:
+	var p = _level.player if _level else null
+	if p == null:
+		return false
+	if _n == 30:
+		p.invuln_time = 999.0
+		var ens := [["moth", Vector2(-40, -26)], ["ash_knight", Vector2(40, -2)], ["gust", Vector2(90, -20)]]
+		for e in ens:
+			var en = load("res://scripts/actors/enemy.gd").new()
+			en.setup(e[0], 2)
+			en.position = p.global_position + e[1]
+			en.level = _level
+			p.get_parent().add_child(en)
+			_bichos_list.append(en)
+	if _n > 30:
+		p._idle_t = 0.0
+		for en in _bichos_list:
+			if is_instance_valid(en):
+				en.hp = en.max_hp()
+	if _n in [70, 110, 150, 190, 230, 270]:
+		var img := root.get_texture().get_image()
+		var sc := float(img.get_width()) / 320.0
+		var at: Vector2 = _level.pixel_view.world_to_screen(p.global_position + Vector2(20, -14)) * sc
+		var sz := Vector2(200, 90) * sc
+		var r := Rect2i(Vector2i((at - sz * 0.5).round()), Vector2i(sz.round())).intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+		img.get_region(r).save_png("%s_b%d.png" % [_out, _n])
+	if _n > 275:
 		quit()
 	return false

@@ -9,6 +9,9 @@ extends Actor
 ##   turret   - fixo, cospe fogo
 ##   charger  - investe atravessando a sala
 ##   boss_demon - chefe voador com 3 fases
+##   moth     - mariposa: circula a chama do herói e mergulha (rouba foco)
+##   shield   - guarda de escudo: bloqueia de frente, escudada + estocada
+##   gust     - Sopro: inspira e sopra rajadas que empurram (rebatíveis)
 ##
 ## DUELO (Dead Cells + Hollow Knight): troca de golpes, não spam.
 ##   - Telegrafia: antes de cada golpe o inimigo brilha AMARELO (dá para
@@ -152,6 +155,8 @@ func _ready() -> void:
 		add_child(contact_hitbox)
 		contact_hitbox.set_box([-float(body[0]) * 0.5, (-float(body[1]) * 0.5) if flying else -float(body[1]), float(body[0]), float(body[1])], 1)
 		contact_hitbox.activate.call_deferred()
+		if ai == "moth":
+			contact_hitbox.hit.connect(_on_moth_hit)
 	var ld: Dictionary = data.get("light", {})
 	if not ld.is_empty():
 		var c: Array = ld.get("color", [1, 1, 1])
@@ -215,6 +220,9 @@ func _actor_physics(d: float, raw: float) -> void:
 		"charger": _ai_charger(d)
 		"boss_demon": _ai_boss(d)
 		"diver": _ai_diver(d)
+		"moth": _ai_moth(d)
+		"shield": _ai_shield(d)
+		"gust": _ai_gust(d)
 		_: _ai_melee(d)
 	_gravity(d)
 	_move(d, raw)
@@ -385,6 +393,8 @@ func _guard_blocks(info: DamageInfo) -> bool:
 
 
 func _before_hit(info: DamageInfo) -> int:
+	if ai == "shield":
+		return _shield_hit(info)
 	if not _guard_blocks(info):
 		return -1
 	if info.is_heavy:
@@ -994,6 +1004,261 @@ func _on_death(info: DamageInfo) -> void:
 	var tw := create_tween()
 	tw.tween_method(set_dissolve, 0.0, 1.0, 0.6 if not boss else 2.0)
 	tw.tween_callback(queue_free)
+
+
+# ---------------------------------------------------------------------------
+# Mariposa de Cinza: circula a chama e mergulha
+# ---------------------------------------------------------------------------
+
+var _orbit: float = 0.0
+
+
+func _ai_moth(d: float) -> void:
+	_bob += d * 5.0
+	var valid := _target_valid()
+	match ai_state:
+		"spawn", "idle", "patrol":
+			var hover := home + Vector2(sin(_bob * 0.4) * 14.0, sin(_bob * 0.9) * 5.0)
+			velocity = velocity.move_toward((hover - global_position).limit_length(1.0) * speed * 0.5, 220.0 * d)
+			_anim("idle")
+			if valid:
+				ai_state = "chase"
+				ai_t = rng.randf_range(1.0, 1.8)
+				_orbit = (global_position - target.body_center()).angle()
+		"chase":
+			if not valid:
+				ai_state = "patrol"
+				return
+			# voa em volta da chama do herói (mariposa e luz)
+			_orbit += d * 2.4
+			var flame: Vector2 = target.body_center() + Vector2(0, -8)
+			var want := flame + Vector2(cos(_orbit) * 26.0, sin(_orbit) * 14.0 - 6.0)
+			velocity = velocity.move_toward((want - global_position).limit_length(1.0) * speed * 1.3, 360.0 * d)
+			facing = 1 if velocity.x >= 0.0 else -1
+			_anim("idle")
+			if ai_t <= 0.0:
+				ai_state = "windup"
+				ai_t = _windup_time() * 0.9
+				_telegraph(false, ai_t)
+		"windup":
+			velocity = velocity.move_toward(Vector2.ZERO, 500.0 * d)
+			_face_target()
+			_anim("windup")
+			if ai_t <= 0.0 and target:
+				var flame2: Vector2 = target.body_center() + Vector2(0, -8)
+				velocity = (flame2 - global_position).normalized() * 175.0
+				ai_state = "dive"
+				ai_t = 0.42
+				_anim("attack")
+				Audio.play("dash", 0.1, -12.0, 1.5)
+		"dive":
+			if ai_t <= 0.0 or test_move(global_transform, velocity.normalized() * 2.0):
+				_moth_daze()
+		"recover":
+			velocity = velocity.move_toward(Vector2(0, -12.0), 200.0 * d)
+			_anim("idle")
+			if ai_t <= 0.0:
+				ai_state = "chase"
+				ai_t = rng.randf_range(1.2, 2.2)
+
+
+func _moth_daze() -> void:
+	ai_state = "recover"
+	ai_t = rng.randf_range(0.6, 0.85)
+	_open_punish(ai_t)
+	velocity *= 0.2
+
+
+func _on_moth_hit(t: Node, _info: DamageInfo, result: int) -> void:
+	if result != DamageInfo.Result.HIT or not (t is Player):
+		return
+	t.gain_focus(-12.0)
+	t.rig.flame_blow(signf(t.global_position.x - global_position.x))
+	FX.text(t.body_center() + Vector2(0, -16), "a mariposa bebeu sua chama!", Color(0.9, 0.8, 1.0))
+	_moth_daze()
+
+
+# ---------------------------------------------------------------------------
+# Guarda de Cinzas: escudo sempre erguido; escudada (amarela) + estocada (vermelha)
+# ---------------------------------------------------------------------------
+
+var _shield_broken: float = 0.0
+
+
+func _shield_up() -> bool:
+	return _shield_broken <= 0.0 and stagger_time <= 0.0 and ai_state in ["idle", "patrol", "chase", "windup", "spawn"]
+
+
+func _shield_hit(info: DamageInfo) -> int:
+	if not _shield_up() or info.is_spell or info.is_hazard or info.pogo or info.unblockable:
+		return -1
+	var from_front := info.direction.x == 0.0 or signf(info.direction.x) != float(facing)
+	if not from_front:
+		return -1
+	if info.is_heavy:
+		_shield_broken = 1.6
+		ai_state = "recover"
+		ai_t = 1.4
+		attack.cancel()
+		_open_punish(1.4)
+		stagger_time = 0.5
+		_anim("tired")
+		emote.show_emote("dizzy", 1.2, true)
+		FX.text(body_center() + Vector2(0, -16), "ESCUDO QUEBRADO!", Color(1.0, 0.85, 0.35))
+		FX.shake(0.25)
+		Audio.play("hit_metal", 0.05, -2.0)
+		return -1
+	FX.hit_spark(body_center() + Vector2(facing * 6, -1), Vector2(-facing, 0), Color(2.6, 2.2, 1.4), true)
+	Audio.play("guard", 0.08, -3.0)
+	_flash = 0.6
+	if level and level.has_method("hint_once"):
+		level.hint_once("shield")
+	return DamageInfo.Result.BLOCKED
+
+
+func _attack_step(step: Dictionary, kind: String, red: bool) -> void:
+	_attack_red = red
+	if _mat:
+		_mat.set_shader_parameter("flash_color", TELE_RED if red else Color(1, 1, 1))
+	attack.start(step, kind, facing)
+
+
+func _ai_shield(d: float) -> void:
+	_shield_broken = maxf(_shield_broken - d, 0.0)
+	match ai_state:
+		"spawn", "idle", "patrol":
+			if _target_valid():
+				ai_state = "chase"
+			else:
+				_patrol(d)
+		"chase":
+			if not _target_valid():
+				ai_state = "patrol"
+				return
+			_face_target()
+			if absf(_dx()) <= attack_range and is_on_floor():
+				ai_state = "windup"
+				ai_t = _windup_time() + 0.05
+				velocity.x = 0.0
+				_telegraph(false, ai_t)
+			elif _ledge_ahead():
+				velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+				_anim("idle")
+			else:
+				velocity.x = move_toward(velocity.x, facing * speed, 300.0 * d)
+				_anim("move")
+		"windup":
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+			_anim("windup")
+			if ai_t <= 0.0:
+				# escudada (amarela: dá para aparar)
+				_attack_step(moveset.get("heavy", {}), "heavy", false)
+				velocity.x = facing * 90.0
+				_anim("bash")
+				ai_state = "bash"
+		"bash":
+			velocity.x = move_toward(velocity.x, 0.0, 400.0 * d)
+			if not attack.is_busy():
+				# emenda a estocada vermelha se o herói ainda está na frente
+				if target and absf(_dx()) < attack_range + 20.0 and signf(_dx()) == float(facing):
+					ai_state = "combo_windup"
+					ai_t = rng.randf_range(0.22, 0.34)
+					_telegraph(true, ai_t)
+				else:
+					ai_state = "recover"
+					ai_t = 0.6
+					_open_punish(ai_t)
+		"combo_windup":
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+			_anim("windup")
+			if ai_t <= 0.0:
+				var chain: Array = moveset.get("light", [])
+				_attack_step(chain[chain.size() - 1] if not chain.is_empty() else {}, "light", true)
+				velocity.x = facing * 150.0
+				_anim("attack")
+				ai_state = "thrust"
+		"thrust":
+			velocity.x = move_toward(velocity.x, 0.0, 500.0 * d)
+			if not attack.is_busy():
+				# escudo abaixado: a grande janela de punição
+				ai_state = "recover"
+				ai_t = rng.randf_range(0.9, 1.2)
+				_open_punish(ai_t)
+				_anim("tired")
+		"recover":
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+			_anim("tired")
+			if ai_t <= 0.0:
+				ai_state = "chase"
+
+
+# ---------------------------------------------------------------------------
+# Sopro Errante: inspira (amarelo) e sopra uma rajada que empurra
+# ---------------------------------------------------------------------------
+
+func _ai_gust(d: float) -> void:
+	_bob += d * 2.0
+	var valid := _target_valid()
+	var desired := home + Vector2(sin(_bob * 0.5) * 12.0, sin(_bob) * 4.0)
+	if valid:
+		var side := signf(global_position.x - target.global_position.x)
+		if side == 0.0:
+			side = 1.0
+		desired = target.body_center() + Vector2(side * attack_range * 0.8, -6.0 + sin(_bob) * 4.0)
+		_face_target()
+	var to := desired - global_position
+	if ai_state in ["idle", "patrol", "chase", "spawn", "recover"]:
+		velocity = velocity.move_toward(to.limit_length(1.0) * speed * minf(to.length() / 16.0, 1.0), 180.0 * d)
+	else:
+		velocity = velocity.move_toward(Vector2.ZERO, 300.0 * d)
+	match ai_state:
+		"spawn", "idle", "patrol", "chase":
+			_anim("idle")
+			if valid and ai_t <= 0.0:
+				ai_state = "windup"
+				ai_t = _windup_time() + 0.25
+				_telegraph(false, ai_t)
+				_anim("windup")
+		"windup":
+			_anim("windup")
+			if ai_t <= 0.0 and target:
+				_blow()
+				ai_state = "recover"
+				ai_t = rng.randf_range(1.3, 2.0)
+				_open_punish(0.7)
+				_anim("attack")
+		"recover":
+			if ai_t <= 0.0:
+				ai_state = "chase"
+
+
+func _blow() -> void:
+	var dir := Vector2(float(facing), 0.0)
+	if target:
+		dir = (target.body_center() - body_center()).normalized()
+		dir.y = clampf(dir.y, -0.35, 0.35)
+		dir = dir.normalized()
+	var p := GustShot.new()
+	p.team = team
+	p.owner_actor = self
+	var info := DamageInfo.new()
+	info.amount = 3.0 + 2.0 * (tier - 1)
+	info.damage_type = "wind"
+	info.source = self
+	info.team = team
+	info.is_projectile = true
+	info.status = {"chill": 1}
+	info.tags.append("gust")
+	info.parryable = true
+	p.info = info
+	p.velocity = dir * 105.0
+	p.radius = 6.0
+	p.lifetime = 1.8
+	p.color = Color(1.6, 2.4, 2.8)
+	p.global_position = body_center() + dir * 7.0
+	get_parent().add_child(p)
+	Audio.play("spell_pressure", 0.08, -6.0)
+	FX.burst(body_center() + dir * 6.0, Color(1.8, 2.4, 2.8, 0.8), 5, 60.0, dir, 30.0, 0.3)
 
 
 ## Magias de área (nova, campos) não dá para rebater: telegrafia vermelha.

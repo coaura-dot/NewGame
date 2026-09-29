@@ -391,7 +391,152 @@ def demon():
     return {"idle": [demon_frame(t) for t in range(4)], "attack": [demon_frame(1, True), demon_frame(2, True)]}, {"size": [36, 36], "feet": [18, 18], "fps": {"idle": 8, "attack": 10}}
 
 
+# ---------------------------------------------------------------------------
+# Mariposa de Cinza 16x12, voadora — atraída pela chama do Pavio
+# ---------------------------------------------------------------------------
+MOTH = hexc("9a8fa8")
+MOTH_SH = hexc("6e6480")
+MOTH_HI = hexc("c8bfd4")
+MOTH_EYE = hexc("ffb04a")
+FUZZ = hexc("d8cfc0")
+
+
+def moth_frame(wing=0, dive=False):
+    c = Canvas(16, 12)
+    # asas (4 poses: aberta, meia, fechada, meia)
+    up = [0, 2, 4, 2][wing]
+    if dive:
+        up = 4
+    for side in (-1, 1):
+        cx = 8 + side * 4
+        top = 1 + up // 2
+        h = 7 - up
+        if h > 0:
+            c.ellipse(cx + (0.5 if side > 0 else -0.5), top + h / 2.0, 3.6, h / 2.0 + 0.3, MOTH)
+            c.set(cx + side, top + h // 2, MOTH_EYE)
+            c.set(cx, top + 1, MOTH_HI)
+    # corpo peludo
+    c.rect(7, 3, 3, 7, MOTH_SH)
+    c.rect(7, 3, 2, 2, FUZZ)
+    c.vline(8, 5, 9, MOTH_SH)
+    # antenas
+    c.set(7, 2, MOTH_SH)
+    c.set(6, 1, MOTH_SH)
+    c.set(9, 2, MOTH_SH)
+    c.set(10, 1, MOTH_SH)
+    _fin(c)
+    c.set(7, 4, OUT)
+    c.set(9, 4, OUT)
+    return c
+
+
+def moth():
+    fly = [moth_frame(w) for w in range(4)]
+    return {"idle": fly, "windup": [moth_frame(0), moth_frame(1)], "attack": [moth_frame(0, True)]}, {"size": [16, 12], "feet": [8, 6], "fps": {"idle": 14, "windup": 20, "attack": 1}}
+
+
+# ---------------------------------------------------------------------------
+# Guarda de Cinzas 18x16 — armadura fria, escudo redondo sempre na frente
+# ---------------------------------------------------------------------------
+ASH = hexc("7a7688")
+ASH_SH = hexc("56526a")
+ASH_HI = hexc("a09cae")
+VISOR = hexc("7ad8ff")
+SHIELD = hexc("8a6a4a")
+SHIELD_RIM = hexc("c8a86a")
+
+
+def knight_frame(legs=0, shield="up", sword="down", lean=0):
+    c = Canvas(18, 16)
+    x = 5 + lean
+    # elmo
+    c.rows(x, 1, [4, 6, 6, 6], ASH)
+    c.hline(x + 1, x + 4, 2, ASH_HI)
+    c.hline(x + 2, x + 5, 3, OUT)
+    # peito
+    c.rows(x - 1, 5, [8, 8, 8, 7, 6], ASH)
+    c.vline(x - 1, 6, 9, ASH_SH)
+    c.hline(x, x + 5, 9, ASH_SH)
+    # pernas
+    pts = {0: [(x + 1, 0), (x + 4, 0)], 1: [(x, 1), (x + 5, 0)], 2: [(x + 2, 0), (x + 3, 0)], 3: [(x + 5, 1), (x, 0)]}[legs]
+    for lx, upp in pts:
+        c.vline(lx, 10, 15 - upp, ASH_SH)
+    # espada (atrás) e escudo (na frente)
+    if sword == "down":
+        c.line(x - 2, 8, x - 2, 13, ASH_HI)
+    elif sword == "up":
+        c.line(x - 2, 7, x - 4, 2, ASH_HI)
+    elif sword == "thrust":
+        c.line(x + 6, 7, x + 12, 7, ASH_HI)
+        c.set(x + 13, 7, hexc("e8f4ff"))
+    if shield == "up":
+        c.ellipse(x + 7.5, 7.5, 3.2, 4.4, SHIELD_RIM)
+        c.ellipse(x + 7.5, 7.5, 2.2, 3.4, SHIELD)
+        c.set(x + 7, 7, SHIELD_RIM)
+    elif shield == "bash":
+        c.ellipse(x + 9.5, 7.5, 3.2, 4.4, SHIELD_RIM)
+        c.ellipse(x + 9.5, 7.5, 2.2, 3.4, SHIELD)
+        c.set(x + 9, 7, SHIELD_RIM)
+    elif shield == "down":
+        c.ellipse(x + 6.5, 12.5, 3.0, 2.2, SHIELD_RIM)
+        c.ellipse(x + 6.5, 12.5, 2.0, 1.3, SHIELD)
+    _fin(c)
+    c.set(x + 3, 3, VISOR)
+    c.set(x + 4, 3, VISOR)
+    return c
+
+
+def ash_knight():
+    walk = [knight_frame(l) for l in range(4)]
+    idle = [knight_frame(0), knight_frame(0, lean=0)]
+    return {"idle": idle, "walk": walk, "windup": [knight_frame(0, "up", "up", -1)], "bash": [knight_frame(1, "bash", "down", 1)],
+            "attack": [knight_frame(1, "down", "thrust", 1)], "tired": [knight_frame(0, "down", "down")]}, \
+        {"size": [18, 16], "feet": [8, 16], "fps": {"walk": 6, "idle": 2}}
+
+
+# ---------------------------------------------------------------------------
+# Sopro 16x14, voador — espírito do vento frio que apagou a Lareira
+# ---------------------------------------------------------------------------
+WIND = hexc("bfe6f2")
+WIND_SH = hexc("7fb2cc")
+WIND_HI = hexc("f0fcff")
+
+
+def gust_frame(t=0, inhale=0, blow=False):
+    c = Canvas(16, 14)
+    r = 5.0 + inhale * 0.8
+    c.ellipse(8, 7, r, r - 0.8, WIND_SH)
+    c.ellipse(7.6, 6.6, r - 1.0, r - 1.8, WIND)
+    # redemoinhos
+    for i in range(3):
+        ang = t * 1.3 + i * 2.1
+        px = 8 + math.cos(ang) * (r - 1.5)
+        py = 7 + math.sin(ang) * (r - 2.2)
+        c.set(int(px), int(py), WIND_HI)
+    # rabinho de vento
+    c.line(2, 9 + (t % 2), 0, 11, WIND_SH)
+    _fin(c)
+    # olhos e boca "O"
+    c.set(6, 6, OUT)
+    c.set(9, 6, OUT)
+    if blow:
+        c.rect(10, 8, 3, 3, OUT)
+        c.set(11, 9, WIND_SH)
+    elif inhale:
+        c.rect(8, 8, 2, 2, OUT)
+    else:
+        c.set(8, 9, OUT)
+    return c
+
+
+def gust():
+    idle = [gust_frame(t) for t in range(4)]
+    return {"idle": idle, "windup": [gust_frame(0, 1), gust_frame(1, 2), gust_frame(2, 3)], "attack": [gust_frame(0, 1, True)]}, \
+        {"size": [16, 14], "feet": [8, 7], "fps": {"idle": 6, "windup": 5}}
+
+
 ALL = {
     "skeleton": skeleton, "hound": hound, "hellcat": hellcat, "ghost": ghost, "wraith": wraith,
     "fire_skull": fire_skull, "hell_beast": hell_beast, "nightmare": nightmare, "demon": demon,
+    "moth": moth, "ash_knight": ash_knight, "gust": gust,
 }
