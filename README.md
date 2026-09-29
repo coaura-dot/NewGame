@@ -149,6 +149,24 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
 - Ferramentas: `tools/overworld_art.py` (arte do mapa), `tools/fix_font_accents.py`, novos modos em
   `tools/screenshot.gd` (`heroi`, `efeitos`, `duelo`, `mapa`, `intro`, `regiao`).
 
+## Sessão 7 — guardiões e comércio nas vilas
+- **Cinco guardiões únicos**, um por Brasa-Mestra, cada um com um duelo próprio (antes todos eram o Corcel):
+  - **Corvo das Cinzas** (Asas de Cinza): rasantes e leques de penas (rebata!); na 2ª fase mergulha no chão e solta ondas.
+  - **Tecelã das Frestas** (Garras): mordidas em dupla, teias que deixam lento, bote vermelho; chama filhotes e derruba
+    casulos do teto.
+  - **Lebre do Vendaval** (Coração do Vendaval): três investidas seguidas (a 3ª é vermelha) e depois fica tonta.
+  - **Golem de Pedra-Pomes** (Queda Esmagadora): pancada amarela, tremor com ondas de choque (pule!), chuva de pedras
+    com aviso no chão; a **brasa nas costas** é o ponto fraco.
+  - **Espelho Etéreo** (Passo Etéreo): some e reaparece pelas suas costas; ilusões atiram estilhaços; anel vermelho.
+  Todos seguem o duelo (amarelo = apare, vermelho = esquive, janela de punição depois de cada golpe) e mudam de fase na
+  metade da vida. Guardiões que andam lutam em arenas sem fosso de espinhos.
+- **Comércio nas vilas** (as brasas agora servem para algo): **Loja** do Mercador (estoque da região que muda a cada fase
+  concluída), **Poções** da Curandeira, **Forja** da Ferreira (+10% de dano por nível da arma, até +5; do 3º nível em
+  diante pede Fragmento Rúnico; reforço de armaduras), **Estudar** com o Sábio (sobe o nível das magias), **Vender** ao
+  Receptador (armas e armaduras sobrando), **Canção da Coragem** do Bardo (+15% de dano na próxima fase) e **Histórias**
+  do Ancião/Sábio. Painéis com fundo escurecido.
+- Ferramentas: `tools/guardian_art.py` (arte dos guardiões), `screenshot.gd` modos `chefe <id>` e `loja`.
+
 ## Testes
 `godot --headless --path . res://tests/test_runner.tscn` — 6000+ verificações (dados, balanceamento, mundo, fases,
 combate, sigilos, inventário, social, save e um teste que joga o treino: anda, pula, dash, ataca, magia, aparo).
@@ -160,4 +178,4 @@ Prints do jogo rodando: `godot --path . --script tools/screenshot.gd -- <prefixo
   (salas mais densas, desafios de precisão estilo Celeste) e criar salas maiores que a tela para combate.
 - Menus/diálogos ainda são diagramados em 480x270 e reduzidos (legíveis, mas não pixel-perfeitos) — refazer em 320x180.
 - Arte: mais quadros de animação para inimigos, efeitos de magia específicos, variações de tiles; música.
-- Chefes de horda/puzzle/parkour, IA de mais inimigos, loja/forja.
+- Chefes de horda/puzzle/parkour, mais inimigos comuns; casas com interior no mapa-múndi.

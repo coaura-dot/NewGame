@@ -113,13 +113,27 @@ Pronto e enviado:
 - História: intro, Lareira, frases por região, tábuas nas fases, falas, final.
 - Fontes com acentos minúsculos.
 
+Sessão 7 (depois do guia acima):
+- Trilha sonora (6 faixas), inimigos novos (mariposa, Guarda de Cinzas, Sopro),
+  vida no mapa (água, bichos, clima, moradores vão para casa à noite).
+- GUARDIÕES: 5 chefes únicos (raven/spider/hare/golem/mirror_guardian em
+  data/enemies.json, arte em tools/guardian_art.py). IA "guardian" em
+  scripts/actors/guardian_brain.gd: movimentos por dados ("moves": kind =
+  lunge, swoop, combo, volley, slam, rockfall, teleport, dash_chain, summon,
+  decoys; red, windup, recover, weight, phase, range). Auxiliares:
+  scripts/combat/shockwave.gd, falling_rock.gd, scripts/actors/mirror_decoy.gd.
+  WorldGenerator.GUARDIAN_OF liga cada dom ao seu guardião.
+- COMÉRCIO: scripts/social/shop_system.gd (preços, estoque por região/runs,
+  forja de arma e armadura, estudo de magia, venda, canção). Botões dos
+  serviços no diálogo (hud.gd: _service_button, open_shop/forge/study/sell).
+  Dano da arma x ShopSystem.weapon_mult (player.build_attack_info);
+  Game.complete_region incrementa profile.runs.
+
 6. IDEIAS / PENDÊNCIAS
 ----------------------
-- Mais tipos de inimigo e chefes com padrões de duelo próprios (hoje: esqueleto,
-  cão, gato infernal, fantasma, espectro, crânio de fogo, besta, pesadelo, arquidemônio).
-- Música (não há trilha): tema do mapa (dia/noite), fases por bioma, chefes.
-- Mapa-múndi: animação da água, casas com interior, loja/forja nas vilas,
-  eventos à noite, NPCs indo para casa à noite, pesca?
+- Mais inimigos comuns; chefes de horda/puzzle/parkour; o Arquidemônio final
+  poderia migrar para o motor de guardião (moves) com 3 fases.
+- Mapa-múndi: casas com interior, eventos à noite, pesca?
 - Menus e diálogos ainda desenhados em 480x270 (reduzidos); refazer para 320x180.
 - Templos antigos em data/rooms/core.txt estão na escala velha.
 - Ajustar o feel com o retorno do usuário (números no topo de player.gd e enemy.gd).
