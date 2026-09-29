@@ -104,7 +104,7 @@ Prints:  xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-drive
 Arte:  python3 tools/pixel_art.py [--hero]   python3 tools/overworld_art.py [--preview DIR]
 Sons:  python3 tools/sfx_gen.py
 
-5. ESTADO ATUAL (fim da sessão 7)
+5. ESTADO ATUAL (fim da sessão 8)
 ---------------------------------
 Pronto e enviado (sessão 6):
 - Pavio integrado (chama procedural, gola com a cor dos dashes, velinhas de vida).
@@ -152,43 +152,33 @@ Pronto e enviado (sessão 7):
   Botões no diálogo: hud.gd _service_button, open_shop/open_forge/open_study/
   open_sell (painéis com fundo escurecido via _open_panel).
   Dano da arma x ShopSystem.weapon_mult x canção (player.build_attack_info).
-- Último commit testado por inteiro: "Arquidemônio no motor de duelo com 3 fases..."
-  (6199 verificações OK).
 
-EM ANDAMENTO QUANDO A SESSÃO 7 PAROU (enviado junto com este guia):
-- 3 INIMIGOS COMUNS novos usando o mesmo motor de duelo (não são chefes):
+Pronto e enviado (sessão 8, fechando o que a sessão 7 deixou em andamento):
+- 3 INIMIGOS COMUNS usando o motor de duelo (não são chefes):
     wax_spear   "Lanceiro de Cera"     golpes estocada, dupla, varrida
     soot_archer "Arqueira de Fuligem"  golpes flecha, trio, chuva
     coal_brute  "Bruto de Carvão"      golpes pancada, salto, empurrao
   - Dados em data/enemies.json; entram nos biomas (data/biomes.json, peso 2).
   - Arte: tools/foe_art.py (FOES registrados em enemy_art.py) ->
     assets/art/enemies/{wax_spear,soot_archer,coal_brute}.png/.json.
+    Paleta de fuligem/carvão clareada (no jogo o shader escurece).
   - guardian_brain.gd: inimigo comum sem alvo válido (not e._target_valid())
     vai para "patrol" e chama e._patrol(d) em vez de ficar parado.
-  - tests/test_combat.gd: test_guardioes_duelam também cobre os 3 (checagem de
-    fase só para chefes). Os testes de combate passaram (TEST_ONLY=combat: 215 OK).
-  - ATENÇÃO: a suíte INTEIRA ainda não foi rodada depois dessa mudança.
+  - tests/test_combat.gd: test_guardioes_duelam também cobre os 3.
+- tools/screenshot.gd modo "chefe <id>": agora põe herói e inimigo no maior
+  trecho de chão plano da sala (_flat_floor), então os comuns duelam no print
+  em vez de ficar em "patrol" atrás do degrau do treino.
+- README: seção "Sessão 7" completa (Arquidemônio de 3 fases, inimigos comuns,
+  bichos, trilha sonora, vida no mapa).
+- Suíte inteira: 6211 verificações OK.
 
-6. O QUE FALTA (fazer nesta ordem)
-----------------------------------
-a) Clarear a paleta de foe_art.py (no jogo os sprites ficam mais escuros que o PNG,
-   igual aconteceu com os guardiões). Valores planejados:
-     SOOT    4d4a5c -> 77728e     COAL    46404e -> 6f677d
-     SOOT_SH 343242 -> 514d66     COAL_SH 2e2a36 -> 4b4557
-     SOOT_HI 7a7690 -> a6a1bd     COAL_HI 6c6478 -> 968da6
-   Regerar só os inimigos:
-     python3 -c "import sys; sys.path.insert(0,'tools'); import pixel_art; pixel_art.enemies()"
-   Depois: godot --headless --path . --import
-b) Rodar a suíte inteira (seção 4) e corrigir o que quebrar.
-c) Print dos 3 inimigos novos lutando. O modo "chefe <id>" já aceita qualquer id
-   (ex.: ... --script tools/screenshot.gd -- /tmp/x chefe wax_spear), mas usa a
-   sala de treino: o degrau tapa a visão e o lanceiro/arqueira ficam em "patrol"
-   (comportamento certo). Ajustar _chefe() em screenshot.gd para nascer o inimigo
-   no mesmo nível do herói (ou numa sala plana) antes de tirar o print.
-d) README.md: acrescentar à seção "Sessão 7" o Arquidemônio de 3 fases e os 3
-   inimigos comuns novos.
-e) Commit + push (lembrar: git checkout tools/__pycache__ antes de commitar —
-   os .pyc estão versionados e mudam toda vez que os scripts Python rodam).
+6. O QUE FALTA / PRÓXIMOS PASSOS
+--------------------------------
+Nada pendente da sessão 7. Escolha com o usuário o próximo item das ideias
+abaixo (ou o retorno dele depois de jogar). Lembretes:
+- git checkout tools/__pycache__ antes de commitar (os .pyc estão versionados
+  e mudam toda vez que os scripts Python rodam).
+- Os prints do modo "chefe" ficam em <prefixo>_cNNN_<estado>.png.
 
 Ideias para depois:
 - Mais inimigos comuns no motor de duelo (é só dados + arte); chefes de horda,

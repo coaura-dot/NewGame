@@ -66,9 +66,9 @@ def wax_spear():
 # ---------------------------------------------------------------------------
 # Arqueira de Fuligem 18x16
 # ---------------------------------------------------------------------------
-SOOT = hexc("4d4a5c")
-SOOT_SH = hexc("343242")
-SOOT_HI = hexc("7a7690")
+SOOT = hexc("77728e")
+SOOT_SH = hexc("514d66")
+SOOT_HI = hexc("a6a1bd")
 BOW = hexc("a07a4a")
 STRING = hexc("e8e2d4")
 EMBER = hexc("ffb347")
@@ -110,9 +110,9 @@ def soot_archer():
 # ---------------------------------------------------------------------------
 # Bruto de Carvão 22x20
 # ---------------------------------------------------------------------------
-COAL = hexc("46404e")
-COAL_SH = hexc("2e2a36")
-COAL_HI = hexc("6c6478")
+COAL = hexc("6f677d")
+COAL_SH = hexc("4b4557")
+COAL_HI = hexc("968da6")
 CRACK = hexc("ff7a2a")
 
 

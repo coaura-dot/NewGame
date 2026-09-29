@@ -418,9 +418,16 @@ func _chefe() -> bool:
 	var gid: String = args[2] if args.size() > 2 else "golem_guardian"
 	if _n == 30:
 		p.invuln_time = 999.0
+		# o maior trecho de chão plano da sala: o degrau do treino tapava a
+		# linha de visão e o inimigo ficava em "patrol"
+		var spot := _flat_floor(p.global_position)
+		p.global_position = spot
+		p._prev_pos = spot
+		p.velocity = Vector2.ZERO
+		p.reset_physics_interpolation()
 		var en = load("res://scripts/actors/enemy.gd").new()
 		en.setup(gid, 2)
-		en.position = p.global_position + Vector2(60, -40 if DB_flying(gid) else -4)
+		en.position = spot + Vector2(60, -40 if DB_flying(gid) else -4)
 		en.level = _level
 		en.set_meta("room", _level._room_at(p.global_position))
 		p.get_parent().add_child(en)
@@ -435,6 +442,28 @@ func _chefe() -> bool:
 	if _n > 335:
 		quit()
 	return false
+
+
+## Começo (com folga de 3 tiles) do maior trecho de chão plano e livre da sala
+## em que o herói está; o inimigo nasce 60 px à direita, no mesmo nível.
+func _flat_floor(from: Vector2) -> Vector2:
+	var T := 8
+	var rows: PackedStringArray = _level.layout["rows"]
+	var r: Rect2 = _level.room_rect(_level._room_at(from))
+	var best := from
+	var best_len := 0
+	for ty in range(int(r.position.y / T) + 3, int(r.end.y / T) - 1):
+		var run := 0
+		for tx in range(int(r.position.x / T) + 1, int(r.end.x / T) - 1):
+			var free: bool = rows[ty][tx] != "#" and rows[ty - 1][tx] != "#" and rows[ty - 2][tx] != "#"
+			if free and rows[ty + 1][tx] == "#":
+				run += 1
+				if run > best_len:
+					best_len = run
+					best = Vector2((tx - run + 1 + 3) * T + 4, (ty + 1) * T)
+			else:
+				run = 0
+	return best
 
 
 func DB_flying(gid: String) -> bool:

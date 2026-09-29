@@ -149,7 +149,7 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
 - Ferramentas: `tools/overworld_art.py` (arte do mapa), `tools/fix_font_accents.py`, novos modos em
   `tools/screenshot.gd` (`heroi`, `efeitos`, `duelo`, `mapa`, `intro`, `regiao`).
 
-## Sessão 7 — guardiões e comércio nas vilas
+## Sessão 7 — guardiões, inimigos de duelo, trilha sonora e comércio nas vilas
 - **Cinco guardiões únicos**, um por Brasa-Mestra, cada um com um duelo próprio (antes todos eram o Corcel):
   - **Corvo das Cinzas** (Asas de Cinza): rasantes e leques de penas (rebata!); na 2ª fase mergulha no chão e solta ondas.
   - **Tecelã das Frestas** (Garras): mordidas em dupla, teias que deixam lento, bote vermelho; chama filhotes e derruba
@@ -160,15 +160,36 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
   - **Espelho Etéreo** (Passo Etéreo): some e reaparece pelas suas costas; ilusões atiram estilhaços; anel vermelho.
   Todos seguem o duelo (amarelo = apare, vermelho = esquive, janela de punição depois de cada golpe) e mudam de fase na
   metade da vida. Guardiões que andam lutam em arenas sem fosso de espinhos.
+- **Arquidemônio de Cinzas** refeito no mesmo motor de duelo, com **três fases** (vida 100% / 66% / 33%): garra
+  (amarela), chamas em leque que crescem a cada fase (rebata!), sopro infernal e poço gravitacional (vermelhos),
+  mergulho com ondas de choque, chuva de meteoros, servos de fogo e o passo que reaparece pelas suas costas. Chefes
+  voadores trocam de lado entre um golpe e outro e não saem da sala.
+- **Inimigos comuns no motor de duelo** (aparecem nas fases de cada bioma):
+  - **Lanceiro de Cera**: alcance comprido; estocada e estocada dupla amarelas (apare), **varrida baixa vermelha** (pule).
+    Entre por dentro da lança. Ergue a guarda se você martelar.
+  - **Arqueira de Fuligem**: mantém distância; flecha e trio de flechas amarelos (rebata de volta!) e **chuva de flechas
+    vermelha** com aviso no chão (saia de baixo).
+  - **Bruto de Carvão**: pesado e lento; pancada amarela (apare para quebrar a postura), **salto vermelho** que solta
+    ondas de choque (pule) e um empurrão que joga você longe. Fraco a água e gelo, quase imune a fogo.
+  Sem ver o herói, eles patrulham em vez de ficar parados.
+- **Bichos novos**: **Mariposa de Cinza** (circula a chama, mergulha nela e bebe foco), **Guarda de Cinzas** (escudo
+  sempre erguido; golpe pesado quebra, pogo e costas passam) e **Sopro Errante** (sopra uma rajada que empurra e
+  esfria — golpeie para rebater).
+- **Trilha sonora**: 6 faixas compostas e sintetizadas por código (`tools/music_gen.py`) com crossfade por contexto —
+  Candelária (mapa de dia), Noite, Estrada (fases), Frenesi (fugas), Guardião (chefes e Cerco) e Lareira (vilas, menu e
+  final).
+- **Vida no mapa-múndi**: água brilhando, fumaça nas chaminés, borboletas e pássaros de dia, vaga-lumes à noite, clima
+  por bioma (folhas, neve, areia, bolhas, cintilar) e moradores que vão para casa quando anoitece.
 - **Comércio nas vilas** (as brasas agora servem para algo): **Loja** do Mercador (estoque da região que muda a cada fase
   concluída), **Poções** da Curandeira, **Forja** da Ferreira (+10% de dano por nível da arma, até +5; do 3º nível em
   diante pede Fragmento Rúnico; reforço de armaduras), **Estudar** com o Sábio (sobe o nível das magias), **Vender** ao
   Receptador (armas e armaduras sobrando), **Canção da Coragem** do Bardo (+15% de dano na próxima fase) e **Histórias**
   do Ancião/Sábio. Painéis com fundo escurecido.
-- Ferramentas: `tools/guardian_art.py` (arte dos guardiões), `screenshot.gd` modos `chefe <id>` e `loja`.
+- Ferramentas: `tools/guardian_art.py` (arte dos guardiões), `tools/foe_art.py` (arte dos inimigos comuns novos),
+  `screenshot.gd` modos `chefe <id>` (qualquer inimigo; nasce num trecho de chão plano da sala) e `loja`.
 
 ## Testes
-`godot --headless --path . res://tests/test_runner.tscn` — 6000+ verificações (dados, balanceamento, mundo, fases,
+`godot --headless --path . res://tests/test_runner.tscn` — 6200+ verificações (dados, balanceamento, mundo, fases,
 combate, sigilos, inventário, social, save e um teste que joga o treino: anda, pula, dash, ataca, magia, aparo).
 Prints do jogo rodando: `godot --path . --script tools/screenshot.gd -- <prefixo> [treino|menu]`.
 
