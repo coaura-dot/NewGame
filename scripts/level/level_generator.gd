@@ -22,6 +22,25 @@ const BRANCH_WEIGHTS := {"treasure": 3.0, "secret": 2.0, "challenge": 2.5, "puzz
 const HUNT_CHANCE := 0.3
 ## Chance de uma sala L-R do caminho (plataforma/corredor) virar fuga.
 const CHASE_CHANCE := 0.2
+## Salas que podem ser SOMBRIAS (penumbra forte; lamparinas devolvem a luz).
+const DARK_TYPES := ["platforming", "combat", "corridor", "puzzle", "treasure", "secret", "shaft"]
+## Chance de uma sala comum ganhar uma lamparina.
+const LAMP_CHANCE := 0.45
+
+
+## Chance de uma sala virar sombria: biomas escuros/subterrâneos mais, e sobe
+## com o tier e com a regra de pouca luz da dimensão.
+static func dark_chance(biome: Dictionary, tier: int, params: Dictionary) -> float:
+	var tags: Array = biome.get("tags", [])
+	var c := 0.12
+	if tags.has("dark") or tags.has("underground"):
+		c = 0.32
+	elif tags.has("indoor"):
+		c = 0.2
+	c += 0.04 * float(maxi(tier - 1, 0))
+	if params.get("low_light", false):
+		c += 0.2
+	return minf(c, 0.6)
 
 
 static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dictionary:
@@ -204,6 +223,20 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 				"locked", "ability":
 					_mark_gate(g, d, "V")
 					gate_conns[d] = c
+		# luz: sala sombria (3-4 lamparinas) ou uma lamparina de vez em quando.
+		# RNG próprio: não mexe no sorteio das salas.
+		var lrng := RngUtil.make(seed_value, "lamps:%d:%d" % [cell.x, cell.y])
+		var calm: bool = not PackedStringArray(room.get("tags", [])).has("chase")
+		var roll_dark: bool = not params.get("training", false) and calm and room["type"] in DARK_TYPES and lrng.randf() < dark_chance(biome, tier, params)
+		var forced_dark: bool = room.get("on_path", false) and params.get("force_dark", []).has(int(room.get("path_index", -1)))
+		if roll_dark or forced_dark:
+			room["dark"] = true
+			var tg := PackedStringArray(room.get("tags", []))
+			tg.append("dark")
+			room["tags"] = tg
+			RoomSynth.place_lamps(g, lrng, lrng.randi_range(3, 4))
+		elif not room["type"] in ["boss", "entrance"] and lrng.randf() < LAMP_CHANCE:
+			RoomSynth.place_lamps(g, lrng, 1)
 		var origin := Vector2i((cell.x - min_c.x) * LevelConst.ROOM_W, (cell.y - min_c.y) * LevelConst.ROOM_H)
 		room["origin"] = [origin.x, origin.y]
 		room["index"] = room_list.size()

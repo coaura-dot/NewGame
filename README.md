@@ -1,4 +1,4 @@
-# NEWGAME — protótipo (Godot 4.7)
+# Pavio, a última chama — protótipo (Godot 4.7)
 
 **Pavio, a última chama.** Arcade de stages procedural em pixel art **320x180**: movimento de **Celeste** + combate de
 **Hollow Knight/Dead Cells** (com toques de Katana Zero), um **mapa-múndi explorável** estilo Stardew Valley gerado por
@@ -188,8 +188,38 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
 - Ferramentas: `tools/guardian_art.py` (arte dos guardiões), `tools/foe_art.py` (arte dos inimigos comuns novos),
   `screenshot.gd` modos `chefe <id>` (qualquer inimigo; nasce num trecho de chão plano da sala) e `loja`.
 
+## Sessão 8 — estética escura, lamparinas e as Lembranças da Veladora
+- **Visual escuro no estilo Hollow Knight/Ori**, com pontos de luz lindos:
+  - A rocha escurece da borda para dentro até quase preto (tiles de rocha funda), com um fio de luz nas bordas e musgo,
+    cristais e ouro com pontas que brilham. Espinhos claros, para ler bem no escuro.
+  - Fundos em **4 camadas** (céu, longe, meio, perto) com perspectiva atmosférica: o longe é névoa clara, o perto é
+    quase preto. **Névoa animada** passa entre as camadas. Salas fechadas mostram salões com **vitrais**, arcos,
+    nichos com velas e cavernas de cristal em vez de uma parede chapada.
+  - Tudo que emite luz (lua, estrelas, janelas, vitrais, velas, cogumelos, cristais, espíritos da floresta, olhos e
+    brasas dos inimigos) vai para uma camada `_glow` somada em HDR — o bloom faz brilhar.
+  - **Penumbra por bioma** e a **chama do Pavio como luz principal**: um halo quente que encolhe quando ele está com pouca
+    vida. Lanternas, cristais e cogumelos grandes viram luzes de verdade.
+  - Cor da tela: sombras puxam para azul-noite, luzes levemente quentes; vinheta ligada por padrão.
+  - **Mapa-múndi em crepúsculo eterno** (a Lareira está apagada): cada Brasa-Mestra devolvida aquece e devolve a cor ao
+    dia. Janelas, postes, cogumelos, cristais e túmulos brilham.
+  - **Tela de título** nova: "PAVIO — a última chama", o Pavio sentado numa pedra numa clareira escura da floresta.
+- **Lamparinas** (jogabilidade da luz): lamparinas apagadas pelas fases — o Pavio acende **só de passar raspando** (ou
+  golpeando). Cada uma ilumina a área de vez e dá brasas. O resumo da fase mostra "Lamparinas acesas x/y"; acender
+  **todas** dá o bônus de **Lumeeiro**.
+- **Salas sombrias**: algumas salas (mais nos biomas escuros/subterrâneos e nos tiers altos) entram numa penumbra
+  forte — só a chama do Pavio (que alcança mais longe no escuro) e os olhos dos inimigos aparecem. Cada lamparina
+  acesa devolve um pouco da luz; todas acesas iluminam a sala inteira. O poço do Treino é uma sala sombria.
+- **Lembranças da Veladora**: iluminar uma sala sombria por inteiro solta uma luz flutuante com uma lembrança de
+  **Ilma, a última Veladora** — 10 lembranças em ordem contam a origem do Pavio (ela torceu o próprio pavio na última
+  gota de cera), quem eram os **Apagados** (os inimigos de cera e fuligem), por que os guardiões engoliram as
+  Brasas-Mestras e de quem é o Sopro. Diário no menu de pausa (**Lembranças**).
+- **Lamparinas dos Veladores nas estradas do mapa-múndi**: acendem quando o Pavio passa, dão 1 brasa e ficam acesas
+  para sempre (salvas) — as estradas vão ganhando pontos de luz conforme você explora.
+- Ferramentas: `python3 tools/pixel_art.py --world` (só tiles e fundos), `screenshot.gd` modo `sombria` (a sala
+  sombria do treino apagada e depois acesa).
+
 ## Testes
-`godot --headless --path . res://tests/test_runner.tscn` — 6200+ verificações (dados, balanceamento, mundo, fases,
+`godot --headless --path . res://tests/test_runner.tscn` — 7800+ verificações (dados, balanceamento, mundo, fases,
 combate, sigilos, inventário, social, save e um teste que joga o treino: anda, pula, dash, ataca, magia, aparo).
 Prints do jogo rodando: `godot --path . --script tools/screenshot.gd -- <prefixo> [treino|menu]`.
 

@@ -20,6 +20,27 @@ extends RefCounted
 
 const WORLD_NAME := "Candelária"
 
+## LEMBRANÇAS DA VELADORA — a origem do Pavio, em ordem. Cada sala sombria
+## iluminada por inteiro solta a próxima (uma luz que flutua).
+## Os Veladores acendiam as lamparinas das estradas com o fogo da Lareira.
+## Ilma, a última Veladora, torceu o próprio pavio na última gota de cera:
+## o Pavio é a chama dela, passada adiante. As lamparinas guardam o que ela
+## lembrava. Os Apagados (inimigos de cera e fuligem) eram gente cuja chama
+## o Sopro levou; os guardiões eram os zeladores da Lareira que engoliram as
+## Brasas-Mestras para salvá-las — e a escuridão os entortou.
+const MEMORIES := [
+	["O primeiro fósforo", "Eu tinha seis anos quando a vó me deu o primeiro fósforo. \"Uma chama não se guarda\", ela disse, \"se passa adiante.\" Queimei o dedo. Ela riu e acendeu a lamparina da porta com a minha."],
+	["Os Veladores", "Ao entardecer saíamos da Grande Lareira em fila, cada um com a sua vela, e andávamos as estradas acendendo lamparina por lamparina. Quem via a luz no caminho sabia: alguém passou aqui pensando em você."],
+	["A canção das lamparinas", "Cantávamos baixinho enquanto acendíamos, para os viajantes saberem que a estrada estava cuidada. \"Pavio curto, noite longa; pavio aceso, casa perto.\" As crianças cantavam junto das janelas."],
+	["O mar sem luz", "Naquele outono, as lamparinas da beira do mar começaram a apagar sozinhas. Uma por noite. Nós as acendíamos de novo, e de manhã estavam frias. Ninguém sentia vento nenhum."],
+	["Os Apagados", "Quando a chama de alguém se apaga, a pessoa não morre. Fica oca, feito cera sem pavio, andando no escuro atrás de um calor que não lembra mais. Não odeie os Apagados. Eles só esqueceram."],
+	["Os zeladores", "O Corvo, a Tecelã, a Lebre, o Golem e o Espelho cuidavam da Lareira desde antes da vila ter nome. Na noite do Sopro, cada um engoliu uma Brasa-Mestra para que ela não apagasse. A escuridão entrou junto."],
+	["A noite do Sopro", "Não foi vento. Foi um fôlego — longo, frio, cansado. Todas as chamas da vila deitaram para o mesmo lado e se apagaram. A Lareira resistiu um instante... e então só sobrou uma gota de cera morna no candelabro."],
+	["O pavio", "Eu não tinha mais fogo para dar à Lareira. Tinha o meu. Torci o pavio da minha vela dentro daquela gota e soprei devagar, do jeito que a vó ensinou. \"Você vai acordar sozinho. Desculpa. Seja corajoso.\""],
+	["Quem sopra", "O Sopro é de alguém que já foi chama. O primeiro que se apagou, há muito tempo, e nunca perdoou os que continuaram acesos. Ele não quer o fogo. Quer que ninguém mais tenha."],
+	["Passe adiante", "Se você está lendo as minhas lembranças, é porque acendeu as minhas lamparinas. Obrigada, pequeno. Quando a Lareira voltar a arder, lembre: uma chama não se guarda. Se passa adiante."],
+]
+
 const INTRO := [
 	"Em Candelária, todo lar guardava uma chama acesa na Grande Lareira.\nEnquanto ela ardia, a Noite Longa não passava das bordas do mundo.",
 	"Numa noite sem lua, o Sopro do Arquidemônio apagou a Lareira.\nO fogo se partiu em brasas e voou para todas as regiões.",
@@ -190,3 +211,18 @@ static func boss_fall(boss_name: String, grants: String, is_final: bool) -> Stri
 	if grants != "":
 		return "%s caiu! A Brasa-Mestra %s é sua — leve-a à Grande Lareira." % [boss_name, GIFT_OF.get(grants, "")]
 	return "%s caiu!" % boss_name
+
+
+## Próxima lembrança ainda não vista (índice) ou -1 se já viu todas.
+static func next_memory(profile: Dictionary) -> int:
+	var seen: Array = profile.get("memories", [])
+	for i in MEMORIES.size():
+		if not seen.has(i):
+			return i
+	return -1
+
+
+## Título em algarismos romanos ("Lembrança III — ...").
+static func memory_title(i: int) -> String:
+	var roman := ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
+	return "Lembrança %s — %s" % [roman[clampi(i, 0, roman.size() - 1)], MEMORIES[i][0]]

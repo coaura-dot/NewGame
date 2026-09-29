@@ -26,7 +26,16 @@ var checkpoint: Node = null
 var spawn_pos: Vector2 = Vector2.ZERO
 var boss_defeated: bool = false
 var boss_node: Node = null
-var result: Dictionary = {"completed": false, "boss_killed": false, "puzzles": 0, "kills": 0, "time": 0.0, "deaths": 0, "hits": 0}
+var result: Dictionary = {"completed": false, "boss_killed": false, "puzzles": 0, "kills": 0, "time": 0.0, "deaths": 0, "hits": 0, "lamps": 0, "lamps_total": 0}
+## Luz: penumbra da fase (CanvasModulate) e salas sombrias.
+const DARK_ROOM_K := 0.32 ## quanto da luz sobra numa sala sombria com tudo apagado
+const LUMEEIRO_BONUS := 10 ## brasas extras por acender TODAS as lamparinas da fase
+var _ambient: CanvasModulate
+var _ambient_base: Color = Color(1, 1, 1)
+var _ambient_tween: Tween
+var _room_lamps: Dictionary = {} ## sala -> [total, acesas]
+var _bg: BackgroundLayer
+var _memory_rooms: Dictionary = {}
 ## Renascimento rápido (estilo Celeste): morrer volta para a entrada da sala.
 var room_spawn: Vector2 = Vector2.ZERO
 var timer_running: bool = true
@@ -103,6 +112,7 @@ func _resolve_params() -> void:
 			"dimension": "prima", "npcs": [], "abilities": Game.profile["abilities"],
 			"force_path": ["entrance", "platforming", "combat", "zigzag", "shaft", "combat", "challenge", "zigzag", "boss", "exit"],
 			"theme": str(pending.get("theme", "")),
+			"training": true, "force_dark": [4], ## o poço do treino é uma sala sombria (ensina as lamparinas)
 		}
 		region = {"name": "Salão de Treino", "biome": params["biome"], "tier": params["tier"]}
 		return
@@ -128,6 +138,7 @@ func _resolve_params() -> void:
 		"npcs": npc_ids,
 		"abilities": Game.profile.get("abilities", []),
 		"rift": rift,
+		"low_light": DB.dimension(str(region.get("dimension", "prima"))).get("rules", []).has("low_light"),
 	}
 	if siege:
 		params["boss"] = "archdemon"
@@ -150,6 +161,8 @@ func _build_world() -> void:
 	var cm := CanvasModulate.new()
 	cm.color = ambient_color(biome, dimension)
 	world.add_child(cm)
+	_ambient = cm
+	_ambient_base = cm.color
 	var built: Dictionary = LevelBuilder.build(world, layout, biome, params["biome"])
 	_spawn_lamps(built.get("lamps", []))
 	entities = Node2D.new()
@@ -255,6 +268,16 @@ func _spawn_entities() -> void:
 				elif rng.randf() < 0.5:
 					s.travel = Vector2(rng.randf_range(-24, 24), rng.randf_range(-12, 12)).round()
 				node = s
+			"lamp":
+				var lp := Lamparina.new()
+				lp.room_index = room
+				lp.position = _tile_feet(e["tile"])
+				lp.lit_up.connect(_on_lamp_lit)
+				node = lp
+				result["lamps_total"] = int(result["lamps_total"]) + 1
+				var rl: Array = _room_lamps.get(room, [0, 0])
+				rl[0] = int(rl[0]) + 1
+				_room_lamps[room] = rl
 			"torch":
 				var t := Torch.new()
 				t.color = torch_color
@@ -460,6 +483,7 @@ func _room_at(pos: Vector2) -> int:
 
 func _build_layers() -> void:
 	var bg := BackgroundLayer.new()
+	_bg = bg
 	bg.camera = camera
 	bg.level_height = layout["height"] * T
 	bg.build(params["biome"])
@@ -504,6 +528,7 @@ func _physics_process(_delta: float) -> void:
 func _on_room_entered(idx: int) -> void:
 	var room: Dictionary = layout["rooms"][idx]
 	Events.room_entered.emit(room)
+	apply_room_light(idx)
 	_update_room_spawn(idx)
 	# desafio (caminho da dor): qualquer espinho volta ao começo da sala
 	if player:
@@ -572,6 +597,8 @@ const HINTS := {
 	"hunt": "Caçada: a sala só abre quando todos os inimigos caírem!",
 	"chase": "FUJA! A muralha de espinhos avança — não pare de correr!",
 	"zigzag": "Chão de espinhos! Encadeie orbes, pogos e inimigos sem pousar.",
+	"dark": "Sala sombria! Passe raspando nas LAMPARINAS para acendê-las e devolver a luz.",
+	"lamp": "LAMPARINA apagada: encoste ou golpeie para acender (+brasas). Acenda todas da fase!",
 	"jump_feather": "PENA VERDE: encoste no ar e ganhe mais um pulo!",
 	"reset_bell": "SINO: golpeie para recarregar o dash e ganhar um pulo, sem perder a trajetória.",
 	"double_crystal": "CRISTAL ROSA: dois dashes seguidos!",
@@ -615,6 +642,8 @@ func _hints_for_room(idx: int) -> void:
 		want.push_front("hunt")
 	if PackedStringArray(room.get("tags", [])).has("chase"):
 		want.push_front("chase")
+	if room.get("dark", false):
+		want.push_front("dark")
 	if room.get("type", "") == "zigzag":
 		want.push_front("zigzag")
 	for k in want:
@@ -874,6 +903,7 @@ func _on_player_died(_p: Node) -> void:
 	if idx >= 0:
 		_current_room = idx
 		camera.set_room(camera_rect(idx))
+		apply_room_light(idx, true)
 	camera.snap()
 	FX.clear_time_effects()
 
@@ -886,6 +916,12 @@ func complete_level() -> void:
 	if player:
 		result["best_chain"] = player.best_chain
 	result["rank"] = rank_for(result, layout["rooms"].size())
+	# Lumeeiro: acendeu todas as lamparinas da fase
+	if int(result["lamps_total"]) > 0 and int(result["lamps"]) >= int(result["lamps_total"]):
+		result["lumeeiro"] = true
+		var bonus := LUMEEIRO_BONUS + int(result["lamps_total"]) * 2
+		result["lumeeiro_bonus"] = bonus
+		Game.profile["currency"] = int(Game.profile.get("currency", 0)) + bonus
 	var quests_done: Array = []
 	if not training:
 		Game.complete_region(region_id)
@@ -911,6 +947,67 @@ static func rank_for(res: Dictionary, rooms: int) -> String:
 	if score >= 55.0:
 		return "B"
 	return "C"
+
+
+## Luz da sala: normal fora das salas sombrias; nelas a penumbra fecha e
+## cada lamparina acesa devolve um pouco da luz (todas = sala iluminada).
+func room_light_factor(idx: int) -> float:
+	if idx < 0 or idx >= layout["rooms"].size() or not layout["rooms"][idx].get("dark", false):
+		return 1.0
+	var rl: Array = _room_lamps.get(idx, [0, 0])
+	if int(rl[0]) <= 0:
+		return DARK_ROOM_K
+	return lerpf(DARK_ROOM_K, 1.0, float(rl[1]) / float(rl[0]))
+
+
+func apply_room_light(idx: int, instant: bool = false) -> void:
+	if _ambient == null:
+		return
+	var k := room_light_factor(idx)
+	var target := Color(_ambient_base.r * k, _ambient_base.g * k, _ambient_base.b * minf(k * 1.15, 1.0), 1.0)
+	if player:
+		player.dark_boost = 1.0 if k < 0.999 else 0.0
+	if _bg:
+		# o fundo apaga junto (um pouco menos: continua dando profundidade)
+		_bg.set_dim(lerpf(0.4, 1.0, (k - DARK_ROOM_K) / (1.0 - DARK_ROOM_K)), 0.0 if instant else 0.7)
+	if _ambient_tween and _ambient_tween.is_valid():
+		_ambient_tween.kill()
+	if instant:
+		_ambient.color = target
+		return
+	_ambient_tween = create_tween()
+	_ambient_tween.tween_property(_ambient, "color", target, 0.7).set_trans(Tween.TRANS_SINE)
+
+
+func _on_lamp_lit(lamp: Lamparina) -> void:
+	result["lamps"] = int(result["lamps"]) + 1
+	hint_once("lamp")
+	var idx := lamp.room_index
+	var rl: Array = _room_lamps.get(idx, [0, 0])
+	rl[1] = int(rl[1]) + 1
+	_room_lamps[idx] = rl
+	var dark_room: bool = idx >= 0 and idx < layout["rooms"].size() and layout["rooms"][idx].get("dark", false)
+	if idx == _current_room:
+		apply_room_light(idx)
+	if dark_room and int(rl[1]) >= int(rl[0]):
+		Events.toast.emit("A sala se ilumina!")
+		Audio.play("room_lit", 0.0, -3.0)
+		FX.ring(lamp.global_position + Vector2(0, -7), Color(2.2, 1.5, 0.7), 60.0, 0.5)
+		_release_memory(idx, lamp.global_position)
+	if int(result["lamps"]) >= int(result["lamps_total"]) and int(result["lamps_total"]) >= 3:
+		Events.toast.emit("Todas as lamparinas acesas! Lumeeiro!")
+
+
+## Sala sombria iluminada por inteiro: uma Lembrança da Veladora flutua
+## acima da última lamparina acesa (uma por sala).
+func _release_memory(idx: int, at: Vector2) -> void:
+	if _memory_rooms.has(idx) or training and Lore.next_memory(Game.profile) < 0:
+		return
+	_memory_rooms[idx] = true
+	var w := MemoryWisp.new()
+	w.level = self
+	w.position = at + Vector2(0, -26)
+	entities.add_child.call_deferred(w)
 
 
 ## Tempo no formato m:ss.cc

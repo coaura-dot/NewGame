@@ -679,6 +679,10 @@ func show_summary(result: Dictionary, quests_done: Array) -> void:
 	if int(result.get("best_chain", 0)) >= 3:
 		v.add_child(UIKit.label("Maior cadeia aérea  x%d" % int(result.get("best_chain", 0)), 12, Color(0.75, 0.55, 0.1), HORIZONTAL_ALIGNMENT_CENTER))
 	v.add_child(UIKit.label("Inimigos derrotados: %d" % int(result.get("kills", 0))))
+	if int(result.get("lamps_total", 0)) > 0:
+		v.add_child(UIKit.label("Lamparinas acesas: %d/%d" % [int(result.get("lamps", 0)), int(result.get("lamps_total", 0))], 12, Color(1.0, 0.75, 0.45)))
+		if result.get("lumeeiro", false):
+			v.add_child(UIKit.label("Lumeeiro! Todas acesas (+%d brasas)" % int(result.get("lumeeiro_bonus", 0)), 12, Color(1.6, 1.1, 0.5)))
 	if result.get("boss_killed", false):
 		v.add_child(UIKit.label("Chefe derrotado!", 12, Color(1.4, 0.8, 0.5)))
 	for q in quests_done:

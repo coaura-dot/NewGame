@@ -418,6 +418,18 @@ def make_all():
         # terra/impacto pesado de magia
         ea = mix((exp_decay(osc("sine", 80, 35, 0.4), 0.15), 1.0, 0), (env(lowpass(white(0.35, r), 900, 200), 0.001, 0.3), 0.8, 0))
         save("earth_%d" % v, ea, 0.8)
+        # lamparina acendendo: "fuom" de chama pegando + sininho quente
+        fu = env(lowpass(white(0.3, r), 500, 2600), 0.03, 0.26)
+        fo = env(osc("sine", 140 + v * 10, 90, 0.3), 0.02, 0.27)
+        pg = exp_decay(osc("sine", note(79 + v * 2), note(79 + v * 2), 0.5), 0.16)
+        pg2 = exp_decay(osc("sine", note(86 + v * 2), note(86 + v * 2), 0.4), 0.1)
+        save("lamp_%d" % v, mix((fu, 0.55, 0), (fo, 0.4, 0), (pg, 0.5, 0.06), (pg2, 0.22, 0.09)), 0.62)
+    # sala iluminada por inteiro: três notas subindo, suaves, com eco
+    lit = []
+    for k, nn in enumerate([76, 81, 88]):
+        lit.append((exp_decay(osc("tri", note(nn), note(nn), 0.6), 0.22), 0.45, k * 0.11))
+        lit.append((exp_decay(osc("sine", note(nn + 12), note(nn + 12), 0.4), 0.12), 0.12, k * 0.11 + 0.01))
+    save("roomlit_0", echo(mix(*lit), 0.12, 0.3, 3), 0.62)
 
 
 if __name__ == "__main__":

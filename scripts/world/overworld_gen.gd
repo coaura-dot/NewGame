@@ -33,6 +33,7 @@ const MARGIN := 18 ## células de mar em volta
 const ISLAND_R := 44.0 ## raio (células) da terra em volta de cada região
 const BORDER := 3.4 ## espessura da divisa entre territórios (diferença de distância)
 const SKY_BORDER := 5.6
+const ROAD_LAMP_GAP := 13 ## distância mínima (células) entre lamparinas de estrada
 
 const MATS := [
 	"grass", "grass_dark", "sand", "gold_sand", "cobble", "ruin", "swamp", "red_dirt", "snow", "cloud",
@@ -456,6 +457,41 @@ static func generate(world: Dictionary) -> Dictionary:
 				signs.append({"cell": best, "region": id, "to": nb["id"]})
 				objects.append({"name": "signpost", "cell": best, "region": id, "kind": "sign", "to": nb["id"]})
 				_occupy(occ, best, 1, 1)
+	# lamparinas dos Veladores ao longo das estradas (o Pavio acende ao passar;
+	# ficam acesas para sempre). Sem RNG: posição fixa pela própria estrada.
+	var road_lamps: Array = []
+	var lamp_cells: Array = []
+	var road_keys: Array = road_cells.keys()
+	road_keys.sort_custom(func(a, b): return a.y < b.y or (a.y == b.y and a.x < b.x))
+	for rc in road_keys:
+		if str(road_cells[rc]) != "road" or (rc.x * 7 + rc.y * 13) % 5 != 0:
+			continue
+		var too_close := false
+		for lc in lamp_cells:
+			if (lc as Vector2i).distance_squared_to(rc) < ROAD_LAMP_GAP * ROAD_LAMP_GAP:
+				too_close = true
+				break
+		if too_close:
+			continue
+		for vid in villages.keys():
+			if Vector2(villages[vid]["center"]).distance_to(Vector2(rc)) < 12.0:
+				too_close = true
+		if too_close:
+			continue
+		for side in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var lc2: Vector2i = rc + side
+			if lc2.x < 2 or lc2.y < 2 or lc2.x >= w - 2 or lc2.y >= h - 2:
+				continue
+			var gk := lc2.y * w + lc2.x
+			var gn := MATS[ground[gk]] as String
+			if road_cells.has(lc2) or occ.has(lc2) or gn in SOLID or gn in ["water", "deep_water", "bridge_h", "bridge_v", "sky_void"] or owner[gk] < 0:
+				continue
+			var lid := "rl_%d_%d" % [lc2.x, lc2.y]
+			objects.append({"name": "lamp_post", "cell": lc2, "region": ids[owner[gk]], "kind": "road_lamp", "id": lid, "solid": false})
+			_occupy(occ, lc2, 1, 1)
+			lamp_cells.append(rc)
+			road_lamps.append(lid)
+			break
 	# mata fechada nas divisas de superfície
 	for cell in border_cells:
 		var k: int = cell.y * w + cell.x
@@ -492,7 +528,7 @@ static func generate(world: Dictionary) -> Dictionary:
 	return {
 		"w": w, "h": h, "ground": ground, "owner": owner, "region_ids": ids, "sites": sites,
 		"entrances": entrances, "objects": objects, "gates": gates, "signs": signs,
-		"villages": villages, "spawn": spawn + Vector2i(0, 3), "roads": road_cells,
+		"villages": villages, "spawn": spawn + Vector2i(0, 3), "roads": road_cells, "road_lamps": road_lamps,
 	}
 
 

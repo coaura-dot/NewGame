@@ -48,6 +48,8 @@ var interactables: Array = [] ## {pos, prompt, action: Callable, region, node}
 var focus: Dictionary = {}
 var night: float = 0.0 ## 0 = dia, 1 = noite fechada
 ## objeto -> [cor, altura do brilho, força, 1 em N objetos brilha]
+const ROAD_LAMP_REACH := 14.0
+var _road_lamps: Array = [] ## lamparinas de estrada ainda apagadas
 const NATURE_GLOW := {
 	"mushroom_blue": [Color(0.4, 0.9, 1.0), -6, 0.5, 1],
 	"mushroom_red": [Color(1.0, 0.45, 0.7), -6, 0.4, 2],
@@ -291,6 +293,8 @@ func _build_objects() -> void:
 				_setup_hearth(region, at, s)
 			"lamp":
 				_glow(at + Vector2(0, -14), Color(1.0, 0.8, 0.45), 1.0)
+			"road_lamp":
+				_setup_road_lamp(str(o.get("id", "")), region, at, s)
 			"house":
 				_glow(at + Vector2(-8, -8), Color(1.0, 0.7, 0.35), 0.15)
 				_glow(at + Vector2(8, -8), Color(1.0, 0.7, 0.35), 0.15)
@@ -298,6 +302,36 @@ func _build_objects() -> void:
 		var ng: Array = NATURE_GLOW.get(name, [])
 		if not ng.is_empty() and absi(int(at.x) * 7 + int(at.y) * 3) % int(ng[3]) == 0:
 			_glow(at + Vector2(0, float(ng[1])), ng[0], float(ng[2]))
+
+
+## Lamparina dos Veladores na estrada: apagada até o Pavio passar perto.
+func _setup_road_lamp(id: String, region: String, at: Vector2, s: Sprite2D) -> void:
+	if Game.profile.get("ow_lamps", {}).has(id):
+		_glow(at + Vector2(0, -14), Color(1.0, 0.75, 0.4), 0.9, true)
+		return
+	s.modulate = Color(0.5, 0.5, 0.62)
+	_road_lamps.append({"id": id, "at": at, "sprite": s, "region": region})
+
+
+func _check_road_lamps() -> void:
+	if hero == null or _road_lamps.is_empty():
+		return
+	for i in range(_road_lamps.size() - 1, -1, -1):
+		var l: Dictionary = _road_lamps[i]
+		if hero.global_position.distance_to(l["at"]) > ROAD_LAMP_REACH:
+			continue
+		_road_lamps.remove_at(i)
+		var lit: Dictionary = Game.profile.get("ow_lamps", {})
+		lit[l["id"]] = true
+		Game.profile["ow_lamps"] = lit
+		Game.profile["currency"] = int(Game.profile.get("currency", 0)) + 1
+		(l["sprite"] as Sprite2D).modulate = Color(1, 1, 1)
+		_cur_region = str(l["region"])
+		_glow(l["at"] + Vector2(0, -14), Color(1.0, 0.75, 0.4), 0.9, true)
+		FX.burst(l["at"] + Vector2(0, -14), Color(2.4, 1.3, 0.5), 8, 40.0)
+		Audio.play("lamp", 0.06, -6.0)
+		var total: int = data.get("road_lamps", []).size()
+		Events.toast.emit("Lamparina da estrada acesa (%d/%d) +1 brasa" % [lit.size(), total])
 
 
 func _track(region: String, n: Node) -> void:
@@ -478,6 +512,7 @@ func _spawn_hero() -> void:
 
 func _process(delta: float) -> void:
 	_update_daylight(delta)
+	_check_road_lamps()
 	_update_music()
 	_update_focus()
 	_region_check()

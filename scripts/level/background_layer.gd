@@ -23,6 +23,8 @@ var fog_color: Color = Color(0.3, 0.35, 0.5)
 var _layers: Array = [] ## [TextureRect, factor, vfactor, tex_w]
 var _fogs: Array = [] ## [ColorRect, factor]
 var _fill: ColorRect
+var _root: Control ## tudo fica aqui dentro: dá para escurecer o fundo de uma vez
+var _dim_tween: Tween
 
 
 func build(biome_id: String) -> void:
@@ -32,10 +34,13 @@ func build(biome_id: String) -> void:
 	if not ResourceLoader.exists(dir + "0_sky.png"):
 		dir = DIR % "castelo"
 	var vp := Vector2(PixelView.W + PixelView.MARGIN * 2, PixelView.H + PixelView.MARGIN * 2)
+	_root = Control.new()
+	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_root)
 	_fill = ColorRect.new()
 	_fill.size = vp + Vector2(8, 8)
 	_fill.position = Vector2(-4, -4)
-	add_child(_fill)
+	_root.add_child(_fill)
 	for f in LAYERS:
 		if not ResourceLoader.exists(dir + f + ".png"):
 			continue
@@ -48,7 +53,7 @@ func build(biome_id: String) -> void:
 			# névoa = cor do horizonte, um pouco mais clara
 			fog_color = img.get_pixel(img.get_width() / 2, img.get_height() - 2).lightened(0.12)
 		var tr := _tiled(t, vp)
-		add_child(tr)
+		_root.add_child(tr)
 		# faixa sólida abaixo das silhuetas (evita buraco com o parallax vertical)
 		if f != "0_sky" and img:
 			var under := ColorRect.new()
@@ -100,8 +105,22 @@ func _add_fog(vp: Vector2, density: float, top: float, scale: float, speed: floa
 	m.set_shader_parameter("speed", speed)
 	m.set_shader_parameter("px_size", vp)
 	r.material = m
-	add_child(r)
+	_root.add_child(r)
 	_fogs.append([r, factor])
+
+
+## Escurece o fundo (salas sombrias). k = 1 normal.
+func set_dim(k: float, dur: float = 0.7) -> void:
+	if _root == null:
+		return
+	var target := Color(k, k, minf(k * 1.1, 1.0), 1.0)
+	if _dim_tween and _dim_tween.is_valid():
+		_dim_tween.kill()
+	if dur <= 0.0:
+		_root.modulate = target
+		return
+	_dim_tween = create_tween()
+	_dim_tween.tween_property(_root, "modulate", target, dur).set_trans(Tween.TRANS_SINE)
 
 
 func _process(_delta: float) -> void:

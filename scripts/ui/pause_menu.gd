@@ -64,6 +64,7 @@ func _show_main() -> void:
 	v.add_child(UIKit.title("Pausa", 24))
 	v.add_child(UIKit.button("Continuar", close))
 	v.add_child(UIKit.button("Equipamento", _show_equipment))
+	v.add_child(UIKit.button("Lembranças (%d/%d)" % [Game.profile.get("memories", []).size(), Lore.MEMORIES.size()], _show_memories))
 	v.add_child(UIKit.button("Opções", _show_options))
 	if level and not level.training:
 		v.add_child(UIKit.button("Voltar ao mapa-múndi", func():
@@ -78,6 +79,32 @@ func _show_main() -> void:
 			Game.save()
 		Game.goto(Game.SCENE_MENU)))
 	_set_content(p, "Main")
+
+
+## Diário das Lembranças da Veladora (ilumine salas sombrias para achar mais).
+func _show_memories() -> void:
+	var p := UIKit.panel(Vector2(320, 0))
+	var v := UIKit.vbox(3)
+	p.add_child(v)
+	v.add_child(UIKit.title("Lembranças", 20))
+	var seen: Array = Game.profile.get("memories", [])
+	if seen.is_empty():
+		var l := UIKit.label("Nenhuma ainda. Ilumine por inteiro uma SALA SOMBRIA: a lembrança da Veladora flutua perto da última lamparina.", 11, UIKit.DIM)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD
+		l.custom_minimum_size = Vector2(300, 0)
+		v.add_child(l)
+	var body := UIKit.label("", 11)
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD
+	body.custom_minimum_size = Vector2(300, 0)
+	for i in Lore.MEMORIES.size():
+		if seen.has(i):
+			var idx := i
+			v.add_child(UIKit.button(Lore.memory_title(i), func(): body.text = str(Lore.MEMORIES[idx][1]), 300))
+		else:
+			v.add_child(UIKit.label("  ???", 11, UIKit.DIM))
+	v.add_child(body)
+	v.add_child(UIKit.button("Voltar", _show_main, 80))
+	_set_content(p, "memories")
 
 
 func _show_options() -> void:

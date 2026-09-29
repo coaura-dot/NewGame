@@ -123,6 +123,16 @@ func test_cena_do_mapa() -> void:
 	Game.profile["ow_clock"] = 0.0
 	await tree.process_frame
 	check(ow.night > 0.8, "meia-noite é noite (%.2f)" % ow.night)
+	# lamparina dos Veladores: acende ao passar, dá brasa e fica gravada
+	check(not ow._road_lamps.is_empty(), "há lamparinas apagadas nas estradas")
+	if not ow._road_lamps.is_empty():
+		var lamp: Dictionary = ow._road_lamps[0]
+		var money := int(Game.profile.get("currency", 0))
+		ow.hero.global_position = lamp["at"] + Vector2(4, 4)
+		await tree.process_frame
+		await tree.process_frame
+		check(Game.profile.get("ow_lamps", {}).has(lamp["id"]), "passar perto acende a lamparina da estrada")
+		check(int(Game.profile.get("currency", 0)) == money + 1, "lamparina da estrada dá 1 brasa")
 	ow.queue_free()
 	await tree.process_frame
 	Game.training = false
@@ -133,3 +143,29 @@ func test_cena_do_mapa() -> void:
 		Game.world = {}
 		Game.social = {}
 		Game.profile = Game.START_PROFILE.duplicate(true)
+
+
+
+## Lamparinas das estradas: ao lado da estrada (nunca em cima), longe das
+## vilas e umas das outras, sempre dentro de alguma região.
+func test_lamparinas_das_estradas() -> void:
+	for sd in [7, 31, 555]:
+		var world := WorldGenerator.generate(sd, DB)
+		var d := OverworldGen.generate(world)
+		var ids: Array = d.get("road_lamps", [])
+		check(ids.size() >= 6, "seed %d: lamparinas nas estradas (%d)" % [sd, ids.size()])
+		var cells: Array = []
+		for o in d["objects"]:
+			if o.get("kind", "") != "road_lamp":
+				continue
+			var c: Vector2i = o["cell"]
+			cells.append(c)
+			check(not d["roads"].has(c), "lamparina fora da pista (%s)" % c)
+			var near_road := false
+			for dd in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				if d["roads"].has(c + dd):
+					near_road = true
+			check(near_road, "lamparina colada na estrada (%s)" % c)
+			check(not o.get("solid", true), "lamparina não bloqueia a passagem")
+			check(ids.has(o["id"]), "id registrado")
+		check(cells.size() == ids.size(), "seed %d: um objeto por lamparina" % sd)

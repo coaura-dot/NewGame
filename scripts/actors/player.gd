@@ -209,6 +209,9 @@ var _cast_pose_t := 0.0
 var interact_area: Area2D
 var light: PointLight2D
 var halo: Sprite2D ## brilho quente em volta da chama (soma por cima do fundo escuro)
+var dark_boost: float = 0.0 ## 1 = sala sombria: a chama alcança mais longe
+var _dark_k: float = 0.0
+var _light_scale0: float = 1.0
 var rig: HeroRig
 var scarf: Scarf
 var emote: EmoteBubble
@@ -267,6 +270,7 @@ func _ready() -> void:
 	if light:
 		light.position = Vector2(0, -14)
 		add_child(light)
+		_light_scale0 = light.texture_scale
 	# o Pavio é a última chama: um halo quente que clareia até o fundo
 	halo = LightUtil.make_glow(HALO_COLOR, 44.0)
 	halo.position = Vector2(0, -14)
@@ -2076,7 +2080,9 @@ func _animate(d: float) -> void:
 	if scarf:
 		rig.scarf_color = scarf.color.lerp(Color(2.0, 2.0, 2.0), scarf.flash)
 	var flick := 0.85 + 0.15 * sin(Time.get_ticks_msec() / 60.0)
+	_dark_k = move_toward(_dark_k, dark_boost, get_process_delta_time() * 1.5)
 	if light:
+		light.texture_scale = _light_scale0 * (1.0 + 0.35 * _dark_k)
 		# a luz do herói É a chama: acompanha a posição e tremula junto
 		light.position = rig.anchor("flame") + Vector2(0, -2)
 		light.energy = LIGHT_ENERGY * rig.lit * flick * (0.7 + 0.3 * rig.vitality)
@@ -2084,7 +2090,7 @@ func _animate(d: float) -> void:
 		# com pouca vida a chama encolhe (o mundo fica mais escuro em volta)
 		halo.position = rig.anchor("flame") + Vector2(0, -2)
 		var k := rig.lit * (0.55 + 0.45 * rig.vitality) * (0.92 + 0.08 * flick)
-		halo.modulate = Color(HALO_COLOR.r, HALO_COLOR.g, HALO_COLOR.b, HALO_COLOR.a * k)
+		halo.modulate = Color(HALO_COLOR.r, HALO_COLOR.g, HALO_COLOR.b, HALO_COLOR.a * k * (1.0 + 0.5 * _dark_k))
 		halo.scale = Vector2.ONE * (44.0 * 2.0 / 64.0) * (0.75 + 0.25 * rig.vitality)
 	# expressão base
 	var ratio := hp / maxf(max_hp(), 1.0)

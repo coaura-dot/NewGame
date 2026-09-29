@@ -90,7 +90,7 @@ tools/   pixel_art.py (arte; --hero só o Pavio), pavio_art.py (Pavio lateral e 
    screenshot.gd (modos: treino menu salas sala heroi efeitos duelo mapa intro regiao
    chefe <id> loja).
    guardian_art.py / foe_art.py (guardiões e inimigos do motor de duelo).
-tests/   test_*.gd (~6200 verificações). test_overworld.gd garante que, com os
+tests/   test_*.gd (~7800 verificações). test_overworld.gd garante que, com os
    portões fechados, a pé só se alcança o que o grafo permite.
 
 4. COMANDOS ÚTEIS
@@ -101,91 +101,72 @@ Prints:  xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-drive
          --script tools/screenshot.gd -- <prefixo> <modo> [seed] ...
    Ex.: ... -- /tmp/x mapa 7     (vila inicial, 6 regiões e a noite)
         ... -- /tmp/x duelo      (telegrafia amarela/vermelha, punição, guarda)
-Arte:  python3 tools/pixel_art.py [--hero]   python3 tools/overworld_art.py [--preview DIR]
+Arte:  python3 tools/pixel_art.py [--hero|--world]   python3 tools/overworld_art.py [--preview DIR]
+       Depois de regerar PNGs: godot --headless --path . --import (senão o jogo usa a versão velha!)
 Sons:  python3 tools/sfx_gen.py
 
 5. ESTADO ATUAL (fim da sessão 8)
 ---------------------------------
-Pronto e enviado (sessão 6):
-- Pavio integrado (chama procedural, gola com a cor dos dashes, velinhas de vida).
-- Efeitos: dash (anel, riscos, fita), cortes em gradiente, marca de corte, magias por escola.
-- Sons: dash refeito; efeitos mais suaves.
-- Combate de duelo completo (inimigos e herói).
-- Mapa-múndi explorável com vilas, portões, noite, névoa, minimapa, intro.
-- História: intro, Lareira, frases por região, tábuas nas fases, falas, final.
-- Fontes com acentos minúsculos.
-- Bug do herói invisível depois de morrer: corrigido (player.revive mata o _fx_tween;
-  teste test_renasce_visivel em tests/test_movimento.gd).
+Sessões 6-7 (resumo): Pavio, efeitos e sons, duelo, mapa-múndi com vilas e noite,
+história (intro, Lareira, tábuas), 5 guardiões + Arquidemônio de 3 fases no motor de
+duelo (scripts/actors/guardian_brain.gd, "moves" em data/enemies.json), 3 inimigos
+comuns de duelo (wax_spear, soot_archer, coal_brute), comércio nas vilas
+(scripts/social/shop_system.gd), trilha sonora. Detalhes no README.
 
-Pronto e enviado (sessão 7):
-- Trilha sonora (6 faixas), inimigos novos (mariposa, Guarda de Cinzas, Sopro),
-  vida no mapa (água, bichos, clima, moradores vão para casa à noite).
-- GUARDIÕES: 5 chefes únicos, um por Brasa-Mestra/dom (em data/enemies.json):
-    raven_guardian  "Corvo das Cinzas"      (voa)  -> double_jump
-    spider_guardian "Tecelã das Frestas"           -> wall_climb
-    hare_guardian   "Lebre do Vendaval"            -> dash_2
-    golem_guardian  "Golem de Pedra-Pomes"         -> ground_pound
-    mirror_guardian "Espelho Etéreo"               -> blink
-  WorldGenerator.GUARDIAN_OF liga dom -> guardião (o resto cai em "nightmare").
-  Arte em tools/guardian_art.py (registrada em enemy_art.py com ALL.update).
-  Chefes que andam nunca recebem a arena com fosso de espinhos
-  (room_synth._boss(..., flying); level_generator passa "boss_flying").
-- MOTOR DE DUELO POR DADOS: scripts/actors/guardian_brain.gd (class GuardianBrain).
-  enemy.gd cria o cérebro quando "ai": "guardian". Estados: approach -> windup
-  -> attack -> recover (recover abre a janela de punição).
-  Cada item de "moves" tem: id, kind, weight, windup, recover, red (vermelho =
-  não dá para aparar/refletir), phase (fase mínima), range (min/max) e campos
-  próprios do kind. Kinds: lunge, swoop, combo (lista hits), volley (leque de
-  projéteis), slam (onda no chão / subir e cair se voa), rockfall, teleport
-  (com follow), dash_chain (red_last, dizzy), summon, decoys, cast (magia com
-  fan/fan_phase). Auxiliares: scripts/combat/shockwave.gd, falling_rock.gd,
-  scripts/actors/mirror_decoy.gd. Voadores trocam de lado (hover_side) e ficam
-  presos à sala (level.camera_rect).
-- ARQUIDEMÔNIO migrado para o motor: "ai": "guardian", 3 fases [1.0, 0.66, 0.33],
-  golpes garra, chama, sopro, poço, queda, meteoros, servos (fire_skull), passo.
-- COMÉRCIO nas vilas: scripts/social/shop_system.gd (dados puros).
-  Mercador (estoque por região, muda a cada fase concluída = profile.runs),
-  Curandeira (poções), Ferreira (forja da arma +10%/nível até 5, fragmento
-  rúnico a partir do 3º; armaduras), Sábio (nível das magias), Receptador
-  (compra armas/armaduras que sobram), Bardo (Canção: +15% de dano na próxima
-  fase, flags.song, consumida em level.gd ao nascer o herói).
-  Botões no diálogo: hud.gd _service_button, open_shop/open_forge/open_study/
-  open_sell (painéis com fundo escurecido via _open_panel).
-  Dano da arma x ShopSystem.weapon_mult x canção (player.build_attack_info).
+Sessão 8 — ESTÉTICA ESCURA (Hollow Knight/Ori) + LUZ COMO JOGABILIDADE:
+- tools/world_art.py reescrito. BIOMES tem por bioma: rock, deep, rim, back, glow,
+  glow2, warm, sky[3], haze, far/mid/near (silhuetas). A classe Lit desenha arte + uma
+  imagem de brilho ao mesmo tempo (L.emit). Saídas: tiles/<bioma>.png + _glow.png
+  (atlas 64x64, 8 linhas; linha 6 = rocha funda/muito funda + 4 decorações grandes que
+  brilham), bg/<bioma>/0_sky 1_far 2_mid 3_near + _glow de cada.
+- scripts/level/tileset_builder.gd: DEEP/DEEPER/BIG_GLOW/BG_SPECIAL, build_glow(),
+  glow_cells(), glow_color(). level_builder.gd: distância até o ar escolhe rocha de
+  borda/funda/muito funda; camada "Glow" aditiva HDR (GLOW_HDR); devolve "lamps"
+  (decorações grandes -> luzes em level._spawn_lamps). Salas fechadas NÃO usam mais
+  parede de fundo: mostram o parallax.
+- scripts/level/background_layer.gd: 4 camadas + _glow (ADD, HDR) + névoa
+  (shaders/fog.gdshader) entre as camadas; set_dim(k) escurece o fundo.
+- Penumbra: "shade" em data/biomes.json -> Level.ambient_color(); CanvasModulate.
+  Player: luz maior (LIGHT_ENERGY/escala) + halo quente (HALO_COLOR) que encolhe com
+  pouca vida; dark_boost aumenta a luz em sala sombria.
+- Inimigos: tools/pixel_art.py gera <id>_glow.png (pixels claros e saturados =
+  olhos/brasas); actor.gd cria glow_sprite (AnimatedSprite2D ADD) sincronizado.
+- shaders/display.gdshader: shadow_tint (azul-noite nas sombras), highlight_tint;
+  vinheta ligada por padrão (settings.gd).
+- Mapa-múndi: Overworld.daylight_color(night, power) — crepúsculo azul com a Lareira
+  apagada, esquenta com as Brasas devolvidas (power = _hearth_power()). NATURE_GLOW
+  (cogumelos, cristais, túmulos...). Luzes de janela/poste mais fortes no escuro.
+- Tela de título (scripts/ui/main_menu.gd): clareira da floresta montada com
+  LevelBuilder, HeroRig sentado, luar, vaga-lumes; título "PAVIO / a última chama".
+- LAMPARINAS: scripts/entities/lamparina.gd (char "l" = "lamp" em LevelConst).
+  RoomSynth.place_lamps(); LevelGenerator: DARK_TYPES, LAMP_CHANCE, dark_chance()
+  (RNG próprio "lamps:x:y" — não muda o sorteio das salas). Sala sombria =
+  room["dark"] + tag "dark" (3-4 lamparinas). Treino: force_dark [4] (o poço).
+  level.gd: _room_lamps, room_light_factor(), apply_room_light() (tween da penumbra
+  e do fundo), _on_lamp_lit (brasas, "A sala se ilumina!"), bônus Lumeeiro no fim
+  (result lamps/lamps_total/lumeeiro), resumo no hud.show_summary.
+- LEMBRANÇAS DA VELADORA: Lore.MEMORIES (10, em ordem), Lore.next_memory(),
+  memory_title(). scripts/entities/memory_wisp.gd nasce quando uma sala sombria
+  fica toda acesa (level._release_memory). profile["memories"]. Diário no menu de
+  pausa (pause_menu._show_memories).
+- LAMPARINAS DE ESTRADA no mapa-múndi: overworld_gen coloca "road_lamp" ao lado das
+  estradas (ROAD_LAMP_GAP, sem RNG) e devolve data["road_lamps"]; overworld.gd
+  _setup_road_lamp/_check_road_lamps (acende a ROAD_LAMP_REACH px, +1 brasa,
+  profile["ow_lamps"]).
+- Sons novos: lamp, room_lit (tools/sfx_gen.py).
+- Prints: screenshot.gd modo "sombria"; modo "sala <seed> <bioma> <tier> <sala>".
 
-Pronto e enviado (sessão 8, fechando o que a sessão 7 deixou em andamento):
-- 3 INIMIGOS COMUNS usando o motor de duelo (não são chefes):
-    wax_spear   "Lanceiro de Cera"     golpes estocada, dupla, varrida
-    soot_archer "Arqueira de Fuligem"  golpes flecha, trio, chuva
-    coal_brute  "Bruto de Carvão"      golpes pancada, salto, empurrao
-  - Dados em data/enemies.json; entram nos biomas (data/biomes.json, peso 2).
-  - Arte: tools/foe_art.py (FOES registrados em enemy_art.py) ->
-    assets/art/enemies/{wax_spear,soot_archer,coal_brute}.png/.json.
-    Paleta de fuligem/carvão clareada (no jogo o shader escurece).
-  - guardian_brain.gd: inimigo comum sem alvo válido (not e._target_valid())
-    vai para "patrol" e chama e._patrol(d) em vez de ficar parado.
-  - tests/test_combat.gd: test_guardioes_duelam também cobre os 3.
-- tools/screenshot.gd modo "chefe <id>": agora põe herói e inimigo no maior
-  trecho de chão plano da sala (_flat_floor), então os comuns duelam no print
-  em vez de ficar em "patrol" atrás do degrau do treino.
-- README: seção "Sessão 7" completa (Arquidemônio de 3 fases, inimigos comuns,
-  bichos, trilha sonora, vida no mapa).
-- Suíte inteira: 6211 verificações OK.
-
-6. O QUE FALTA / PRÓXIMOS PASSOS
---------------------------------
-Nada pendente da sessão 7. Escolha com o usuário o próximo item das ideias
-abaixo (ou o retorno dele depois de jogar). Lembretes:
-- git checkout tools/__pycache__ antes de commitar (os .pyc estão versionados
-  e mudam toda vez que os scripts Python rodam).
-- Os prints do modo "chefe" ficam em <prefixo>_cNNN_<estado>.png.
-
-Ideias para depois:
+6. O QUE FALTA / IDEIAS
+-----------------------
+- Últimas falas dos guardiões ao cair (eles eram os zeladores da Lareira — ver
+  Lembrança VI): painel curto depois da vitória.
 - Mais inimigos comuns no motor de duelo (é só dados + arte); chefes de horda,
   de puzzle e de parkour (perseguição em zigue-zague com espinhos).
-- Mapa-múndi: casas com interior, eventos à noite, pesca?
+- Mapa-múndi: casas com interior, eventos à noite; mostrar lamparinas de estrada
+  acesas no mapa 3D (M).
 - Menus e diálogos ainda desenhados em 480x270 (reduzidos); refazer para 320x180.
-- Templos antigos em data/rooms/core.txt estão na escala velha.
-- Ajustar o feel com o retorno do usuário (números no topo de player.gd,
-  enemy.gd e os windup/recover dos "moves" em data/enemies.json).
-- Regra de arte: use paletas mais claras que o esperado; o shader/bloom escurece.
+- Templos antigos em data/rooms/core.txt estão na escala velha (não recebem
+  lamparinas de sala sombria além das colocadas pelo gerador).
+- Ajustar o feel com o retorno do usuário (player.gd, enemy.gd, "moves").
+- Regra de arte: paletas escuras no cenário, personagens claros/legíveis, e tudo
+  que brilha vai para a camada _glow (nunca pintar "claro" achando que vai brilhar).

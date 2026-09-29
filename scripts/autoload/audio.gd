@@ -22,6 +22,8 @@ const EVENTS := {
 	"bell": ["g_bell"],
 	"feather": ["g_feather"],
 	"crystal": ["g_crystal"],
+	"lamp": ["g_lamp"],
+	"room_lit": ["g_roomlit"],
 	"pogo": ["g_pogo"],
 	"chain": ["g_chain"],
 	"chain_end": ["g_chainend"],

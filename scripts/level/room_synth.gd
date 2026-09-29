@@ -1446,6 +1446,37 @@ static func _boss(g: Array, rng: RandomNumberGenerator, exits: String, flying: b
 # Decoração
 # ---------------------------------------------------------------------------
 
+## Lamparinas apagadas ("l") em pé no chão ou em saliências, espalhadas pela
+## sala (uma por faixa horizontal). Não bloqueiam nada: o Pavio acende ao
+## passar. Devolve quantas couberam.
+static func place_lamps(g: Array, rng: RandomNumberGenerator, n: int) -> int:
+	if n <= 0:
+		return 0
+	var placed := 0
+	var band := float(W - 6) / float(n)
+	for k in n:
+		for attempt in 24:
+			var x := 3 + int(band * k) + rng.randi_range(0, maxi(int(band) - 1, 0))
+			x = clampi(x, 2, W - 3)
+			var y0 := rng.randi_range(3, H - 4)
+			if at(g, x - 1, y0) == "l" or at(g, x + 1, y0) == "l":
+				continue
+			var before := _count(g, "l")
+			if _put_standing(g, x, y0, "l") and _count(g, "l") > before:
+				placed += 1
+				break
+	return placed
+
+
+static func _count(g: Array, ch: String) -> int:
+	var n := 0
+	for row in g:
+		for c in row:
+			if c == ch:
+				n += 1
+	return n
+
+
 static func _decorate(g: Array, rng: RandomNumberGenerator, opts: Dictionary) -> void:
 	# tochas presas em paredes/pilares (célula vazia colada a um sólido)
 	var torches := 0

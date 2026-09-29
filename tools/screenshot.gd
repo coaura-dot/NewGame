@@ -10,6 +10,7 @@ extends SceneTree
 ## intro: os cartões da introdução do novo jogo;
 ## regiao [seed]: fase da região inicial (tábua de pedra com a inscrição);
 ## bichos: os inimigos novos (mariposa, Guarda de Cinzas, Sopro) em ação.
+## sombria [seed] [bioma]: a sala sombria do treino apagada e depois acesa.
 ## chefe <id>: um guardião duelando com o herói (vários quadros).
 ## loja [seed]: diálogo e painéis de loja/forja/estudo/venda na vila inicial.
 
@@ -71,6 +72,8 @@ func _process(_d: float) -> bool:
 		return _bichos()
 	if _mode == "chefe":
 		return _chefe()
+	if _mode == "sombria":
+		return _sombria()
 	if _mode != "menu":
 		if _n == 60:
 			Input.action_press("move_right")
@@ -495,5 +498,44 @@ func _loja(game: Node) -> bool:
 		if _n == st[0] + 8:
 			_save(st[1])
 	if _n > 112:
+		quit()
+	return false
+
+
+var _dark_lamps: Array = []
+
+
+func _sombria() -> bool:
+	var p = _level.player if _level else null
+	if p == null:
+		return false
+	if _n == 20:
+		var idx := -1
+		for r in _level.layout["rooms"]:
+			if r.get("dark", false):
+				idx = int(r["index"])
+		for n in _level.entities.get_children():
+			if n.get_script() and str(n.get_script().resource_path).ends_with("lamparina.gd") and n.room_index == idx:
+				_dark_lamps.append(n)
+		if _dark_lamps.is_empty():
+			quit()
+			return false
+		p.invuln_time = 999.0
+		p.global_position = _dark_lamps[0].global_position + Vector2(-40, 0)
+		p._prev_pos = p.global_position
+		p.reset_physics_interpolation()
+	if _n == 110:
+		_save("0_apagada")
+	if _n == 120:
+		p.global_position = _dark_lamps[0].global_position
+		p._prev_pos = p.global_position
+		p.reset_physics_interpolation()
+	if _n == 200:
+		_save("1_uma_acesa")
+	if _n == 210:
+		for l in _dark_lamps:
+			l.light_up()
+	if _n == 320:
+		_save("2_todas_acesas")
 		quit()
 	return false

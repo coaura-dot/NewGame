@@ -230,3 +230,47 @@ func test_crepusculo_da_lareira() -> void:
 	check(apagada.r < 0.8 and apagada.b > apagada.r, "Lareira apagada: dia azulado e escuro")
 	check(acesa.r > apagada.r + 0.2, "com as Brasas o dia esquenta e clareia")
 	check(noite.r < apagada.r, "a noite é mais escura que o crepúsculo")
+
+
+## Salas sombrias têm lamparinas em pé, em lugar livre (ninguém fica sem luz),
+## e as lamparinas não mudam o sorteio das salas (RNG próprio).
+func test_salas_sombrias_e_lamparinas() -> void:
+	var biomes := ["catacumbas", "cidade_subterranea", "toca_goblin", "cemiterio", "castelo", "floresta"]
+	var dark_rooms := 0
+	var lamps := 0
+	for i in 18:
+		var params := {"seed": 900 + i * 13, "biome": biomes[i % biomes.size()], "tier": 1 + i % 3, "boss": "", "hub": "",
+			"npcs": [], "abilities": ["dash"]}
+		var L := LevelGenerator.generate(params, lib, DB)
+		var rows: PackedStringArray = L["rows"]
+		var per_room := {}
+		for e in L["entities"]:
+			if e["type"] != "lamp":
+				continue
+			lamps += 1
+			var t := Vector2i(int(e["tile"][0]), int(e["tile"][1]))
+			per_room[int(e["room"])] = int(per_room.get(int(e["room"]), 0)) + 1
+			check(rows[t.y][t.x] == "." and rows[t.y - 1][t.x] == ".", "lamparina em lugar livre (%s)" % t)
+			var below: String = rows[t.y + 1][t.x]
+			check(below == "#" or below == "-", "lamparina em pé sobre chão/plataforma (%s: '%s')" % [t, below])
+		for r in L["rooms"]:
+			if r.get("dark", false):
+				dark_rooms += 1
+				check(PackedStringArray(r.get("tags", [])).has("dark"), "sala sombria marcada")
+				check(r["type"] in LevelGenerator.DARK_TYPES, "tipo que pode ser sombrio (%s)" % r["type"])
+				check(int(per_room.get(int(r["index"]), 0)) >= 2, "sala sombria %d tem lamparinas (%d)" % [r["index"], int(per_room.get(int(r["index"]), 0))])
+	check(dark_rooms >= 6, "fases escuras têm salas sombrias (%d)" % dark_rooms)
+	check(lamps >= 30, "lamparinas espalhadas pelas fases (%d)" % lamps)
+	# o treino força o poço (índice 4 do caminho) a ser sombrio
+	var tp := {"seed": 20260926, "biome": "castelo", "tier": 1, "boss": "nightmare", "hub": "", "npcs": [], "abilities": ["dash"],
+		"force_path": ["entrance", "platforming", "combat", "zigzag", "shaft", "combat", "challenge", "zigzag", "boss", "exit"],
+		"training": true, "force_dark": [4]}
+	var TL := LevelGenerator.generate(tp, lib, DB)
+	var darks := []
+	for r in TL["rooms"]:
+		if r.get("dark", false):
+			darks.append(r["type"])
+	check(darks == ["shaft"], "treino: só o poço é sombrio (%s)" % [darks])
+	# chance de sala sombria: biomas escuros > comuns; sobe com o tier
+	check(LevelGenerator.dark_chance({"tags": ["underground"]}, 1, {}) > LevelGenerator.dark_chance({"tags": ["outdoor"]}, 1, {}), "subterrâneo é mais sombrio")
+	check(LevelGenerator.dark_chance({"tags": []}, 3, {}) > LevelGenerator.dark_chance({"tags": []}, 1, {}), "tier maior, mais salas sombrias")
