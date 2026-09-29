@@ -426,3 +426,19 @@ func test_chute_de_parede() -> void:
 	check(p.dashes >= 1, "chute de parede recarrega o dash")
 	await _frames(60)
 	await _teardown()
+
+
+func test_renasce_visivel() -> void:
+	var p := await _setup()
+	await _frames(5)
+	var at := p.global_position
+	p.invuln_time = 0.0
+	p.take_status_damage(9999.0, "teste")
+	await _frames(40)
+	check(p.dead, "herói morreu")
+	p.revive(at)
+	for i in 200:
+		await _frames(1)
+	var dis: float = float(p._mat.get_shader_parameter("dissolve")) if p._mat else 0.0
+	check(not p.dead and p.rig.modulate.a > 0.99 and dis < 0.01, "depois de renascer o herói aparece (alpha %.2f, dissolve %.2f)" % [p.rig.modulate.a, dis])
+	await _teardown()

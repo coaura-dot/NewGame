@@ -131,6 +131,7 @@ var air_chain := 0 ## ações encadeadas sem tocar o chão
 var bonus_jumps := 0 ## pulo extra de Pena/Sino (some ao pousar)
 var _wall_refill_ready := true ## parede recarrega o dash uma vez por toque
 var _step_t := 0.0
+var _fx_tween: Tween = null ## morte/renascer (cancelado ao reviver)
 var best_chain := 0
 var force_move_x := 0
 var force_move_t := 0.0
@@ -1575,7 +1576,10 @@ func _hazard_respawn() -> void:
 	Audio.play("respawn", 0.05, -8.0)
 	_set_state(State.RESPAWN)
 	velocity = Vector2.ZERO
+	if _fx_tween and _fx_tween.is_valid():
+		_fx_tween.kill()
 	var tw := create_tween()
+	_fx_tween = tw
 	tw.tween_property(rig, "modulate:a", 0.0, 0.12)
 	tw.tween_callback(func():
 		var back := hazard_spawn_override if hazard_spawn_override != Vector2.ZERO else last_safe_pos
@@ -1619,13 +1623,21 @@ func _on_death(_info: DamageInfo) -> void:
 	rig.play("dead")
 	emote.show_emote("skull", 1.5, true)
 	FX.burst(body_center(), Color(0.95, 0.93, 0.9), 12, 90.0)
-	var tw := create_tween()
-	tw.tween_interval(0.5)
-	tw.tween_method(set_dissolve, 0.0, 1.0, 0.6)
+	if _fx_tween and _fx_tween.is_valid():
+		_fx_tween.kill()
+	_fx_tween = create_tween()
+	_fx_tween.tween_interval(0.35)
+	_fx_tween.tween_method(set_dissolve, 0.0, 1.0, 0.4)
 	Events.player_died.emit(self)
 
 
 func revive(at: Vector2) -> void:
+	# o tween da morte (dissolver) não pode continuar depois de renascer
+	if _fx_tween and _fx_tween.is_valid():
+		_fx_tween.kill()
+	_fx_tween = null
+	rig.modulate.a = 1.0
+	rig.visible = true
 	dead = false
 	hp = max_hp()
 	global_position = at.round()
