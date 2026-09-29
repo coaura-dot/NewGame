@@ -39,11 +39,15 @@ func _process(_d: float) -> bool:
 				pend["biome"] = args[3]
 			if args.size() > 4:
 				pend["tier"] = int(args[4])
+			if args.size() > 5:
+				_room = int(args[5])
 			root.get_node("Game").pending = pend
 			_level = load("res://scenes/level.tscn").instantiate()
 			root.add_child(_level)
 	if _mode == "salas":
 		return _salas()
+	if _mode == "sala":
+		return _sala_unica()
 	if _mode != "menu":
 		if _n == 60:
 			Input.action_press("move_right")
@@ -96,4 +100,24 @@ func _salas() -> bool:
 	if k == 30:
 		_save("sala%02d_%s" % [_room, _level.layout["rooms"][_room]["type"]])
 		_room += 1
+	return false
+
+
+## Uma sala só: entra pela esquerda e fica parado (mostra fuga/torretas agindo).
+func _sala_unica() -> bool:
+	if _n == 30:
+		var r: Rect2 = _level.room_rect(_room)
+		var rows: PackedStringArray = _level.layout["rows"]
+		var tx := int(r.position.x / 8) + 2
+		var p = _level.player
+		for ty in range(int(r.position.y / 8) + 12, int(r.end.y / 8)):
+			if rows[ty + 1][tx] == "#":
+				p.global_position = Vector2(tx * 8 + 4, (ty + 1) * 8)
+				break
+		p._prev_pos = p.global_position
+		p.reset_physics_interpolation()
+	if _n in [60, 160, 260, 330]:
+		_save("f%d" % _n)
+	if _n > 340:
+		quit()
 	return false

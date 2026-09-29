@@ -64,7 +64,7 @@ func test_deterministico() -> void:
 func test_sintetizador_cobre_todas_saidas() -> void:
 	var rng := RngUtil.make(5, "synth")
 	var combos := ["L", "R", "U", "D", "LR", "LU", "LD", "RU", "RD", "UD", "LRU", "LRD", "LUD", "RUD", "LRUD"]
-	for t in ["combat", "platforming", "challenge", "corridor", "puzzle", "treasure", "secret", "boss", "hub", "shaft"]:
+	for t in ["combat", "platforming", "challenge", "corridor", "puzzle", "treasure", "secret", "boss", "hub", "shaft", "zigzag"]:
 		for ex in combos:
 			var rows := RoomSynth.synth(t, ex, rng, {"tier": 2})
 			eq(rows.size(), LevelConst.ROOM_H, "synth %s %s altura" % [t, ex])
@@ -80,7 +80,7 @@ func test_salas_atravessaveis() -> void:
 	# toda sala gerada deve ser atravessável com o pulo/dash reais do herói
 	var rng := RngUtil.make(11, "reach")
 	var combos := ["LR", "LU", "LD", "RU", "RD", "UD", "LRU", "LRD", "LUD", "RUD", "LRUD"]
-	for t in ["combat", "platforming", "challenge", "corridor", "puzzle", "treasure", "entrance", "exit", "hub", "boss", "shaft"]:
+	for t in ["combat", "platforming", "challenge", "corridor", "puzzle", "treasure", "entrance", "exit", "hub", "boss", "shaft", "zigzag"]:
 		for ex in combos:
 			for k in 2:
 				var rows := RoomSynth.synth(t, ex, rng, {"tier": 2})

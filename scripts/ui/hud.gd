@@ -51,6 +51,8 @@ func _ready() -> void:
 	if level:
 		player = level.player
 		_region_title = level.region.get("name", "")
+		if str(level.params.get("theme", "")) == "frenesi":
+			_region_title += " · FRENESI"
 		_region_title_t = 3.5
 
 

@@ -229,8 +229,12 @@ static func _can_reach_pogo(gr: Grid, p: Vector2i, s: Vector2i, cap: Dictionary)
 		r = int(reach[0]) + mini(-rise / 2, 3)
 	if absi(n.x - p.x) > r:
 		return false
-	var apex := mini(n.y - 1, p.y - 1)
-	return gr.col(p.x, apex, p.y) and gr.row(p.x, n.x, apex) and gr.col(n.x, apex, n.y)
+	# algum caminho "sobe/anda/desce" livre, passando pelo menos 1 tile acima do espinho
+	var hi := maxi(p.y - up, 0)
+	for apex in range(mini(n.y - 1, p.y), hi - 1, -1):
+		if gr.col(p.x, apex, p.y) and gr.row(p.x, n.x, apex) and gr.col(n.x, apex, n.y):
+			return true
+	return false
 
 
 ## Dá para golpear/tocar o orbe o a partir de p (pés em p)?

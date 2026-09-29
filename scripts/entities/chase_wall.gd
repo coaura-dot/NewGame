@@ -25,7 +25,7 @@ func _ready() -> void:
 	z_index = 20
 	global_position = Vector2.ZERO
 	_hz = Hazard.new()
-	_hz.damage = 20.0
+	_hz.damage = 10.0
 	_hz.pogoable = false
 	var cs := CollisionShape2D.new()
 	_shape = RectangleShape2D.new()

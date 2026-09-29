@@ -14,7 +14,9 @@ extends RefCounted
 const DIRS := {"R": Vector2i(1, 0), "L": Vector2i(-1, 0), "U": Vector2i(0, -1), "D": Vector2i(0, 1)}
 const OPP := {"R": "L", "L": "R", "U": "D", "D": "U"}
 ## Mistura frenética: muito parkour e combate, pouca pausa.
-const PATH_WEIGHTS := {"combat": 4.0, "platforming": 4.0, "corridor": 1.5, "puzzle": 0.7, "shaft": 1.2}
+const PATH_WEIGHTS := {"combat": 4.0, "platforming": 4.0, "corridor": 1.5, "puzzle": 0.7, "shaft": 1.2, "zigzag": 2.0}
+## Fase "Frenesi": quase tudo é zigue-zague sobre espinhos, com combate intercalado.
+const FRENESI_WEIGHTS := {"combat": 2.5, "platforming": 1.5, "corridor": 0.5, "puzzle": 0.2, "shaft": 0.8, "zigzag": 7.0}
 const BRANCH_WEIGHTS := {"treasure": 3.0, "secret": 2.0, "challenge": 2.5, "puzzle": 0.8, "combat": 1.0}
 ## Chance de uma sala de plataforma do caminho virar "caçada" (fecha até matar todos).
 const HUNT_CHANCE := 0.3
@@ -50,11 +52,13 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 	else:
 		types.append("entrance")
 		var hub: String = params.get("hub", "")
+		var frenesi: bool = params.get("theme", "") == "frenesi"
+		var weights: Dictionary = FRENESI_WEIGHTS if frenesi else PATH_WEIGHTS
 		for i in range(1, length - 1):
-			var t: String = RngUtil.weighted_key(rng, PATH_WEIGHTS)
+			var t: String = RngUtil.weighted_key(rng, weights)
 			if i == 1 and hub != "":
 				t = "hub"
-			elif types.size() > 0 and types[-1] == t and t != "combat":
+			elif types.size() > 0 and types[-1] == t and t != "combat" and not (frenesi and t == "zigzag"):
 				t = "combat"
 			types.append(t)
 		types.append("exit")
@@ -62,7 +66,7 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 			types[length - 2] = "boss"
 		# parkour em sequência horizontal: continua o mesmo tipo (vira sala larga)
 		for i in range(2, length - 2):
-			if types[i - 1] in ["platforming", "challenge"] and types[i] != "boss" and path[i].y == path[i - 1].y and rng.randf() < 0.5:
+			if types[i - 1] in ["platforming", "challenge", "zigzag"] and types[i] != "boss" and path[i].y == path[i - 1].y and rng.randf() < 0.5:
 				types[i] = types[i - 1]
 	for i in path.size():
 		rooms[path[i]]["type"] = types[i]
@@ -174,7 +178,7 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 				room["tags"] = tpl["tags"]
 		if g.is_empty():
 			# caçada: sala de plataforma do caminho que fecha até matar todos
-			var hunt: bool = room["type"] == "platforming" and room.get("on_path", false) and rng.randf() < HUNT_CHANCE
+			var hunt: bool = room["type"] in ["platforming", "zigzag"] and room.get("on_path", false) and rng.randf() < HUNT_CHANCE
 			# fuga: muralha de espinhos avança pela sala (só salas L-R do caminho)
 			var chase: bool = not hunt and room["type"] in ["platforming", "corridor"] and room["exits"] == "LR" \
 				and room.get("on_path", false) and rng.randf() < CHASE_CHANCE
@@ -291,7 +295,7 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 
 
 ## Tipos que podem virar uma sala larga (2 telas) quando vizinhos no caminho.
-const WIDE_TYPES := ["platforming", "challenge", "corridor"]
+const WIDE_TYPES := ["platforming", "challenge", "corridor", "zigzag"]
 
 
 ## Abre a parede entre salas vizinhas de parkour (esquerda-direita) no caminho
@@ -425,6 +429,8 @@ static func _choose_template(library: ChunkLibrary, t: String, exits: String, bi
 	if found.is_empty():
 		return {}
 	# o sintetizador (escala 8 px) é o principal; templates entram às vezes
+	if t == "zigzag":
+		return {}
 	if t in ["combat", "corridor", "platforming", "shaft", "challenge"] and rng.randf() < 0.7:
 		return {}
 	return RngUtil.weighted_item(rng, found)

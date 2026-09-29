@@ -77,7 +77,8 @@ func _resolve_params() -> void:
 			"seed": int(pending.get("seed", 20260926)), "biome": str(pending.get("biome", "castelo")),
 			"tier": int(pending.get("tier", 1)), "boss": "nightmare", "hub": "",
 			"dimension": "prima", "npcs": [], "abilities": Game.profile["abilities"],
-			"force_path": ["entrance", "platforming", "combat", "platforming", "shaft", "combat", "challenge", "corridor", "boss", "exit"],
+			"force_path": ["entrance", "platforming", "combat", "zigzag", "shaft", "combat", "challenge", "zigzag", "boss", "exit"],
+			"theme": str(pending.get("theme", "")),
 		}
 		region = {"name": "Salão de Treino", "biome": params["biome"], "tier": params["tier"]}
 		return
@@ -93,6 +94,7 @@ func _resolve_params() -> void:
 		if e["kind"] == "rift" and e["a"] == region_id:
 			rift = e["b"]
 	params = {
+		"theme": region_theme(region),
 		"seed": int(region.get("level_seed", 1)),
 		"biome": region.get("biome", "castelo"),
 		"tier": int(region.get("tier", 1)) + (1 if siege else 0),
@@ -105,6 +107,16 @@ func _resolve_params() -> void:
 	}
 	if siege:
 		params["boss"] = "archdemon"
+
+
+## Tema da fase (derivado da seed da região): ~40% das fases são "Frenesi"
+## (zigue-zague sobre espinhos com combate intercalado).
+static func region_theme(r: Dictionary) -> String:
+	if r.has("theme"):
+		return str(r["theme"])
+	if r.get("hub", "") != "":
+		return ""
+	return "frenesi" if int(r.get("level_seed", 0)) % 5 in [1, 3] else ""
 
 
 func _build_world() -> void:
@@ -464,6 +476,7 @@ const HINTS := {
 	"waves": "Arena fechada: derrote todas as ondas para abrir.",
 	"hunt": "Caçada: a sala só abre quando todos os inimigos caírem!",
 	"chase": "FUJA! A muralha de espinhos avança — não pare de correr!",
+	"zigzag": "Chão de espinhos! Encadeie orbes, pogos e inimigos sem pousar.",
 	"turret": "Torretas atiram no ritmo. GOLPEIE a bala para rebater: recarrega o dash e a devolve!",
 }
 
@@ -486,6 +499,8 @@ func _hints_for_room(idx: int) -> void:
 		want.push_front("hunt")
 	if PackedStringArray(room.get("tags", [])).has("chase"):
 		want.push_front("chase")
+	if room.get("type", "") == "zigzag":
+		want.push_front("zigzag")
 	for k in want:
 		if not seen.has(k):
 			seen[k] = true

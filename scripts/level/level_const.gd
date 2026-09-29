@@ -33,7 +33,7 @@ const ENTITY_CHARS := {
 }
 
 const ROOM_TYPES := ["entrance", "exit", "combat", "platforming", "corridor", "puzzle", "treasure",
-	"secret", "challenge", "hub", "boss", "shaft"]
+	"secret", "challenge", "hub", "boss", "shaft", "zigzag"]
 
 
 static func room_origin(cell: Vector2i) -> Vector2i:
