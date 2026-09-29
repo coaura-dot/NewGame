@@ -368,6 +368,7 @@ func _physics_process(_delta: float) -> void:
 func _on_room_entered(idx: int) -> void:
 	var room: Dictionary = layout["rooms"][idx]
 	Events.room_entered.emit(room)
+	Music.play(_music_for_room(room))
 	if _cleared.has(idx):
 		return
 	var alive := _alive_enemies(idx)
@@ -405,6 +406,19 @@ func _focus_camera_on_player() -> void:
 	camera.snap()
 
 
+## Trilha da sala: chefe vivo > Cerco > vila (hub) > mundo paralelo > bioma.
+func _music_for_room(room: Dictionary) -> String:
+	if room.get("type", "") == "boss" and boss_node and is_instance_valid(boss_node) and not boss_node.dead:
+		return "chefe"
+	if siege:
+		return "cerco"
+	if room.get("type", "") == "hub":
+		return "vila"
+	if params.get("dimension", "prima") != "prima":
+		return "dimensao"
+	return str(biome.get("music", "castelo"))
+
+
 func _alive_enemies(idx: int) -> int:
 	var n := 0
 	for en in _room_enemies.get(idx, []):
@@ -437,6 +451,7 @@ func on_enemy_killed(en: Node) -> void:
 		result["boss_killed"] = true
 		FX.slowmo(0.2, 1.5)
 		Events.toast.emit("%s derrotado!" % en.data.get("name", "Chefe"))
+		Music.play(_music_for_room(layout["rooms"][maxi(_current_room, 0)]), 3.0)
 		if hud and hud.has_method("hide_boss"):
 			hud.hide_boss()
 	var room: int = int(en.get_meta("room", -1))

@@ -24,6 +24,7 @@ DB="*res://scripts/autoload/database.gd"
 Game="*res://scripts/autoload/game.gd"
 FX="*res://scripts/autoload/fx.gd"
 Audio="*res://scripts/autoload/audio.gd"
+Music="*res://scripts/autoload/music.gd"
 SaveSystem="*res://scripts/autoload/save_system.gd"
 
 [display]

@@ -10,6 +10,7 @@ var _t: float = 0.0
 func _ready() -> void:
 	FX.clear_time_effects()
 	get_tree().paused = false
+	Music.play("menu")
 	_cam = Camera2D.new()
 	_cam.position = Vector2(160, 90)
 	add_child(_cam)

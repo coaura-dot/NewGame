@@ -27,6 +27,8 @@ func _ready() -> void:
 		Game.pending = {"region": start}
 		await _shot_rooms("regiao")
 		SaveSystem.delete_save(9)
+	if scenario in ["shop", "all"]:
+		await _shot_shop()
 	if scenario in ["combat", "all"]:
 		Game.pending = {"training": true}
 		await _shot_combat()
@@ -69,6 +71,46 @@ func _shot_pause() -> void:
 	level.queue_free()
 	await _frames(2)
 	Game.end_training()
+
+
+## Painéis de diálogo, loja, forja e estudo com NPCs de uma vila.
+func _shot_shop() -> void:
+	Game.new_game(1234, 9)
+	var hub := ""
+	for rid in Game.world["regions"].keys():
+		if Game.world["regions"][rid].get("hub", "") != "":
+			hub = rid
+			break
+	Game.pending = {"region": hub}
+	Game.profile["currency"] = 600
+	Game.profile["items"][Commerce.FRAGMENT] = 3
+	var level: Node = load("res://scenes/level.tscn").instantiate()
+	add_child(level)
+	await _frames(30)
+	var ids := {}
+	for npc in Game.social["npcs"].values():
+		for s in npc["services"]:
+			ids[s] = npc["id"]
+	# garante um de cada serviço para a foto
+	var any: String = Game.social["npcs"].keys()[0]
+	var npc0: Dictionary = Game.social["npcs"][any]
+	npc0["services"] = ["shop", "upgrade_weapon", "upgrade_armor", "upgrade_spell", "heal"]
+	level.hud.open_dialogue(any)
+	await _frames(6)
+	await _save("npc_dialogo")
+	level.hud.open_shop(any, false)
+	await _frames(6)
+	await _save("npc_loja")
+	level.hud.open_forge(any)
+	await _frames(6)
+	await _save("npc_forja")
+	level.hud.open_study(any)
+	await _frames(6)
+	await _save("npc_estudo")
+	level.hud.close_panel()
+	level.queue_free()
+	await _frames(2)
+	SaveSystem.delete_save(9)
 
 
 ## Sequência de quadros de golpes (leve, pesado carregado, para cima, no ar)

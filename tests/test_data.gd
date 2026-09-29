@@ -36,6 +36,14 @@ func test_upgrade_nao_quebra_tier_acima() -> void:
 		check(sc <= cap.y * 1.35, "magia %s no nível máximo forte demais: %.1f" % [id, sc])
 
 
+func test_trilhas_de_musica() -> void:
+	for id in DB.biomes.keys():
+		var track: String = DB.biome(id).get("music", "")
+		check(Music.has_track(track), "bioma %s sem trilha (%s)" % [id, track])
+	for t in ["menu", "vila", "chefe", "dimensao", "cerco"]:
+		check(Music.has_track(t), "trilha %s existe" % t)
+
+
 func test_forja_nao_quebra_tier_acima() -> void:
 	# arma forjada no nível máximo não pode passar do teto do tier seguinte
 	for id in DB.weapons.keys():

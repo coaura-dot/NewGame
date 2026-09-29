@@ -407,6 +407,8 @@ func open_shop(npc_id: String, selling: bool) -> void:
 	var list: VBoxContainer = parts[2]
 	var prof: Dictionary = Game.profile
 	var ids: Array = Commerce.sellables(prof) if selling else Commerce.stock(Game.social, Game.world, npc_id, Game.seed_value)
+	if not selling:
+		ids = ids.filter(func(id): return not Commerce.owns(prof, id))
 	if ids.is_empty():
 		list.add_child(UIKit.label("Nada por aqui." if not selling else "Você não tem nada que eu compre.", 11, UIKit.DIM))
 	for i in ids:
