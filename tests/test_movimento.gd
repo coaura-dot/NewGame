@@ -474,3 +474,93 @@ func test_chama_do_pavio() -> void:
 	await _frames(3)
 	check(p.rig.lit == 1.0 and p.rig._flame_height() > 2.0, "chama reacende ao renascer")
 	await _teardown()
+
+
+## Duelo: telegrafia amarela antes do golpe, janela de punição depois,
+## guarda contra spam (bloqueia leve, pesado quebra) e contra-golpe do aparo.
+func test_duelo_esqueleto() -> void:
+	var p := await _setup()
+	p.invuln_time = 99.0
+	var en := Enemy.new()
+	en.setup("skeleton", 2)
+	en.position = p.global_position + Vector2(40, -2)
+	_root.add_child(en)
+	await _frames(2)
+	en.stats.set_source("teste", {"max_hp": 5000.0})
+	en.hp = en.max_hp()
+	var saw_warn := false
+	var saw_punish := false
+	var saw_red_or_combo := false
+	var states := {}
+	for i in 900:
+		await _frames(1)
+		states[en.ai_state] = true
+		if en.ai_state.ends_with("windup") and en.emote.kind in ["warn", "danger"]:
+			saw_warn = true
+		if en.ai_state == "combo_windup" or en.tele_red:
+			saw_red_or_combo = true
+		if en.punish_t > 0.0:
+			saw_punish = true
+		if saw_warn and saw_punish and saw_red_or_combo:
+			break
+	print("    estados do esqueleto: %s" % str(states.keys()))
+	check(saw_warn, "esqueleto telegrafa (! amarelo ou !! vermelho) antes de golpear")
+	check(saw_punish, "depois do golpe abre a janela de punição")
+	check(saw_red_or_combo, "tier 2 faz combos / golpe vermelho")
+	# guarda: 2 golpes leves seguidos fora da janela
+	en.ai_state = "chase"
+	en.punish_t = 0.0
+	en.riposte_t = 0.0
+	en.stagger_time = 0.0
+	en.attack.cancel()
+	en.facing = -1
+	var light := DamageInfo.new()
+	light.amount = 1.0
+	light.source = p
+	light.team = p.team
+	light.direction = Vector2(1, 0)
+	for k in en.guard_threshold:
+		en.invuln_time = 0.0
+		en.take_hit(light.duplicate_info())
+	eq(en.ai_state, "guard", "apanhar seguido faz erguer a guarda")
+	en.invuln_time = 0.0
+	eq(en.take_hit(light.duplicate_info()), DamageInfo.Result.BLOCKED, "guarda bloqueia golpe leve de frente")
+	var back := light.duplicate_info()
+	back.direction = Vector2(-1, 0)
+	en.invuln_time = 0.0
+	check(en.take_hit(back) != DamageInfo.Result.BLOCKED, "golpe pelas costas passa pela guarda")
+	en.ai_state = "guard"
+	var heavy := light.duplicate_info()
+	heavy.is_heavy = true
+	en.invuln_time = 0.0
+	var hp0 := en.hp
+	en.take_hit(heavy)
+	check(en.hp < hp0 and en.punish_t > 0.0 and en.ai_state != "guard", "golpe pesado quebra a guarda e abre a janela")
+	# aparo perfeito -> contra-golpe crítico
+	en.on_parried(p, true)
+	check(en.riposte_t > 0.0, "aparo perfeito libera o contra-golpe")
+	var riposte := light.duplicate_info()
+	riposte.amount = 10.0
+	en.invuln_time = 0.0
+	hp0 = en.hp
+	en.take_hit(riposte)
+	check(riposte.is_crit and hp0 - en.hp > 10.0 * 1.2 and en.riposte_t == 0.0, "contra-golpe é crítico e mais forte (%.1f)" % (hp0 - en.hp))
+	await _teardown()
+
+
+## Fim do combo no chão: um respiro antes de recomeçar (sem spam infinito).
+func test_respiro_do_combo() -> void:
+	var p := await _setup()
+	var starts := [0] # array: lambdas capturam variáveis locais por valor
+	p.attack.started.connect(func(_s, _k): starts[0] += 1)
+	# segura o golpe pressionando a cada 2 quadros por 0,6 s
+	for i in 72:
+		if i % 2 == 0:
+			Input.action_press("attack")
+		else:
+			Input.action_release("attack")
+		await _frames(1)
+	Input.action_release("attack")
+	print("    golpes em 0,6 s martelando: %d" % starts[0])
+	check(starts[0] >= 3 and starts[0] <= 5, "combo de 3 + respiro (golpes: %d)" % starts[0])
+	await _teardown()

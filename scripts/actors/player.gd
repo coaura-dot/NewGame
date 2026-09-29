@@ -96,6 +96,9 @@ const PARRY_COOLDOWN := 0.3
 const POUND_SPEED := 320.0
 const ATTACK_BUFFER := 0.12
 const COMBO_TIMEOUT := 1.2
+const COMBO_END_LOCK := 0.3 ## depois do 3º golpe no chão: respiro antes de recomeçar (sem spam)
+const COUNTER_TIME := 0.9 ## depois de uma esquiva perfeita: o próximo acerto é crítico
+const COUNTER_MULT := 1.5
 const AIR_STALL := 35.0 ## golpe acertado no ar segura a queda (combos aéreos)
 const AIR_STALL_MAX := 3 ## quantas vezes por salto
 const KILL_POP := 100.0 ## abater no ar dá um quique (continua a cadeia)
@@ -167,6 +170,8 @@ var combo_index := 0
 var combo_count := 0
 var combo_timer := 0.0
 var attack_buffer_t := 0.0
+var combo_lock_t := 0.0 ## respiro no fim do combo (golpes no chão esperam)
+var counter_t := 0.0 ## contra-ataque liberado pela esquiva perfeita
 var attack_dir := "side" ## side | up | down
 var heavy_charging := false
 var heavy_t := 0.0
@@ -483,6 +488,8 @@ func _timers(d: float) -> void:
 	parry_cd -= d
 	dodge_cd -= d
 	attack_buffer_t -= d
+	combo_lock_t = maxf(combo_lock_t - d, 0.0)
+	counter_t = maxf(counter_t - d, 0.0)
 	combo_timer -= d
 	recoil_t -= d
 	_cast_pose_t -= d
@@ -845,7 +852,11 @@ func _common_actions(d: float) -> void:
 		blocking = Input.is_action_pressed("parry") and parry_t <= 0.0 and on_ground
 	# ataque leve: não trava o corpo; pode encadear no fim do golpe anterior
 	if attack_buffer_t > 0.0 and not heavy_charging and (not attack.is_busy() or attack.can_chain()):
-		_start_light()
+		# respiro do fim do combo: só o golpe de lado no chão espera (pogo e
+		# golpes no ar nunca travam — o parkour vem primeiro)
+		var locked := combo_lock_t > 0.0 and on_ground and input_y * g_dir >= 0.0
+		if not locked:
+			_start_light()
 	# pesado: segurar carrega (arte da lâmina), soltar golpeia
 	if Input.is_action_just_pressed("heavy") and not heavy_charging and not attack.is_busy():
 		if not on_ground and input_y * g_dir > 0 and Game.has_ability("ground_pound"):
@@ -1094,6 +1105,9 @@ func _start_light() -> void:
 		if combo_timer <= 0.0 or combo_index >= chain.size():
 			combo_index = 0
 		step = chain[combo_index]
+		if combo_index == chain.size() - 1 and chain.size() >= 3:
+			# finalizador: depois dele, um respiro curto antes do próximo combo
+			combo_lock_t = COMBO_END_LOCK + float(step.get("startup", 0.05)) + float(step.get("active", 0.08)) + float(step.get("recovery", 0.15))
 		# ritmo: acertar o tempo do golpe anterior acumula Compasso
 		if moveset.get("rhythm", false) and attack.is_busy():
 			var beat := float(attack.step.get("beat", 0.07))
@@ -1229,6 +1243,14 @@ func build_attack_info(step: Dictionary, kind: String, charge: float, target: No
 	if velocity.length() > MAX_RUN * 1.5:
 		mult *= 1.25
 		info.tags.append("speed")
+	# contra-ataque: primeiro acerto logo depois de uma esquiva perfeita
+	if counter_t > 0.0 and target and is_instance_valid(target) and target is Actor:
+		counter_t = 0.0
+		mult *= COUNTER_MULT
+		info.is_crit = true
+		info.stagger *= 2.0
+		info.tags.append("counter")
+		FX.text(target.body_center() + Vector2(0, -16), "CONTRA-ATAQUE!", Color(0.6, 1.0, 1.0))
 	info.amount *= mult
 	if slowmo_bonus():
 		info.amount *= 1.15
@@ -1483,6 +1505,8 @@ func _before_hit(info: DamageInfo) -> int:
 		emote.show_emote("sweat", 0.8)
 		rig.set_expression("wide", 0.5)
 		gain_focus(12.0)
+		counter_t = COUNTER_TIME
+		rig.flame_pop(0.5)
 		buffs.trigger("perfect_dodge")
 		Events.perfect_dodge.emit(self)
 		return DamageInfo.Result.DODGED

@@ -4,7 +4,8 @@ extends SceneTree
 ## treino: anda, pula e ataca; menu: menu principal; salas: um print por sala
 ## do treino (teleporta o herói para cada sala); heroi: closes do Pavio em
 ## várias poses (parado, correndo, pulando, dash, golpe, feliz, ferido, morto);
-## efeitos: dash, golpe e os efeitos de cada escola de magia.
+## efeitos: dash, golpe e os efeitos de cada escola de magia;
+## duelo: esqueleto telegrafando (amarelo/vermelho), guarda e janela de punição.
 
 var _out := "user://shot"
 var _mode := "treino"
@@ -54,6 +55,8 @@ func _process(_d: float) -> bool:
 		return _heroi()
 	if _mode == "efeitos":
 		return _efeitos()
+	if _mode == "duelo":
+		return _duelo()
 	if _mode != "menu":
 		if _n == 60:
 			Input.action_press("move_right")
@@ -224,3 +227,53 @@ func _efeitos() -> bool:
 	if _n > 165:
 		quit()
 	return false
+
+
+var _en: Node = null
+var _shot_tags := {}
+
+
+func _duelo() -> bool:
+	var p = _level.player if _level else null
+	if p == null:
+		return false
+	if _n == 30:
+		p.invuln_time = 999.0
+		_en = load("res://scripts/actors/enemy.gd").new()
+		_en.setup("skeleton", 2)
+		_en.position = p.global_position + Vector2(36, -2)
+		_en.level = _level
+		p.get_parent().add_child(_en)
+	if _en and is_instance_valid(_en) and _n > 32:
+		_en.hp = _en.max_hp()
+		p._idle_t = 0.0
+		var st: String = _en.ai_state
+		var late: bool = _en.ai_t < 0.16
+		if st.ends_with("windup") and late and not _en.tele_red and not _shot_tags.has("amarelo"):
+			_shot_tags["amarelo"] = true
+			_crop2(p, "amarelo")
+		elif st.ends_with("windup") and late and _en.tele_red and not _shot_tags.has("vermelho"):
+			_shot_tags["vermelho"] = true
+			_crop2(p, "vermelho")
+		elif _en.punish_t > 0.0 and not _shot_tags.has("punicao"):
+			_shot_tags["punicao"] = true
+			_crop2(p, "punicao")
+		if _shot_tags.has("amarelo") and _shot_tags.has("punicao") and not _shot_tags.has("guarda"):
+			_shot_tags["guarda"] = true
+			_en._start_guard()
+		elif st == "guard" and not _shot_tags.has("guarda_shot"):
+			_shot_tags["guarda_shot"] = true
+			_crop2(p, "guarda")
+	if _n > 1500 or _shot_tags.size() >= 5:
+		quit()
+	return false
+
+
+func _crop2(p: Node, tag: String) -> void:
+	var img := root.get_texture().get_image()
+	var sc := float(img.get_width()) / 320.0
+	var at: Vector2 = _level.pixel_view.world_to_screen(p.global_position + Vector2(18, -12)) * sc
+	var sz := Vector2(80, 48) * sc
+	var r := Rect2i(Vector2i((at - sz * 0.5).round()), Vector2i(sz.round()))
+	r = r.intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+	img.get_region(r).save_png("%s_%s.png" % [_out, tag])

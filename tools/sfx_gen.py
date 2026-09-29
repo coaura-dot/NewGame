@@ -363,6 +363,17 @@ def make_all():
     for i, nn in enumerate([67, 72, 76, 79]):
         parts.append((exp_decay(osc("square", note(nn), note(nn), 0.3, duty=0.25), 0.12), 0.3, i * 0.07))
     save("clear_0", echo(mix(*parts), 0.1, 0.25, 2), 0.7)
+    # telegrafia: "ting" amarelo (dá para aparar) e alerta vermelho (esquive)
+    tw = mix((exp_decay(osc("sine", note(91), note(91), 0.22), 0.06), 0.7, 0),
+             (exp_decay(osc("sine", note(98), note(98), 0.18), 0.04), 0.35, 0.03))
+    save("warn_0", tw, 0.55)
+    dg = mix((exp_decay(osc("tri", note(86), note(86), 0.12), 0.04), 0.7, 0),
+             (exp_decay(osc("tri", note(80), note(80), 0.16), 0.05), 0.7, 0.07),
+             (exp_decay(lowpass(osc("square", note(68), note(68), 0.2, duty=0.4), 1800), 0.06), 0.25, 0.07))
+    save("danger_0", dg, 0.6)
+    # guarda erguida / bloqueio do inimigo: clangue curto
+    gd = mix((fm(note(76), 3.4, 2.5, 0.25, decay=0.06), 0.7, 0), (env(bandpass(white(0.05, r), 1500, 5000), 0.001, 0.04), 0.25, 0))
+    save("guard_0", gd, 0.6)
     # aparo perfeito
     save("parry_0", echo(mix((fm(note(96), 1.4, 3.0, 0.5, decay=0.18), 0.7, 0), (exp_decay(osc("sine", note(108), note(108), 0.3), 0.08), 0.2, 0)), 0.07, 0.35, 3), 0.75)
 

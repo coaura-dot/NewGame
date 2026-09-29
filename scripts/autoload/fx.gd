@@ -10,6 +10,7 @@ const HitSpark := preload("res://scripts/fx/hit_spark.gd")
 const RingFx := preload("res://scripts/fx/ring_fx.gd")
 const SpeedLines := preload("res://scripts/fx/speed_lines.gd")
 const CutFx := preload("res://scripts/fx/cut_fx.gd")
+const GlintFx := preload("res://scripts/fx/glint_fx.gd")
 const FONT_SMALL := preload("res://assets/fonts/kenney_mini.ttf")
 
 var camera: Node = null
@@ -193,6 +194,14 @@ func speed_lines(pos: Vector2, dir: Vector2, color: Color = Color(2.0, 2.0, 2.4,
 	s.count = count
 	s.length = length
 	_root().add_child(s)
+
+
+## Brilho de telegrafia na arma (amarelo = aparável, vermelho = esquive).
+func glint(pos: Vector2, color: Color) -> void:
+	var g := GlintFx.new()
+	g.global_position = pos.round()
+	g.color = color
+	_root().add_child(g)
 
 
 ## Marca de corte atravessando o alvo na direção do golpe.

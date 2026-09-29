@@ -2,6 +2,8 @@ class_name EmoteBubble
 extends Node2D
 ## Balãozinho de expressão acima da cabeça (herói e NPCs): "!", "?", "!?",
 ## "...", coração, nota musical, "zzz", raiva, gota de suor, brilho, tontura.
+## Em combate: "warn" (! amarelo = dá para aparar), "danger" (!! vermelho =
+## só esquivando) e "guard" (escudo = o inimigo está defendendo).
 ## Tudo em pixel art 1x desenhada em código (5x5 dentro de um balão 9x9).
 
 const ICONS := {
@@ -16,12 +18,16 @@ const ICONS := {
 	"spark": ["..#..", "..#..", "#####", "..#..", "..#..", "....."],
 	"dizzy": [".....", "#...#", ".#.#.", "..#..", ".#.#.", "#...#"],
 	"skull": [".###.", "#####", "#.#.#", "#####", ".#.#.", "....."],
+	"warn": [".....", "..#..", "..#..", "..#..", ".....", "..#.."],
+	"danger": [".....", ".#.#.", ".#.#.", ".#.#.", ".....", ".#.#."],
+	"guard": [".....", "#####", "#.#.#", "#####", ".###.", "..#.."],
 }
 const COLORS := {
 	"!": Color(0.88, 0.25, 0.3), "?": Color(0.3, 0.45, 0.9), "!?": Color(0.88, 0.35, 0.6),
 	"...": Color(0.2, 0.18, 0.28), "heart": Color(0.95, 0.35, 0.5), "note": Color(0.35, 0.55, 0.95),
 	"zzz": Color(0.35, 0.4, 0.75), "anger": Color(0.9, 0.2, 0.2), "spark": Color(0.95, 0.72, 0.2),
 	"dizzy": Color(0.55, 0.4, 0.8), "skull": Color(0.2, 0.18, 0.28),
+	"warn": Color(0.92, 0.66, 0.08), "danger": Color(0.9, 0.12, 0.16), "guard": Color(0.36, 0.52, 0.8),
 }
 const BUBBLE := Color(0.96, 0.94, 0.9)
 const INK := Color(0.106, 0.082, 0.157)
@@ -60,7 +66,7 @@ func clear() -> void:
 
 static func _priority(k: String) -> int:
 	match k:
-		"skull", "!", "!?": return 3
+		"skull", "!", "!?", "warn", "danger", "guard": return 3
 		"heart", "spark", "anger": return 2
 		"?", "note", "dizzy": return 1
 	return 0

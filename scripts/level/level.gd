@@ -494,7 +494,24 @@ const HINTS := {
 	"reset_bell": "SINO: golpeie para recarregar o dash e ganhar um pulo, sem perder a trajetória.",
 	"double_crystal": "CRISTAL ROSA: dois dashes seguidos!",
 	"turret": "Torretas atiram no ritmo. GOLPEIE a bala para rebater: recarrega o dash e a devolve!",
+	"yellow_attack": "Brilho AMARELO + \"!\" = dá para APARAR (L) no instante do golpe. Depois do golpe, ele fica exposto: puna!",
+	"red_attack": "Brilho VERMELHO + \"!!\" = não dá para aparar: ESQUIVE (Ctrl) ou saia de perto!",
+	"guard": "Bater sem parar faz o inimigo DEFENDER e contra-atacar. Golpe PESADO (K) quebra a guarda; por trás e pogo passam.",
 }
+
+
+## Dica de primeira vez disparada por um evento (combate etc.).
+func hint_once(key: String) -> void:
+	if not HINTS.has(key):
+		return
+	var flags: Dictionary = Game.profile.get("flags", {})
+	var seen: Dictionary = flags.get("hints", {})
+	if seen.has(key):
+		return
+	seen[key] = true
+	flags["hints"] = seen
+	Game.profile["flags"] = flags
+	Events.toast.emit(HINTS[key])
 
 
 ## Dicas de primeira vez (salvas no perfil: aparecem uma vez só).

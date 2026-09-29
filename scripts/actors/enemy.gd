@@ -9,8 +9,33 @@ extends Actor
 ##   turret   - fixo, cospe fogo
 ##   charger  - investe atravessando a sala
 ##   boss_demon - chefe voador com 3 fases
+##
+## DUELO (Dead Cells + Hollow Knight): troca de golpes, não spam.
+##   - Telegrafia: antes de cada golpe o inimigo brilha AMARELO (dá para
+##     aparar/rebater) ou VERMELHO (só esquivando), mostra "!"/"!!" e a arma
+##     cintila no último instante. Cada cor tem um som.
+##   - Combos de 1-3 golpes com pausas variadas; no tier 2+ o combo de 3
+##     termina num golpe pesado vermelho.
+##   - Janela de punição: depois do combo o inimigo fica exposto (golpes
+##     quebram a postura bem mais rápido).
+##   - Guarda: apanhar seguido fora da janela faz o inimigo erguer a guarda
+##     (bloqueia golpes leves de frente) e contra-atacar. Golpe pesado quebra
+##     a guarda; pogo e golpes pelas costas passam. Feras recuam e dão o bote.
+##   - Aparo perfeito abre um CONTRA-GOLPE (próximo acerto crítico).
 
 signal phase_changed(phase: int)
+
+const TELE_YELLOW := Color(1.0, 0.78, 0.12)
+const TELE_RED := Color(1.0, 0.12, 0.12)
+const GLINT_YELLOW := Color(3.2, 2.6, 0.5)
+const GLINT_RED := Color(3.4, 0.6, 0.5)
+const PUNISH_POISE := 1.8 ## golpes na janela de punição quebram a postura mais rápido
+const GUARD_WINDOW := 1.4 ## golpes dentro desse intervalo contam como "spam"
+const GUARD_TIME := 0.6 ## quanto tempo segura a guarda antes do contra-ataque
+const GUARD_BLOCKS := 2 ## golpes que a guarda aguenta antes de contra-atacar na hora
+const COUNTER_WINDUP := 0.24
+const RIPOSTE_TIME := 1.2 ## depois de um aparo perfeito: o próximo acerto é crítico
+const RIPOSTE_MULT := 1.8
 
 var enemy_id: String = ""
 var data: Dictionary = {}
@@ -41,6 +66,17 @@ var _wander_dir: int = 1
 var recoil_t: float = 0.0 ## empurrado por um golpe (a IA espera)
 var emote: EmoteBubble
 var _aware: bool = false
+# duelo
+var guard_threshold: int = 0 ## golpes seguidos (fora da janela) até erguer a guarda; 0 = nunca
+var punish_t: float = 0.0 ## >0 = exposto depois de atacar
+var riposte_t: float = 0.0 ## >0 = aparado em cheio: próximo acerto é contra-golpe
+var guard_blocks: int = 0
+var tele_red: bool = false ## o golpe telegrafado agora é vermelho (não dá para aparar)
+var _attack_red: bool = false ## o golpe em andamento é vermelho
+var _combo_red_finisher: bool = false
+var _spam_hits: Array = [] ## tempos dos golpes recebidos fora da janela
+var _glint_done: bool = true
+var _pending_spell: String = "" ## magia escolhida no início da conjuração
 
 
 func setup(id: String, enemy_tier: int, dimension_id: String = "prima") -> void:
@@ -59,6 +95,12 @@ func setup(id: String, enemy_tier: int, dimension_id: String = "prima") -> void:
 	base_time = float(dim.get("physics", {}).get("enemy_time", 1.0))
 	gravity_mult = float(dim.get("physics", {}).get("gravity", 1.0))
 	aggressive = dim.get("rules", []).has("enemies_aggressive")
+	var default_guard := 0
+	match ai:
+		"melee": default_guard = 3 if tier <= 1 else 2
+		"lunger": default_guard = 2
+		"charger": default_guard = 3
+	guard_threshold = int(data.get("guard", default_guard))
 
 
 func _ready() -> void:
@@ -153,6 +195,7 @@ func _actor_physics(d: float, raw: float) -> void:
 	for wp in _weak_points:
 		wp[0].position = Vector2(wp[1].x * facing, wp[1].y)
 	recoil_t -= d
+	_duel_tick(d)
 	if status.disabled() or stagger_time > 0.0 or recoil_t > 0.0:
 		if recoil_t <= 0.0:
 			attack.cancel()
@@ -249,12 +292,120 @@ func _windup_time() -> float:
 	return maxf(t, 0.2)
 
 
-func _telegraph(unblockable: bool = false) -> void:
+## Aviso antes do golpe: brilho do corpo, "!" (amarelo) ou "!!" (vermelho),
+## som e, no último instante, a arma cintila (ver _duel_tick).
+func _telegraph(unblockable: bool = false, duration: float = -1.0) -> void:
+	var t := duration if duration > 0.0 else _windup_time()
+	tele_red = unblockable
+	_glint_done = false
 	_flash = 0.0
 	if _mat:
-		_mat.set_shader_parameter("flash_color", Color(1.0, 0.2, 0.2) if unblockable else Color(1.0, 1.0, 1.0))
+		_mat.set_shader_parameter("flash_color", TELE_RED if unblockable else TELE_YELLOW)
 	var tw := create_tween()
-	tw.tween_method(func(v): _flash = v, 0.0, 0.8, _windup_time() * 0.8)
+	tw.tween_method(func(v): _flash = v, 0.0, 0.85, t * 0.8)
+	if emote:
+		emote.show_emote("danger" if unblockable else "warn", t + 0.1, true)
+	Audio.play("telegraph_red" if unblockable else "telegraph", 0.04, -9.0 if not unblockable else -6.0)
+	if unblockable and level and level.has_method("hint_once"):
+		level.hint_once("red_attack")
+	elif level and level.has_method("hint_once"):
+		level.hint_once("yellow_attack")
+
+
+func _duel_tick(d: float) -> void:
+	punish_t = maxf(punish_t - d, 0.0)
+	riposte_t = maxf(riposte_t - d, 0.0)
+	# a arma cintila no último instante da preparação
+	if not _glint_done and ai_state.ends_with("windup") and ai_t <= 0.14:
+		_glint_done = true
+		var at := body_center() + Vector2(facing * (float(data.get("body", [8, 12])[0]) * 0.5 + 3.0), -3.0)
+		FX.glint(at, GLINT_RED if tele_red else GLINT_YELLOW)
+	elif not ai_state.ends_with("windup"):
+		_glint_done = true
+
+
+## Janela de punição: o inimigo fica exposto por `t` segundos.
+func _open_punish(t: float) -> void:
+	punish_t = t
+	_spam_hits.clear()
+	if not flying and not boss:
+		FX.burst(body_center() + Vector2(facing * 3, -4), Color(0.95, 0.95, 1.0, 0.7), 3, 20.0, Vector2(facing, -1), 40.0, 0.35)
+
+
+## Guarda contra spam: registra o golpe e, se passar do limite, defende.
+func _count_spam(info: DamageInfo) -> void:
+	if guard_threshold <= 0 or boss or info.is_spell or info.is_hazard or info.pogo:
+		return
+	if punish_t > 0.0 or riposte_t > 0.0 or stagger_time > 0.0:
+		return
+	if not ai_state in ["idle", "patrol", "chase", "windup", "recover"]:
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	_spam_hits.append(now)
+	_spam_hits = _spam_hits.filter(func(t): return now - t < GUARD_WINDOW)
+	if _spam_hits.size() >= guard_threshold:
+		_spam_hits.clear()
+		if ai == "lunger":
+			_start_evade()
+		else:
+			_start_guard()
+
+
+func _start_guard() -> void:
+	attack.cancel()
+	ai_state = "guard"
+	ai_t = GUARD_TIME
+	guard_blocks = GUARD_BLOCKS
+	velocity.x = 0.0
+	_face_target()
+	emote.show_emote("guard", GUARD_TIME + 0.2, true)
+	Audio.play("guard", 0.05, -6.0)
+	if _mat:
+		_mat.set_shader_parameter("flash_color", Color(0.6, 0.8, 1.0))
+	_flash = 0.6
+	if level and level.has_method("hint_once"):
+		level.hint_once("guard")
+
+
+## Feras não bloqueiam: pulam para trás e dão o bote em seguida.
+func _start_evade() -> void:
+	attack.cancel()
+	_face_target()
+	velocity = Vector2(-facing * 120.0, -150.0)
+	ai_state = "evade"
+	ai_t = 0.3
+	_anim("jump")
+	FX.dust(global_position, Vector2(facing, -0.4), 3)
+
+
+## Golpe de frente contra a guarda? (pogo e golpes pelas costas passam)
+func _guard_blocks(info: DamageInfo) -> bool:
+	if ai_state != "guard" or info.is_spell or info.is_hazard or info.pogo or info.unblockable:
+		return false
+	var from_front := info.direction.x == 0.0 or signf(info.direction.x) != float(facing)
+	return from_front
+
+
+func _before_hit(info: DamageInfo) -> int:
+	if not _guard_blocks(info):
+		return -1
+	if info.is_heavy:
+		# golpe pesado quebra a guarda: atordoa e abre a janela de punição
+		ai_state = "recover"
+		stagger_time = 0.9
+		ai_t = 0.9
+		_open_punish(1.2)
+		emote.show_emote("dizzy", 0.9, true)
+		FX.text(body_center() + Vector2(0, -14), "GUARDA QUEBRADA!", Color(1.0, 0.85, 0.35))
+		FX.shake(0.2)
+		return -1
+	guard_blocks -= 1
+	FX.hit_spark(body_center() + Vector2(facing * 5, -2), Vector2(-facing, 0), Color(2.2, 2.6, 3.2), true)
+	Audio.play("guard", 0.08, -4.0)
+	_flash = 0.7
+	if guard_blocks <= 0:
+		ai_t = 0.0 # contra-ataca já
+	return DamageInfo.Result.BLOCKED
 
 
 # ---------------------------------------------------------------------------
@@ -281,11 +432,12 @@ func _update_awareness() -> void:
 		emote.show_emote("?", 0.8)
 
 
-func _melee_attack(kind: String = "light") -> void:
+func _melee_attack(kind: String = "light", red: bool = false) -> void:
 	if moveset.is_empty():
 		return
+	_attack_red = red
 	if _mat:
-		_mat.set_shader_parameter("flash_color", Color(1, 1, 1))
+		_mat.set_shader_parameter("flash_color", TELE_RED if red else Color(1, 1, 1))
 	var step: Dictionary
 	if kind == "heavy":
 		step = moveset.get("heavy", {})
@@ -315,11 +467,16 @@ func _ai_melee(d: float) -> void:
 			_face_target()
 			if absf(_dx()) <= attack_range and is_on_floor():
 				ai_state = "windup"
-				ai_t = _windup_time()
-				combo_left = mini(tier, int(moveset.get("light", [1]).size())) - 1
+				var chain_len := int(moveset.get("light", [1]).size())
+				var max_combo := mini(1 + tier, chain_len)
+				combo_left = rng.randi_range(0, max_combo - 1)
 				combo_step = 0
+				_combo_red_finisher = tier >= 2 and combo_left >= 2 and moveset.has("heavy")
+				# às vezes (tier 2+) abre com um golpe pesado vermelho, mais lento
+				var red_open := tier >= 2 and moveset.has("heavy") and combo_left == 0 and rng.randf() < 0.35
+				ai_t = _windup_time() + (0.15 if red_open else 0.0)
 				velocity.x = 0.0
-				_telegraph()
+				_telegraph(red_open, ai_t)
 			elif _ledge_ahead():
 				velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
 				_anim("idle")
@@ -330,7 +487,7 @@ func _ai_melee(d: float) -> void:
 			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
 			_anim("windup")
 			if ai_t <= 0.0:
-				_melee_attack()
+				_melee_attack("heavy" if tele_red else "light", tele_red)
 				ai_state = "attack"
 		"attack":
 			var step := attack.step
@@ -340,11 +497,35 @@ func _ai_melee(d: float) -> void:
 				velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
 			if not attack.is_busy():
 				if combo_left > 0:
+					# pausa curta e variada entre os golpes (não dá para decorar)
 					combo_left -= 1
-					_melee_attack()
+					ai_state = "combo_windup"
+					var red := combo_left == 0 and _combo_red_finisher
+					ai_t = rng.randf_range(0.16, 0.34) + (0.14 if red else 0.0)
+					_face_target()
+					_telegraph(red, ai_t)
 				else:
 					ai_state = "recover"
-					ai_t = rng.randf_range(0.45, 0.9) * (0.7 if aggressive else 1.0)
+					ai_t = rng.randf_range(0.55, 0.95) * (0.7 if aggressive else 1.0)
+					_open_punish(ai_t)
+		"combo_windup":
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+			_anim("windup")
+			if ai_t <= 0.0:
+				_melee_attack("heavy" if tele_red else "light", tele_red)
+				ai_state = "attack"
+		"guard":
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+			_face_target()
+			_anim("windup")
+			if ai_t <= 0.0:
+				# contra-ataque rápido (amarelo: quem esperou pode aparar)
+				ai_state = "windup"
+				combo_left = 0
+				combo_step = 0
+				_combo_red_finisher = false
+				ai_t = COUNTER_WINDUP
+				_telegraph(false, ai_t)
 		"recover":
 			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
 			_anim("idle")
@@ -367,9 +548,10 @@ func _ai_lunger(d: float) -> void:
 			var dist := absf(_dx())
 			if dist <= attack_range and dist > 12.0 and is_on_floor():
 				ai_state = "windup"
-				ai_t = _windup_time() * 0.8
+				var heavy_bite := moveset.has("heavy") and rng.randf() < 0.35
+				ai_t = _windup_time() * 0.8 + (0.12 if heavy_bite else 0.0)
 				velocity.x = -facing * 20.0
-				_telegraph()
+				_telegraph(heavy_bite, ai_t)
 				_anim("windup")
 			else:
 				velocity.x = move_toward(velocity.x, facing * speed, 600.0 * d)
@@ -381,16 +563,27 @@ func _ai_lunger(d: float) -> void:
 				velocity = Vector2(facing * speed * 1.6, -150.0)
 				_anim("jump")
 				combo_step = 0
-				_melee_attack("heavy" if moveset.has("heavy") and rng.randf() < 0.4 else "light")
+				_melee_attack("heavy" if tele_red else "light", tele_red)
 				ai_state = "attack"
 				ai_t = 0.8
+		"evade":
+			# pulou para trás: ao pousar, prepara o bote na hora
+			if is_on_floor() and velocity.y >= 0.0:
+				velocity.x = move_toward(velocity.x, 0.0, 700.0 * d)
+			if ai_t <= 0.0 and is_on_floor():
+				_face_target()
+				ai_state = "windup"
+				ai_t = _windup_time() * 0.6
+				_telegraph(false, ai_t)
+				_anim("windup")
 		"attack":
 			if is_on_floor() and velocity.y >= 0.0 and ai_t < 0.6:
 				velocity.x = move_toward(velocity.x, 0.0, 800.0 * d)
 			if ai_t <= 0.0 or (not attack.is_busy() and is_on_floor()):
 				attack.cancel()
 				ai_state = "recover"
-				ai_t = rng.randf_range(0.5, 1.0)
+				ai_t = rng.randf_range(0.55, 1.0)
+				_open_punish(ai_t)
 		"recover":
 			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
 			_anim("idle")
@@ -422,7 +615,8 @@ func _ai_caster(d: float) -> void:
 			if valid and ai_t <= 0.0 and not spells.is_empty():
 				ai_state = "windup"
 				ai_t = _windup_time() + 0.1
-				_telegraph()
+				_pending_spell = RngUtil.pick(rng, spells)
+				_telegraph(_spell_is_red(_pending_spell), ai_t)
 				_anim("cast")
 			elif valid and not moveset.is_empty() and body_center().distance_to(target.body_center()) < 20.0 and ai_t <= 0.0:
 				_melee_attack()
@@ -430,7 +624,8 @@ func _ai_caster(d: float) -> void:
 		"windup":
 			velocity *= 0.9
 			if ai_t <= 0.0:
-				var sp: String = RngUtil.pick(rng, spells)
+				var sp: String = _pending_spell if _pending_spell != "" else RngUtil.pick(rng, spells)
+				_pending_spell = ""
 				var aim: Vector2 = (target.body_center() - body_center()).normalized() if target else Vector2(facing, 0)
 				caster.cooldowns.erase(sp)
 				caster.cast(sp, maxi(tier - 1, 0), aim, target.body_center() if target else global_position)
@@ -452,7 +647,7 @@ func _ai_turret(d: float) -> void:
 				if ai_t <= 0.0:
 					ai_state = "windup"
 					ai_t = _windup_time() + 0.2
-					_telegraph()
+					_telegraph(false, ai_t)
 					_anim("cast")
 		"windup":
 			if ai_t <= 0.0:
@@ -486,13 +681,22 @@ func _ai_charger(d: float) -> void:
 			if absf(_dx()) < attack_range and is_on_floor():
 				ai_state = "windup"
 				ai_t = _windup_time() + 0.25
-				_telegraph(true)
+				_telegraph(true, ai_t)
 				velocity.x = -facing * 30.0
 				_anim("idle")
 				emote.show_emote("anger", 0.6)
 			else:
 				velocity.x = move_toward(velocity.x, facing * speed, 400.0 * d)
 				_anim("move")
+		"guard":
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
+			_face_target()
+			_anim("idle")
+			if ai_t <= 0.0:
+				# contra-ataque: investida (vermelha — esquive!)
+				ai_state = "windup"
+				ai_t = _windup_time()
+				_telegraph(true, ai_t)
 		"windup":
 			velocity.x = move_toward(velocity.x, 0.0, 200.0 * d)
 			if ai_t <= 0.0:
@@ -516,6 +720,7 @@ func _ai_charger(d: float) -> void:
 					emote.show_emote("dizzy", 0.9, true)
 				ai_state = "recover"
 				ai_t = 0.8
+				_open_punish(1.1 if stagger_time > 0.0 else 0.8)
 		"recover":
 			velocity.x = move_toward(velocity.x, 0.0, 600.0 * d)
 			_anim("idle")
@@ -546,8 +751,7 @@ func _ai_diver(d: float) -> void:
 			if to.length() < 14.0 and ai_t <= 0.0:
 				ai_state = "windup"
 				ai_t = _windup_time() * 0.8
-				_telegraph()
-				emote.show_emote("!", ai_t)
+				_telegraph(false, ai_t)
 		"windup":
 			velocity = velocity.move_toward(Vector2.ZERO, 400.0 * d)
 			# recua um pouquinho antes do bote
@@ -603,11 +807,13 @@ func _ai_boss(d: float) -> void:
 				if roll < 0.35:
 					ai_state = "swoop_windup"
 					ai_t = _windup_time() + 0.3
-					_telegraph()
+					_telegraph(phase_idx >= 1, ai_t)
 				else:
 					ai_state = "cast_windup"
 					ai_t = _windup_time() + 0.2
-					_telegraph(phase_idx >= 2)
+					var pool: Array = spells.slice(0, mini(spells.size(), phase_idx + 1))
+					_pending_spell = RngUtil.pick(rng, pool) if not pool.is_empty() else ""
+					_telegraph(phase_idx >= 2 or _spell_is_red(_pending_spell), ai_t)
 					_anim("cast")
 		"swoop_windup":
 			velocity *= 0.92
@@ -616,6 +822,7 @@ func _ai_boss(d: float) -> void:
 				ai_t = 0.55
 				velocity = (target.body_center() - global_position).normalized() * 210.0
 				var chain: Array = moveset.get("light", [])
+				_attack_red = tele_red
 				if not chain.is_empty():
 					attack.start(chain[mini(phase_idx, chain.size() - 1)], "light", facing)
 				_anim("attack")
@@ -623,11 +830,13 @@ func _ai_boss(d: float) -> void:
 			if ai_t <= 0.0:
 				ai_state = "recover"
 				ai_t = 0.9 - 0.2 * phase_idx
+				_open_punish(ai_t)
 		"cast_windup":
 			velocity *= 0.9
 			if ai_t <= 0.0:
 				var pool: Array = spells.slice(0, mini(spells.size(), phase_idx + 1))
-				var sp: String = RngUtil.pick(rng, pool)
+				var sp: String = _pending_spell if _pending_spell != "" else RngUtil.pick(rng, pool)
+				_pending_spell = ""
 				caster.cooldowns.erase(sp)
 				var aim: Vector2 = (target.body_center() - global_position).normalized()
 				caster.cast(sp, phase_idx, aim, target.body_center())
@@ -665,8 +874,10 @@ func build_attack_info(step: Dictionary, kind: String, charge: float, _target: N
 	for s in step.get("status", {}).keys():
 		st[s] = int(st.get(s, 0)) + int(step["status"][s])
 	info.status = st
-	info.parryable = not (ai == "charger" and kind == "heavy")
+	info.parryable = not _attack_red and not (ai == "charger" and kind == "heavy")
 	info.unblockable = not info.parryable
+	if not info.parryable:
+		info.tags.append("red")
 	info.is_crit = CombatMath.roll_crit(rng, stats)
 	return info
 
@@ -696,8 +907,10 @@ func on_parried(_by: Node, perfect: bool) -> void:
 	emote.show_emote("dizzy", stagger_time, true)
 	if perfect:
 		status.add("mark", 1)
+		riposte_t = RIPOSTE_TIME
 	ai_state = "recover"
 	ai_t = stagger_time
+	_open_punish(stagger_time)
 
 
 func _has_super_armor() -> bool:
@@ -714,7 +927,27 @@ func _apply_knockback(info: DamageInfo) -> void:
 		recoil_t = maxf(recoil_t, 0.12 * k)
 
 
+## Janela de punição e contra-golpe mexem no golpe antes do dano.
+func _modify_incoming(info: DamageInfo, amount: float) -> float:
+	if info.source is Player and not info.is_hazard:
+		if riposte_t > 0.0 and not info.is_spell:
+			riposte_t = 0.0
+			amount *= RIPOSTE_MULT
+			info.is_crit = true
+			info.stagger *= 2.0
+			info.tags.append("riposte")
+			FX.text(body_center() + Vector2(0, -16), "CONTRA-GOLPE!", Color(1.0, 0.9, 0.4))
+			FX.hitstop(0.1)
+		elif punish_t > 0.0:
+			info.stagger *= PUNISH_POISE
+			info.tags.append("punish")
+	return amount
+
+
 func _on_damaged(info: DamageInfo, amount: float) -> void:
+	_count_spam(info)
+	if info.tags.has("punish"):
+		FX.hit_spark(body_center(), info.direction, Color(3.0, 2.4, 0.8), false)
 	var heavy := info.is_heavy or info.weak_point_mult > 1.0
 	var at: Vector2 = info.hit_position if info.hit_position != Vector2.ZERO else body_center()
 	FX.impact(at.lerp(body_center(), 0.5), info.direction, amount, info.is_crit or info.weak_point_mult > 1.0, heavy)
@@ -763,6 +996,14 @@ func _on_death(info: DamageInfo) -> void:
 	var tw := create_tween()
 	tw.tween_method(set_dissolve, 0.0, 1.0, 0.6 if not boss else 2.0)
 	tw.tween_callback(queue_free)
+
+
+## Magias de área (nova, campos) não dá para rebater: telegrafia vermelha.
+func _spell_is_red(spell_id: String) -> bool:
+	if spell_id == "":
+		return false
+	var cast_mode: String = DB.spell(spell_id).get("cast", "projectile")
+	return cast_mode in ["nova", "field", "time_field", "storm", "sigil"]
 
 
 ## Drops do loadout (mesmo pool do jogador). Retorna ids sorteados.
