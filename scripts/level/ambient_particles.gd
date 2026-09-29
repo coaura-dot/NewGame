@@ -41,7 +41,7 @@ func _process(delta: float) -> void:
 		p[0].x = fposmod(p[0].x, 340.0)
 		p[0].y = fposmod(p[0].y, 200.0)
 	if camera:
-		global_position = camera.get_screen_center_position() - Vector2(170, 100)
+		global_position = camera.get_screen_center_position() - LevelConst.VIEW * 0.5 - Vector2(10, 10)
 	queue_redraw()
 
 

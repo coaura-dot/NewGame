@@ -29,6 +29,11 @@ uniform float contrast = 1.0;
 uniform float hue_shift = 0.0;
 
 uniform float fade = 0.0;
+// Quadro de impacto (Katana Zero): por um instante a cena vira silhueta em
+// dois tons (claro vira tinta escura, escuro vira papel claro).
+uniform float impact = 0.0;
+uniform vec3 impact_ink = vec3(0.05, 0.03, 0.07);
+uniform vec3 impact_paper = vec3(1.1, 1.05, 1.0);
 uniform vec4 fade_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 
 vec3 hue_rotate(vec3 c, float a) {
@@ -97,6 +102,10 @@ void fragment() {
 	if (grain_on) {
 		float n = fract(sin(dot(uv * (TIME + 1.0), vec2(12.9898, 78.233))) * 43758.5453);
 		col += (n - 0.5) * grain;
+	}
+	if (impact > 0.0) {
+		float li = dot(col, vec3(0.299, 0.587, 0.114));
+		col = mix(col, li > 0.22 ? impact_ink : impact_paper, impact);
 	}
 	col = mix(col, fade_color.rgb, fade);
 	COLOR = vec4(col, 1.0);

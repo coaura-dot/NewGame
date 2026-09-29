@@ -4,8 +4,8 @@ extends CanvasLayer
 ## parallax (colinas, torres, árvores conforme o bioma). Poucas cores, sem
 ## ruído visual — o foco fica no primeiro plano.
 
-const W := 320.0
-const H := 180.0
+const W := LevelConst.VIEW.x
+const H := LevelConst.VIEW.y
 const PALETTES := {
 	"cemetery": [Color(0.42, 0.52, 0.66), Color(0.74, 0.8, 0.82), Color(0.33, 0.4, 0.5), Color(0.25, 0.3, 0.38)],
 	"castle": [Color(0.3, 0.33, 0.45), Color(0.52, 0.55, 0.66), Color(0.24, 0.26, 0.36), Color(0.19, 0.2, 0.29)],

@@ -68,7 +68,7 @@ func _process(delta: float) -> void:
 		return
 	var strength: float = float(Settings.video("motion_blur_strength"))
 	if camera and Settings.video("motion_blur"):
-		var v := camera.screen_velocity / Vector2(320.0, 180.0)
+		var v := camera.screen_velocity / LevelConst.VIEW
 		mat.set_shader_parameter("blur_vec", (v * 0.012 * strength).limit_length(0.02))
 	else:
 		mat.set_shader_parameter("blur_vec", Vector2.ZERO)
@@ -76,7 +76,8 @@ func _process(delta: float) -> void:
 	mat.set_shader_parameter("dash_blur", _dash_blur * strength)
 	if player and camera:
 		var screen: Vector2 = player.get_global_transform_with_canvas().origin
-		mat.set_shader_parameter("dash_center", screen / Vector2(320.0, 180.0))
+		mat.set_shader_parameter("dash_center", screen / LevelConst.VIEW)
 	var chroma := FX.flash_amount if Settings.video("chromatic_aberration") else 0.0
 	mat.set_shader_parameter("chroma", chroma)
 	mat.set_shader_parameter("fade", fade)
+	mat.set_shader_parameter("impact", 1.0 if FX.impact_frame > 0.0 else 0.0)

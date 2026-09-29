@@ -33,12 +33,16 @@ var _room_gates: Dictionary = {} ## room -> Array[Gate]
 var _room_levers_pulled: Dictionary = {}
 var _current_room: int = -1
 var _cleared: Dictionary = {}
+## Encontro trancado em andamento (para a nota S/A/B/C): sala, início, vida, inimigos
+var _encounter: Dictionary = {}
 var _completed: bool = false
 var rng := RandomNumberGenerator.new()
-## O mundo é renderizado aqui dentro (320x180, pixel perfeito) e escalado
+## O mundo é renderizado aqui dentro (256x144, pixel perfeito) e escalado
 ## para a janela; HUD e menus ficam fora, nítidos.
 var world_vp: SubViewport
 var world: Node2D
+## Exibição do mundo na janela (o zoom de impacto escala isto pelo centro)
+var world_display: SubViewportContainer
 
 
 func _ready() -> void:
@@ -113,15 +117,20 @@ func _make_viewport() -> void:
 	holder.layer = 0
 	add_child(holder)
 	var svc := SubViewportContainer.new()
-	svc.set_anchors_preset(Control.PRESET_FULL_RECT)
-	svc.stretch = true
-	svc.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	svc.stretch = false
+	svc.size = LevelConst.VIEW
+	svc.pivot_offset = LevelConst.VIEW * 0.5
+	svc.position = LevelConst.VIEW * (LevelConst.VIEW_SCALE - 1.0) * 0.5
+	svc.scale = Vector2.ONE * LevelConst.VIEW_SCALE
+	world_display = svc
+	# filtro linear + shader "pixel nítido": pixels quadrados em qualquer escala
+	svc.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	var conv := ShaderMaterial.new()
 	conv.shader = preload("res://shaders/linear_to_srgb.gdshader")
 	svc.material = conv
 	holder.add_child(svc)
 	world_vp = SubViewport.new()
-	world_vp.size = Vector2i(320, 180)
+	world_vp.size = Vector2i(LevelConst.VIEW)
 	world_vp.use_hdr_2d = true
 	world_vp.snap_2d_transforms_to_pixel = true
 	world_vp.snap_2d_vertices_to_pixel = true
@@ -355,6 +364,11 @@ func _build_layers() -> void:
 # Loop: salas, trancas, chefe
 # ---------------------------------------------------------------------------
 
+func _process(_delta: float) -> void:
+	if world_display:
+		world_display.scale = Vector2.ONE * LevelConst.VIEW_SCALE * (1.0 + FX.zoom)
+
+
 func _physics_process(_delta: float) -> void:
 	if player == null or player.dead:
 		return
@@ -362,7 +376,6 @@ func _physics_process(_delta: float) -> void:
 	if idx != _current_room and idx >= 0:
 		var prev := _current_room
 		_current_room = idx
-		camera.set_room(room_rect(idx))
 		# subiu pela saída de cima: renova o pulo para pousar na sala nova
 		if prev >= 0 and room_rect(idx).position.y < room_rect(prev).position.y:
 			player.transition_boost()
@@ -387,6 +400,8 @@ func _on_room_entered(idx: int) -> void:
 				locked = true
 		if locked and player:
 			player.emote("!", 0.8)
+			camera.lock_room(room_rect(idx))
+			_encounter = {"room": idx, "t0": Time.get_ticks_msec(), "hp": player.hp, "count": alive}
 		if room.get("type", "") == "boss" and boss_node and is_instance_valid(boss_node):
 			if hud and hud.has_method("show_boss"):
 				hud.show_boss(boss_node)
@@ -405,12 +420,36 @@ func room_at(pos: Vector2) -> int:
 	return _room_index_by_cell.get(cell, -1)
 
 
-## Trava a câmera na sala do jogador, sem transição (nascer/renascer/teleporte).
+## Centraliza a câmera no jogador, sem transição (nascer/renascer/teleporte).
+## Se ele estiver numa arena trancada, a câmera fica presa nela.
 func _focus_camera_on_player() -> void:
 	var idx := room_at(player.global_position)
-	if idx >= 0:
-		camera.set_room(room_rect(idx), true)
+	if idx >= 0 and _room_locked(idx):
+		camera.lock_room(room_rect(idx), true)
+	else:
+		camera.room_rect = Rect2()
 	camera.snap()
+
+
+## Sala trancada agora (portas de combate fechadas / chefe vivo)?
+func _room_locked(idx: int) -> bool:
+	if _cleared.has(idx):
+		return false
+	for g in _room_gates.get(idx, []):
+		if g.mode == "combat" and g.closed:
+			return true
+	return false
+
+
+## Último inimigo vivo de um encontro trancado (arena/chefe)? Câmera lenta.
+func is_last_enemy(en: Node) -> bool:
+	var room: int = int(en.get_meta("room", -1))
+	if room < 0 or not _room_locked(room):
+		return false
+	for other in _room_enemies.get(room, []):
+		if other != en and is_instance_valid(other) and not other.dead:
+			return false
+	return true
 
 
 ## Trilha da sala: chefe vivo > Cerco > vila (hub) > mundo paralelo > bioma.
@@ -441,7 +480,33 @@ func _mark_cleared(idx: int) -> void:
 	for g in _room_gates.get(idx, []):
 		if g.mode == "combat":
 			g.set_closed(false)
+	if camera and player and room_at(player.global_position) == idx:
+		camera.unlock_room()
+	if int(_encounter.get("room", -1)) == idx:
+		_rank_encounter()
 	Events.room_cleared.emit(layout["rooms"][idx])
+
+
+## Nota do encontro trancado: rápido e sem apanhar = S. Dá brasas de bônus.
+func _rank_encounter() -> void:
+	var secs := (Time.get_ticks_msec() - int(_encounter["t0"])) / 1000.0
+	var par := 2.0 + 2.2 * float(_encounter["count"])
+	var hurt: bool = player and player.hp < float(_encounter["hp"]) - 0.5
+	var score := secs / par
+	var rank := "C"
+	if score <= 0.65 and not hurt:
+		rank = "S"
+	elif score <= 0.95:
+		rank = "A"
+	elif score <= 1.5:
+		rank = "B"
+	var bonus := int({"S": 30, "A": 15, "B": 6, "C": 0}[rank] * (1.0 + 0.5 * (int(params.get("tier", 1)) - 1)))
+	_encounter = {}
+	if bonus > 0 and player:
+		spawn_currency(bonus, player.body_center() + Vector2(0, -10))
+	result["ranks"] = result.get("ranks", []) + [rank]
+	Events.encounter_ranked.emit(rank, secs, bonus)
+	Audio.play("rank_" + rank.to_lower(), 0.0, -1.0)
 
 
 func on_enemy_killed(en: Node) -> void:

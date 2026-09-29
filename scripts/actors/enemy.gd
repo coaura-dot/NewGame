@@ -1047,10 +1047,15 @@ func _apply_knockback(info: DamageInfo) -> void:
 
 func _on_damaged(info: DamageInfo, amount: float) -> void:
 	var heavy := info.is_heavy or info.weak_point_mult > 1.0
-	FX.impact(body_center(), info.direction, amount, info.is_crit or info.weak_point_mult > 1.0, heavy)
+	var w := info.weight
+	if info.weak_point_mult > 1.0 and w >= 0.0:
+		w = minf(w + 0.2, 1.0)
+	if hp > 0.0:
+		FX.impact(body_center(), info.direction, amount, info.is_crit or info.weak_point_mult > 1.0, heavy, Color(2.0, 1.8, 1.4), w)
+	else:
+		FX.damage_number(body_center(), amount, info.is_crit)
 	if info.weak_point_mult > 1.0:
 		emote("!", 0.4)
-	FX.burst(body_center(), Color(1.6, 0.3, 0.35), 4, 70.0, info.direction, 50.0, 0.3, 1.0)
 	if ai_state in ["idle", "patrol"]:
 		ai_state = "chase"
 		_face_target()
@@ -1077,19 +1082,29 @@ func _on_death(info: DamageInfo) -> void:
 		if c is Hurtbox:
 			c.queue_free()
 	remove_from_group("actors")
-	FX.hitstop(0.1)
-	FX.shake(0.3 if not boss else 0.9)
-	FX.burst(body_center(), Color(2.8, 1.4, 0.6), 12 if not boss else 40, 110.0)
+	remove_from_group("enemies")
+	var dir := info.direction if info.direction != Vector2.ZERO else Vector2(-facing, 0)
+	var w := clampf(info.weight if info.weight >= 0.0 else 0.3, 0.0, 1.0)
+	var last: bool = level != null and level.has_method("is_last_enemy") and level.is_last_enemy(self)
+	FX.kill_impact(body_center(), dir, 1.0 if boss else w, last or boss)
 	Audio.play("enemy_death", 0.1, -4.0)
 	Events.enemy_killed.emit(self, info)
 	if level and level.has_method("on_enemy_killed"):
 		level.on_enemy_killed(self)
-	var death_anim: String = data.get("anim", {}).get("death", "")
-	if death_anim != "":
-		play_anim(death_anim, true)
-	var tw := create_tween()
-	tw.tween_method(set_dissolve, 0.0, 1.0, 0.6 if not boss else 2.0)
-	tw.tween_callback(queue_free)
+	if boss:
+		FX.shake(0.9)
+		FX.burst(body_center(), Color(2.8, 1.4, 0.6), 40, 110.0)
+		var tw := create_tween()
+		tw.tween_method(set_dissolve, 0.0, 1.0, 2.0)
+		tw.tween_callback(queue_free)
+		return
+	# Katana Zero: cortado em dois na direção do golpe
+	DeathFX.spawn(get_parent(), sprite, dir, w)
+	if sprite:
+		sprite.visible = false
+	var tw2 := create_tween()
+	tw2.tween_interval(0.2)
+	tw2.tween_callback(queue_free)
 
 
 ## Drops do loadout (mesmo pool do jogador). Retorna ids sorteados.

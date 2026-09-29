@@ -29,6 +29,8 @@ var weak_point_mult: float = 1.0
 var backstab: bool = false
 var hit_position: Vector2 = Vector2.ZERO
 var hitstop: float = 0.05
+## Peso do golpe 0..1 (leve..pesado carregado): escala hitstop/tremor/efeitos. -1 = automático
+var weight: float = -1.0
 var tags: PackedStringArray = []
 var final_amount: float = 0.0 ## preenchido por quem recebe
 
@@ -38,7 +40,7 @@ func duplicate_info() -> DamageInfo:
 	for p in ["amount", "damage_type", "school", "weapon_class", "weapon_id", "spell_id", "source", "team",
 			"knockback", "direction", "stagger", "is_crit", "is_heavy", "is_projectile", "is_spell",
 			"is_dash_attack", "is_hazard", "parryable", "unblockable", "pogo", "weak_point_mult",
-			"backstab", "hit_position", "hitstop"]:
+			"backstab", "hit_position", "hitstop", "weight"]:
 		d.set(p, get(p))
 	d.status = status.duplicate()
 	d.tags = tags.duplicate()

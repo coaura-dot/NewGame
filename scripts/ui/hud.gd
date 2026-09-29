@@ -18,6 +18,18 @@ var _hp_ghost: float = 1.0
 var _panel: Control = null
 var _region_title_t: float = 0.0
 var _region_title: String = ""
+## Frenesi / nota do encontro (anúncios grandes)
+const TIER_COLORS := [Color(1.0, 0.85, 0.5), Color(1.6, 1.5, 0.6), Color(2.2, 1.2, 0.4), Color(2.4, 0.6, 0.5), Color(1.6, 0.9, 2.6)]
+const RANK_COLORS := {"S": Color(2.4, 1.9, 0.5), "A": Color(1.2, 2.2, 1.2), "B": Color(1.0, 1.5, 2.4), "C": Color(1.4, 1.2, 1.2)}
+var _tier: int = 0
+var _announce: String = ""
+var _announce_t: float = 0.0
+var _announce_col: Color = Color.WHITE
+var _bonus_text: String = ""
+var _bonus_t: float = 0.0
+var _rank: String = ""
+var _rank_sub: String = ""
+var _rank_t: float = 0.0
 
 
 func _ready() -> void:
@@ -46,7 +58,21 @@ func _ready() -> void:
 	Events.combo_changed.connect(func(c):
 		if c > _combo:
 			_combo_pop = 1.0
+		if c == 0:
+			_tier = 0
 		_combo = c)
+	Events.frenzy_tier.connect(func(t, label):
+		_tier = t
+		_announce = label
+		_announce_t = 1.1
+		_announce_col = TIER_COLORS[clampi(t, 0, TIER_COLORS.size() - 1)])
+	Events.frenzy_ended.connect(func(n, bonus):
+		_bonus_text = "%d golpes  +%d brasas" % [n, bonus]
+		_bonus_t = 1.8)
+	Events.encounter_ranked.connect(func(rank, time, bonus):
+		_rank = rank
+		_rank_sub = "%.1fs   +%d brasas" % [time, bonus] if bonus > 0 else "%.1fs" % time
+		_rank_t = 1.9)
 	Events.dialogue_requested.connect(open_dialogue)
 	Events.player_spawned.connect(func(p): player = p)
 	if level:
@@ -59,6 +85,9 @@ func _process(delta: float) -> void:
 	if player == null and level:
 		player = level.player
 	_combo_pop = maxf(_combo_pop - delta * 4.0, 0.0)
+	_announce_t = maxf(_announce_t - delta, 0.0)
+	_bonus_t = maxf(_bonus_t - delta, 0.0)
+	_rank_t = maxf(_rank_t - delta, 0.0)
 	_region_title_t = maxf(_region_title_t - delta, 0.0)
 	if player:
 		var ratio: float = player.hp / maxf(player.max_hp(), 1.0)
@@ -138,7 +167,7 @@ func _slot(pos: Vector2, icon: Texture2D) -> void:
 func _cluster_alpha(rect: Rect2) -> float:
 	if player == null or not is_instance_valid(player):
 		return 1.0
-	var sp: Vector2 = player.get_global_transform_with_canvas().origin * 1.5
+	var sp: Vector2 = player.get_global_transform_with_canvas().origin * LevelConst.VIEW_SCALE * 1.5
 	return 0.3 if rect.grow(10).has_point(sp) or rect.grow(10).has_point(sp - Vector2(0, 18)) else 1.0
 
 
@@ -205,19 +234,57 @@ func _draw_right() -> void:
 		_text(Vector2(px + 11, 38), str(potions), 9, Color(1.4, 0.7, 0.8))
 
 
+## Contador do Frenesi (acertos seguidos), barra da janela, anúncios de
+## nível, bônus ao terminar e a nota (S/A/B/C) do encontro.
+func _draw_frenzy(d: Control) -> void:
+	if _combo >= 3:
+		var col: Color = TIER_COLORS[clampi(_tier, 0, TIER_COLORS.size() - 1)]
+		var s := 20 + int(_combo_pop * 10.0) + mini(_tier * 2, 8)
+		var jig := Vector2(randf_range(-1, 1), randf_range(-1, 1)) * (_tier * 0.6) if _tier >= 2 else Vector2.ZERO
+		var txt := str(_combo)
+		var w := FONT.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, s).x
+		_text(Vector2(462 - w, 104) + jig, txt, s, col)
+		_text(Vector2(422, 116), "GOLPES", 9, UIKit.DIM)
+		var left: float = clampf(player.combo_timer / Player.COMBO_TIMEOUT, 0.0, 1.0)
+		d.draw_rect(Rect2(420, 119, 42, 2), Color(0, 0, 0, 0.4))
+		d.draw_rect(Rect2(420, 119, 42 * left, 2), col)
+		if _tier > 0:
+			var lbl: String = str(Player.FRENZY_TIERS[_tier - 1][1])
+			var lw := FONT.get_string_size(lbl, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+			_text(Vector2(462 - lw, 130), lbl, 10, col)
+		if player.rhythm_stacks > 0:
+			_text(Vector2(422, 140), "♪ x%d" % player.rhythm_stacks, 10, Color(2.0, 1.4, 2.6))
+	if _bonus_t > 0.0:
+		var a := minf(_bonus_t, 1.0)
+		var bw := FONT.get_string_size(_bonus_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+		_text(Vector2(462 - bw, 104 - (1.8 - _bonus_t) * 6.0), _bonus_text, 10, Color(UIKit.GOLD.r, UIKit.GOLD.g, UIKit.GOLD.b, a))
+	if _announce_t > 0.0:
+		var k := 1.0 - _announce_t / 1.1
+		var size := 26 + int(maxf(0.0, 0.15 - k) * 60.0)
+		var aw := FONT.get_string_size(_announce, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+		var ac := _announce_col
+		ac.a = minf(_announce_t * 3.0, 1.0)
+		_text(Vector2(240 - aw * 0.5, 70 - k * 8.0), _announce, size, ac)
+	if _rank_t > 0.0:
+		var rk := 1.0 - _rank_t / 1.9
+		var rs := 44 + int(maxf(0.0, 0.12 - rk) * 200.0)
+		var rc: Color = RANK_COLORS.get(_rank, Color.WHITE)
+		rc.a = minf(_rank_t * 2.5, 1.0)
+		var rw := FONT.get_string_size(_rank, HORIZONTAL_ALIGNMENT_LEFT, -1, rs).x
+		_text(Vector2(240 - rw * 0.5, 120), _rank, rs, rc)
+		var sw := FONT.get_string_size(_rank_sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+		_text(Vector2(240 - sw * 0.5, 134), _rank_sub, 10, Color(1.0, 0.95, 0.85, rc.a))
+		var lab := "ARENA LIMPA"
+		var lw2 := FONT.get_string_size(lab, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+		_text(Vector2(240 - lw2 * 0.5, 80), lab, 10, Color(1.0, 0.95, 0.85, rc.a))
+
+
 func _draw_hud() -> void:
 	_cv = _draw_node
 	var d := _draw_node
 	if player == null or not is_instance_valid(player):
 		return
-	# combo
-	if _combo >= 2:
-		var s := 18 + int(_combo_pop * 8.0)
-		var col := Color(2.2, 1.6, 0.6) if _combo >= 10 else UIKit.GOLD
-		_text(Vector2(400, 120), str(_combo), s, col)
-		_text(Vector2(402, 132), "COMBO", 10, UIKit.DIM)
-		if player.rhythm_stacks > 0:
-			_text(Vector2(402, 142), "♪ x%d" % player.rhythm_stacks, 10, Color(2.0, 1.4, 2.6))
+	_draw_frenzy(d)
 	# chefe
 	if boss and is_instance_valid(boss) and not boss.dead:
 		var br: float = boss.hp / maxf(boss.max_hp(), 1.0)
@@ -245,7 +312,7 @@ func _draw_hud() -> void:
 		_text(Vector2(14, 38), "Desenhe um sigilo e solte", 10, UIKit.INK)
 		var sp := PackedVector2Array()
 		for q in player.sigil_points:
-			sp.append(q * 1.5)
+			sp.append(q * LevelConst.VIEW_SCALE * 1.5)
 		if sp.size() > 1:
 			d.draw_polyline(sp, Color(1.0, 0.6, 2.6, 0.5), 5.0)
 			d.draw_polyline(sp, Color(2.6, 2.2, 3.6), 1.5)

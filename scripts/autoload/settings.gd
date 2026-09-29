@@ -25,6 +25,7 @@ const DEFAULTS := {
 		"particles": 0, # 0 = mínimo, 1 = médio, 2 = alto
 		"screen_shake": 1.0,
 		"hitstop": true,
+		"impact_frames": true, # quadro de impacto em 2 tons ao matar (desligue se incomodar)
 		"damage_numbers": false,
 	},
 	"audio": {

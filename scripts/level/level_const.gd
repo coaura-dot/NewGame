@@ -9,6 +9,12 @@ extends RefCounted
 ##   D:   linhas 21..23, colunas 18..21 (com plataforma one-way na linha 23)
 
 const TILE := 8
+## Tela do mundo (px). Menor que a sala (320x192): a câmera anda dentro dela.
+## 256x144 vira 5x em 1280x720; o shader de exibição mantém os pixels nítidos
+## em qualquer escala (ex.: 7,5x em 1920x1080).
+const VIEW := Vector2(256.0, 144.0)
+## Escala do mundo dentro da tela base da UI (320x180).
+const VIEW_SCALE := 1.25
 const ROOM_W := 40
 const ROOM_H := 24
 const FLOOR_ROW := 21

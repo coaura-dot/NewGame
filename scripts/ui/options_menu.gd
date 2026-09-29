@@ -56,7 +56,7 @@ func _video_tab() -> Control:
 		["bloom", "Bloom (brilho)"], ["god_rays", "Raios de luz"], ["motion_blur", "Motion blur"],
 		["dynamic_lights", "Luzes dinâmicas"], ["shadows", "Sombras"], ["chromatic_aberration", "Aberração cromática"],
 		["vignette", "Vinheta"], ["film_grain", "Granulação"], ["afterimages", "Rastros (afterimages)"],
-		["hitstop", "Congelamento no impacto (hitstop)"], ["damage_numbers", "Números de dano"],
+		["hitstop", "Congelamento no impacto (hitstop)"], ["impact_frames", "Quadro de impacto (flash)"], ["damage_numbers", "Números de dano"],
 	]
 	for t in toggles:
 		var key: String = t[0]

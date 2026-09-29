@@ -61,7 +61,14 @@ const POGO_SPEED := 150.0
 const POUND_SPEED := 300.0
 const CORNER_CORRECTION := 4
 const BODY := Vector2(6, 10)
-const COMBO_TIMEOUT := 1.3
+const COMBO_TIMEOUT := 2.4 ## Frenesi: janela para manter a sequência de acertos
+## Corte-Relâmpago (atacar durante o dash): dash mais longo que atravessa e
+## corta tudo no caminho, em qualquer direção. Acertar recarrega o dash.
+const STRIKE_SPEED := 290.0
+const STRIKE_TIME := 0.17
+const STRIKE_BOX := [-9, -15, 18, 17]
+## Níveis do Frenesi (acertos seguidos): nome e bônus de dano
+const FRENZY_TIERS := [[10, "BOM!"], [25, "FRENÉTICO!"], [50, "IMPARÁVEL!"], [100, "LENDÁRIO!"]]
 const FOCUS_MAX_BASE := 100.0
 const ATTACK_BUFFER := 0.16
 ## Impulso de transição (como no Celeste): quando o centro do corpo (pés - 8)
@@ -160,6 +167,12 @@ func _ready() -> void:
 	add_child(attack)
 	attack.landed.connect(_on_attack_landed)
 	attack.activated.connect(_on_attack_activated)
+	strike_blade = Hitbox.new()
+	strike_blade.owner_actor = self
+	strike_blade.team = team
+	strike_blade.info_factory = func(target): return build_attack_info(moveset.get("dash", {}), "dash", 1.0, target)
+	strike_blade.hit.connect(_on_attack_landed)
+	add_child(strike_blade)
 	caster = SpellCaster.new(self)
 	add_child(caster)
 	buffs = BuffSystem.new(self)
@@ -254,6 +267,8 @@ func refill_dash() -> void:
 func _set_state(s: int) -> void:
 	if state == s:
 		return
+	if state == State.DASH and dash_strike:
+		_end_dash_strike()
 	state = s
 	state_changed.emit(s)
 
@@ -323,8 +338,7 @@ func _timers(d: float) -> void:
 	attack_buffer_t -= d
 	combo_timer -= d
 	if combo_timer <= 0.0 and combo_count > 0:
-		combo_count = 0
-		Events.combo_changed.emit(0)
+		_end_frenzy()
 	if echo_time > 0.0:
 		echo_time -= d
 		if echo_time <= 0.0:
@@ -545,13 +559,16 @@ func _st_dash(d: float) -> void:
 		var ai := AfterImage.from_sprite(sprite, Color(0.6, 1.4, 2.6, 0.9), 0.22)
 		if ai:
 			get_parent().add_child(ai)
-	# ataque em dash (corta tudo pelo caminho)
-	if attack_buffer_t > 0.0 and not attack.is_busy() and moveset.has("dash"):
+	# Corte-Relâmpago: atacar durante o dash atravessa cortando tudo
+	if attack_buffer_t > 0.0 and not dash_strike and not attack.is_busy() and moveset.has("dash"):
 		attack_buffer_t = 0.0
-		attack.start(moveset["dash"], "dash", facing)
-		_slash_fx(moveset["dash"])
+		_start_dash_strike()
+	if dash_strike:
+		velocity = dash_dir * STRIKE_SPEED
 	# super / hyper (pulo durante dash no chão)
 	if jump_buffer_t > 0.0 and (_on_ground() or coyote_t > 0.0) and dash_on_ground:
+		if dash_strike:
+			_end_dash_strike()
 		var jmult := float(phys.get("jump", 1.0))
 		if dash_dir.y > 0.1 and absf(dash_dir.x) > 0.1:
 			_jump(JUMP_SPEED * 0.55 * jmult)
@@ -565,6 +582,8 @@ func _st_dash(d: float) -> void:
 		return
 	_dash_through_check()
 	if dash_t <= 0.0:
+		if dash_strike:
+			_end_dash_strike()
 		velocity = dash_dir * DASH_END_SPEED
 		if dash_dir.y * g_dir < 0.0:
 			velocity.y *= 0.75
@@ -574,6 +593,41 @@ func _st_dash(d: float) -> void:
 
 
 var _dash_through_hit: Dictionary = {}
+var dash_strike: bool = false
+var strike_blade: Hitbox
+var _strike_from: Vector2 = Vector2.ZERO
+var _strike_hits: int = 0
+var frenzy_tier: int = 0
+
+
+func _start_dash_strike() -> void:
+	dash_strike = true
+	_strike_from = global_position
+	_strike_hits = 0
+	dash_t = STRIKE_TIME
+	velocity = dash_dir * STRIKE_SPEED
+	invuln_time = maxf(invuln_time, STRIKE_TIME + 0.05)
+	strike_blade.team = team
+	strike_blade.set_box(STRIKE_BOX, 1)
+	strike_blade.activate()
+	FX.kick(dash_dir, 3.0)
+	FX.zoom_punch(0.02)
+	Audio.play("dash_strike", 0.08, -1.0)
+	play_anim("attack", true)
+	if sprite:
+		sprite.squash(Vector2(1.35, 0.7))
+
+
+func _end_dash_strike() -> void:
+	if not dash_strike:
+		return
+	dash_strike = false
+	strike_blade.deactivate()
+	var line := DashCutLine.new()
+	line.from = _strike_from + Vector2(0, -6)
+	line.to = global_position + Vector2(0, -6)
+	line.hits = _strike_hits
+	get_parent().add_child(line)
 
 
 func _dash_through_check() -> void:
@@ -789,6 +843,7 @@ func build_attack_info(step: Dictionary, kind: String, charge: float, target: No
 	info.team = team
 	info.is_heavy = kind == "heavy"
 	info.is_dash_attack = kind == "dash"
+	info.weight = _attack_weight(step, kind, charge)
 	info.stagger = float(step.get("stagger", 1.0)) * charge
 	info.pogo = step.get("pogo", false)
 	var dir := Vector2(facing, 0)
@@ -804,7 +859,7 @@ func build_attack_info(step: Dictionary, kind: String, charge: float, target: No
 	info.status = st
 	info.is_crit = CombatMath.roll_crit(rng, stats, buffs.consume_crit())
 	# multiplicadores do jogador: combo, ritmo, costas, ponto fraco da classe, buffs
-	var mult := 1.0 + minf(combo_count, 20) * 0.015
+	var mult := frenzy_mult()
 	if moveset.get("rhythm", false):
 		mult *= 1.0 + rhythm_stacks * 0.06
 	if target and is_instance_valid(target) and target is Actor:
@@ -819,6 +874,53 @@ func build_attack_info(step: Dictionary, kind: String, charge: float, target: No
 	if slowmo_bonus():
 		info.amount *= 1.15
 	return info
+
+
+## Peso do golpe (0 leve .. 1 pesado carregado): escala hitstop, tremor,
+## coice de câmera e efeitos. Finalizador do combo e Corte-Relâmpago pesam mais.
+func _attack_weight(step: Dictionary, kind: String, charge: float) -> float:
+	var w := 0.15
+	match kind:
+		"heavy":
+			w = 0.6 if charge <= 1.0 else 0.95
+		"dash":
+			w = 0.4
+		"down_air", "up_air", "air":
+			w = 0.2
+		_:
+			var chain: Array = moveset.get("light", [])
+			if chain.size() > 1 and combo_index >= chain.size():
+				w = 0.4 # último golpe do combo
+	return clampf(w + (float(step.get("dmg", 1.0)) - 1.0) * 0.2, 0.1, 1.0)
+
+
+func _check_frenzy_tier() -> void:
+	var tier := 0
+	for i in FRENZY_TIERS.size():
+		if combo_count >= int(FRENZY_TIERS[i][0]):
+			tier = i + 1
+	if tier > frenzy_tier:
+		frenzy_tier = tier
+		Events.frenzy_tier.emit(tier, str(FRENZY_TIERS[tier - 1][1]))
+		Audio.play("frenzy", 0.0, -2.0)
+		emote("!", 0.5)
+
+
+## Fim da sequência: brasas de bônus pelo tamanho do Frenesi.
+func _end_frenzy() -> void:
+	var n := combo_count
+	combo_count = 0
+	frenzy_tier = 0
+	Events.combo_changed.emit(0)
+	if n >= 8:
+		var bonus := int(n * 0.5)
+		Game.profile["currency"] = int(Game.profile.get("currency", 0)) + bonus
+		Events.frenzy_ended.emit(n, bonus)
+
+
+## Bônus de dano do Frenesi atual (5% por nível).
+func frenzy_mult() -> float:
+	return 1.0 + frenzy_tier * 0.05
 
 
 func slowmo_bonus() -> bool:
@@ -841,6 +943,12 @@ func _on_attack_landed(target: Node, info: DamageInfo, result: int) -> void:
 	combo_count += 1
 	combo_timer = COMBO_TIMEOUT
 	Events.combo_changed.emit(combo_count)
+	_check_frenzy_tier()
+	# Ímpeto: todo acerto recarrega o dash (dash → corte → dash → corte...)
+	refill_dash()
+	dash_cd = 0.0
+	if info.is_dash_attack:
+		_strike_hits += 1
 	gain_focus(float(moveset.get("focus_gain", 5)) * (1.0 + stats.get_stat("focus_gain")))
 	var ctx := {"target": target, "info": info, "combo": combo_count}
 	buffs.trigger("hit", ctx)
@@ -853,11 +961,16 @@ func _on_attack_landed(target: Node, info: DamageInfo, result: int) -> void:
 		# recuo ao acertar (Hollow Knight)
 		velocity.x = -facing * 55.0
 	if info.is_dash_attack:
-		dash_t = maxf(dash_t, 0.04)
-	Audio.play("hit_heavy" if info.is_heavy or info.is_crit else "hit", 0.1, -2.0)
+		dash_t = maxf(dash_t, 0.05)
+	Audio.play("hit_heavy" if info.is_heavy or info.is_crit or info.weight >= 0.5 else "hit", 0.1, -2.0)
 	if result == DamageInfo.Result.KILLED:
 		Game.profile["kills"] = int(Game.profile.get("kills", 0)) + 1
 		refill_dash()
+		combo_count += 2
+		combo_timer = COMBO_TIMEOUT
+		Events.combo_changed.emit(combo_count)
+		_check_frenzy_tier()
+		Audio.play("kill", 0.06, -1.0)
 		buffs.trigger("kill", ctx)
 
 
@@ -1171,7 +1284,7 @@ func _st_sigil(d: float, _raw: float) -> void:
 	var p := get_viewport().get_mouse_position()
 	var stick := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
 	if stick.length() > 0.4:
-		var last := sigil_points[-1] if not sigil_points.is_empty() else Vector2(240, 135)
+		var last := sigil_points[-1] if not sigil_points.is_empty() else LevelConst.VIEW * 0.5
 		p = last + stick * 6.0
 	if sigil_points.is_empty() or sigil_points[-1].distance_to(p) > 2.0:
 		sigil_points.append(p)

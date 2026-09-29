@@ -36,6 +36,9 @@ func _ready() -> void:
 	if scenario in ["combat", "all"]:
 		Game.pending = {"training": true}
 		await _shot_combat()
+	if scenario in ["juice", "all"]:
+		Game.pending = {"training": true}
+		await _shot_juice()
 	if scenario in ["map", "all"]:
 		if not Game.has_game:
 			Game.new_game(1234, 9)
@@ -192,6 +195,50 @@ func _shot_combat() -> void:
 	for i in frames.size():
 		sheet.blit_rect(frames[i], Rect2i(0, 0, cw, ch), Vector2i((i % 7) * cw, (i / 7) * ch))
 	sheet.save_png(out_dir.path_join("golpes.png"))
+	level.queue_free()
+	await _frames(2)
+	Game.end_training()
+
+
+## Corte-Relâmpago atravessando 3 inimigos: folha com 12 quadros da tela
+## inteira (hitstop, faíscas, quadro de impacto, corpos cortados).
+func _shot_juice() -> void:
+	var level: Node = load("res://scenes/level.tscn").instantiate()
+	add_child(level)
+	await _frames(30)
+	Settings.data["gameplay"]["invincible"] = true
+	var p: Player = level.player
+	p.equip_weapon("katana_andarilho")
+	for i in 3:
+		var en: Enemy = level._make_enemy("skeleton", 1, p.global_position + Vector2(26 + i * 16, 0), level._current_room)
+		en.hp = 1.0
+		level.entities.add_child(en)
+	await _physics(10)
+	for en in get_tree().get_nodes_in_group("enemies"):
+		en.hp = 1.0
+		en.ai_state = "recover"
+		en.ai_t = 5.0
+	var frames: Array[Image] = []
+	Input.action_press("move_right")
+	Input.action_press("dash")
+	await _physics(2)
+	Input.action_press("attack")
+	await _physics(1)
+	Input.action_release("dash")
+	Input.action_release("attack")
+	for i in 12:
+		await _frames(2)
+		await RenderingServer.frame_post_draw
+		var img: Image = get_viewport().get_texture().get_image()
+		img.resize(640, 360, Image.INTERPOLATE_NEAREST)
+		img.convert(Image.FORMAT_RGBA8)
+		frames.append(img)
+	Input.action_release("move_right")
+	var sheet := Image.create(640 * 4, 360 * 3, false, Image.FORMAT_RGBA8)
+	for i in frames.size():
+		sheet.blit_rect(frames[i], Rect2i(0, 0, 640, 360), Vector2i((i % 4) * 640, (i / 4) * 360))
+	sheet.save_png(out_dir.path_join("impacto.png"))
+	Settings.data["gameplay"]["invincible"] = false
 	level.queue_free()
 	await _frames(2)
 	Game.end_training()
