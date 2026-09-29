@@ -544,3 +544,7 @@ ALL = {
 # guardiões das Brasas-Mestras (chefes) ficam em guardian_art.py
 from guardian_art import GUARDIANS  # noqa: E402
 ALL.update(GUARDIANS)
+
+# inimigos comuns com duelo (motor GuardianBrain) ficam em foe_art.py
+from foe_art import FOES  # noqa: E402
+ALL.update(FOES)

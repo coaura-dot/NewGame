@@ -87,8 +87,10 @@ data/npcs.json  falas por papel (greet/friend/love). SocialSystem.talk mistura b
 tools/   pixel_art.py (arte; --hero só o Pavio), pavio_art.py (Pavio lateral e visto
    de cima), overworld_art.py (chão e objetos do mapa), sfx_gen.py (sons),
    fix_font_accents.py (acentos das fontes; precisa de fonttools),
-   screenshot.gd (modos: treino menu salas sala heroi efeitos duelo mapa intro regiao).
-tests/   test_*.gd (~6050 verificações). test_overworld.gd garante que, com os
+   screenshot.gd (modos: treino menu salas sala heroi efeitos duelo mapa intro regiao
+   chefe <id> loja).
+   guardian_art.py / foe_art.py (guardiões e inimigos do motor de duelo).
+tests/   test_*.gd (~6200 verificações). test_overworld.gd garante que, com os
    portões fechados, a pé só se alcança o que o grafo permite.
 
 4. COMANDOS ÚTEIS
@@ -102,9 +104,9 @@ Prints:  xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-drive
 Arte:  python3 tools/pixel_art.py [--hero]   python3 tools/overworld_art.py [--preview DIR]
 Sons:  python3 tools/sfx_gen.py
 
-5. ESTADO ATUAL (sessão 6)
---------------------------
-Pronto e enviado:
+5. ESTADO ATUAL (fim da sessão 7)
+---------------------------------
+Pronto e enviado (sessão 6):
 - Pavio integrado (chama procedural, gola com a cor dos dashes, velinhas de vida).
 - Efeitos: dash (anel, riscos, fita), cortes em gradiente, marca de corte, magias por escola.
 - Sons: dash refeito; efeitos mais suaves.
@@ -112,28 +114,88 @@ Pronto e enviado:
 - Mapa-múndi explorável com vilas, portões, noite, névoa, minimapa, intro.
 - História: intro, Lareira, frases por região, tábuas nas fases, falas, final.
 - Fontes com acentos minúsculos.
+- Bug do herói invisível depois de morrer: corrigido (player.revive mata o _fx_tween;
+  teste test_renasce_visivel em tests/test_movimento.gd).
 
-Sessão 7 (depois do guia acima):
+Pronto e enviado (sessão 7):
 - Trilha sonora (6 faixas), inimigos novos (mariposa, Guarda de Cinzas, Sopro),
   vida no mapa (água, bichos, clima, moradores vão para casa à noite).
-- GUARDIÕES: 5 chefes únicos (raven/spider/hare/golem/mirror_guardian em
-  data/enemies.json, arte em tools/guardian_art.py). IA "guardian" em
-  scripts/actors/guardian_brain.gd: movimentos por dados ("moves": kind =
-  lunge, swoop, combo, volley, slam, rockfall, teleport, dash_chain, summon,
-  decoys; red, windup, recover, weight, phase, range). Auxiliares:
-  scripts/combat/shockwave.gd, falling_rock.gd, scripts/actors/mirror_decoy.gd.
-  WorldGenerator.GUARDIAN_OF liga cada dom ao seu guardião.
-- COMÉRCIO: scripts/social/shop_system.gd (preços, estoque por região/runs,
-  forja de arma e armadura, estudo de magia, venda, canção). Botões dos
-  serviços no diálogo (hud.gd: _service_button, open_shop/forge/study/sell).
-  Dano da arma x ShopSystem.weapon_mult (player.build_attack_info);
-  Game.complete_region incrementa profile.runs.
+- GUARDIÕES: 5 chefes únicos, um por Brasa-Mestra/dom (em data/enemies.json):
+    raven_guardian  "Corvo das Cinzas"      (voa)  -> double_jump
+    spider_guardian "Tecelã das Frestas"           -> wall_climb
+    hare_guardian   "Lebre do Vendaval"            -> dash_2
+    golem_guardian  "Golem de Pedra-Pomes"         -> ground_pound
+    mirror_guardian "Espelho Etéreo"               -> blink
+  WorldGenerator.GUARDIAN_OF liga dom -> guardião (o resto cai em "nightmare").
+  Arte em tools/guardian_art.py (registrada em enemy_art.py com ALL.update).
+  Chefes que andam nunca recebem a arena com fosso de espinhos
+  (room_synth._boss(..., flying); level_generator passa "boss_flying").
+- MOTOR DE DUELO POR DADOS: scripts/actors/guardian_brain.gd (class GuardianBrain).
+  enemy.gd cria o cérebro quando "ai": "guardian". Estados: approach -> windup
+  -> attack -> recover (recover abre a janela de punição).
+  Cada item de "moves" tem: id, kind, weight, windup, recover, red (vermelho =
+  não dá para aparar/refletir), phase (fase mínima), range (min/max) e campos
+  próprios do kind. Kinds: lunge, swoop, combo (lista hits), volley (leque de
+  projéteis), slam (onda no chão / subir e cair se voa), rockfall, teleport
+  (com follow), dash_chain (red_last, dizzy), summon, decoys, cast (magia com
+  fan/fan_phase). Auxiliares: scripts/combat/shockwave.gd, falling_rock.gd,
+  scripts/actors/mirror_decoy.gd. Voadores trocam de lado (hover_side) e ficam
+  presos à sala (level.camera_rect).
+- ARQUIDEMÔNIO migrado para o motor: "ai": "guardian", 3 fases [1.0, 0.66, 0.33],
+  golpes garra, chama, sopro, poço, queda, meteoros, servos (fire_skull), passo.
+- COMÉRCIO nas vilas: scripts/social/shop_system.gd (dados puros).
+  Mercador (estoque por região, muda a cada fase concluída = profile.runs),
+  Curandeira (poções), Ferreira (forja da arma +10%/nível até 5, fragmento
+  rúnico a partir do 3º; armaduras), Sábio (nível das magias), Receptador
+  (compra armas/armaduras que sobram), Bardo (Canção: +15% de dano na próxima
+  fase, flags.song, consumida em level.gd ao nascer o herói).
+  Botões no diálogo: hud.gd _service_button, open_shop/open_forge/open_study/
+  open_sell (painéis com fundo escurecido via _open_panel).
+  Dano da arma x ShopSystem.weapon_mult x canção (player.build_attack_info).
+- Último commit testado por inteiro: "Arquidemônio no motor de duelo com 3 fases..."
+  (6199 verificações OK).
 
-6. IDEIAS / PENDÊNCIAS
-----------------------
-- Mais inimigos comuns; chefes de horda/puzzle/parkour; o Arquidemônio final
-  poderia migrar para o motor de guardião (moves) com 3 fases.
+EM ANDAMENTO QUANDO A SESSÃO 7 PAROU (enviado junto com este guia):
+- 3 INIMIGOS COMUNS novos usando o mesmo motor de duelo (não são chefes):
+    wax_spear   "Lanceiro de Cera"     golpes estocada, dupla, varrida
+    soot_archer "Arqueira de Fuligem"  golpes flecha, trio, chuva
+    coal_brute  "Bruto de Carvão"      golpes pancada, salto, empurrao
+  - Dados em data/enemies.json; entram nos biomas (data/biomes.json, peso 2).
+  - Arte: tools/foe_art.py (FOES registrados em enemy_art.py) ->
+    assets/art/enemies/{wax_spear,soot_archer,coal_brute}.png/.json.
+  - guardian_brain.gd: inimigo comum sem alvo válido (not e._target_valid())
+    vai para "patrol" e chama e._patrol(d) em vez de ficar parado.
+  - tests/test_combat.gd: test_guardioes_duelam também cobre os 3 (checagem de
+    fase só para chefes). Os testes de combate passaram (TEST_ONLY=combat: 215 OK).
+  - ATENÇÃO: a suíte INTEIRA ainda não foi rodada depois dessa mudança.
+
+6. O QUE FALTA (fazer nesta ordem)
+----------------------------------
+a) Clarear a paleta de foe_art.py (no jogo os sprites ficam mais escuros que o PNG,
+   igual aconteceu com os guardiões). Valores planejados:
+     SOOT    4d4a5c -> 77728e     COAL    46404e -> 6f677d
+     SOOT_SH 343242 -> 514d66     COAL_SH 2e2a36 -> 4b4557
+     SOOT_HI 7a7690 -> a6a1bd     COAL_HI 6c6478 -> 968da6
+   Regerar só os inimigos:
+     python3 -c "import sys; sys.path.insert(0,'tools'); import pixel_art; pixel_art.enemies()"
+   Depois: godot --headless --path . --import
+b) Rodar a suíte inteira (seção 4) e corrigir o que quebrar.
+c) Print dos 3 inimigos novos lutando. O modo "chefe <id>" já aceita qualquer id
+   (ex.: ... --script tools/screenshot.gd -- /tmp/x chefe wax_spear), mas usa a
+   sala de treino: o degrau tapa a visão e o lanceiro/arqueira ficam em "patrol"
+   (comportamento certo). Ajustar _chefe() em screenshot.gd para nascer o inimigo
+   no mesmo nível do herói (ou numa sala plana) antes de tirar o print.
+d) README.md: acrescentar à seção "Sessão 7" o Arquidemônio de 3 fases e os 3
+   inimigos comuns novos.
+e) Commit + push (lembrar: git checkout tools/__pycache__ antes de commitar —
+   os .pyc estão versionados e mudam toda vez que os scripts Python rodam).
+
+Ideias para depois:
+- Mais inimigos comuns no motor de duelo (é só dados + arte); chefes de horda,
+  de puzzle e de parkour (perseguição em zigue-zague com espinhos).
 - Mapa-múndi: casas com interior, eventos à noite, pesca?
 - Menus e diálogos ainda desenhados em 480x270 (reduzidos); refazer para 320x180.
 - Templos antigos em data/rooms/core.txt estão na escala velha.
-- Ajustar o feel com o retorno do usuário (números no topo de player.gd e enemy.gd).
+- Ajustar o feel com o retorno do usuário (números no topo de player.gd,
+  enemy.gd e os windup/recover dos "moves" em data/enemies.json).
+- Regra de arte: use paletas mais claras que o esperado; o shader/bloom escurece.

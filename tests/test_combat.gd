@@ -98,7 +98,8 @@ func test_efeitos_por_escola() -> void:
 ## Guardiões: cada um roda o próprio padrão (prepara com telegrafia, ataca,
 ## fica exposto) sem travar, e a arena de quem anda não tem chão de espinhos.
 func test_guardioes_duelam() -> void:
-	for gid in ["raven_guardian", "spider_guardian", "hare_guardian", "golem_guardian", "mirror_guardian", "archdemon"]:
+	for gid in ["raven_guardian", "spider_guardian", "hare_guardian", "golem_guardian", "mirror_guardian", "archdemon",
+			"wax_spear", "soot_archer", "coal_brute"]:
 		check(not DB.enemy(gid).is_empty(), "guardião %s existe" % gid)
 		var root := Node2D.new()
 		tree.root.add_child(root)
@@ -132,7 +133,8 @@ func test_guardioes_duelam() -> void:
 				en.hp = en.max_hp() * 0.4 # força a 2ª fase
 		check(states.has("windup") and states.has("attack") and states.has("recover"), "%s prepara, ataca e se expõe (%s)" % [gid, str(states.keys())])
 		check(moves.size() >= 2, "%s usa golpes variados (%s)" % [gid, str(moves.keys())])
-		check(en.phase_idx >= 1, "%s entra na 2ª fase" % gid)
+		if en.boss:
+			check(en.phase_idx >= 1, "%s entra na 2ª fase" % gid)
 		root.queue_free()
 		await tree.physics_frame
 		await tree.physics_frame

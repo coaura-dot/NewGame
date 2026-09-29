@@ -60,6 +60,12 @@ func tick(d: float) -> void:
 		return
 	match e.ai_state:
 		"spawn", "idle", "patrol", "chase", "approach":
+			# inimigos comuns só lutam quando veem o herói (chefes sempre)
+			if not e.boss and not e._target_valid():
+				e.ai_state = "patrol"
+				e._patrol(d)
+				e._anim("move" if absf(e.velocity.x) > 5.0 else "idle")
+				return
 			e.ai_state = "approach"
 			_approach(d, tgt)
 			if e.ai_t <= 0.0:

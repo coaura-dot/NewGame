@@ -32,7 +32,8 @@
    "hound": 2,
    "ghost": 1,
    "moth": 2,
-   "gust": 1
+   "gust": 1,
+   "soot_archer": 2
   },
   "tags": [
    "outdoor",
@@ -65,7 +66,8 @@
    "ghost": 2,
    "fire_skull": 2,
    "hell_beast": 1,
-   "ash_knight": 2
+   "ash_knight": 2,
+   "wax_spear": 2
   },
   "tags": [
    "indoor"
@@ -96,7 +98,8 @@
    "skeleton": 5,
    "fire_skull": 3,
    "wraith": 2,
-   "ash_knight": 1
+   "ash_knight": 1,
+   "coal_brute": 2
   },
   "tags": [
    "indoor",
@@ -136,7 +139,8 @@
    "skeleton": 2,
    "ghost": 1,
    "ash_knight": 2,
-   "moth": 1
+   "moth": 1,
+   "wax_spear": 2
   },
   "tags": [
    "outdoor",
@@ -168,7 +172,8 @@
    "fire_skull": 3,
    "ghost": 2,
    "hell_beast": 2,
-   "ash_knight": 1
+   "ash_knight": 1,
+   "wax_spear": 2
   },
   "tags": [
    "indoor",
@@ -202,7 +207,8 @@
    "wraith": 2,
    "moth": 1,
    "ash_knight": 2,
-   "gust": 1
+   "gust": 1,
+   "soot_archer": 2
   },
   "tags": [
    "outdoor"
@@ -238,7 +244,8 @@
    "hound": 3,
    "hellcat": 3,
    "wraith": 2,
-   "moth": 2
+   "moth": 2,
+   "soot_archer": 2
   },
   "tags": [
    "outdoor",
@@ -275,7 +282,8 @@
    "hellcat": 3,
    "fire_skull": 3,
    "hell_beast": 2,
-   "gust": 1
+   "gust": 1,
+   "coal_brute": 2
   },
   "tags": [
    "outdoor",
@@ -308,7 +316,8 @@
    "ghost": 2,
    "hound": 2,
    "moth": 2,
-   "gust": 1
+   "gust": 1,
+   "soot_archer": 2
   },
   "tags": [
    "outdoor",
@@ -346,7 +355,8 @@
    "ghost": 3,
    "fire_skull": 2,
    "moth": 1,
-   "gust": 3
+   "gust": 3,
+   "wax_spear": 2
   },
   "tags": [
    "sky",
@@ -377,7 +387,8 @@
   "enemies": {
    "skeleton": 3,
    "hound": 3,
-   "wraith": 2
+   "wraith": 2,
+   "soot_archer": 2
   },
   "tags": [
    "underground",
@@ -410,7 +421,8 @@
    "wraith": 3,
    "fire_skull": 2,
    "moth": 1,
-   "gust": 1
+   "gust": 1,
+   "wax_spear": 2
   },
   "tags": [
    "indoor",
@@ -442,7 +454,9 @@
    "hound": 4,
    "skeleton": 2,
    "hell_beast": 2,
-   "ash_knight": 1
+   "ash_knight": 1,
+   "soot_archer": 2,
+   "coal_brute": 2
   },
   "tags": [
    "outdoor",
@@ -474,7 +488,8 @@
    "hound": 3,
    "hellcat": 3,
    "skeleton": 2,
-   "gust": 2
+   "gust": 2,
+   "coal_brute": 2
   },
   "tags": [
    "outdoor",
@@ -505,7 +520,8 @@
   "enemies": {
    "hellcat": 4,
    "hound": 2,
-   "fire_skull": 2
+   "fire_skull": 2,
+   "coal_brute": 2
   },
   "tags": [
    "underground",
