@@ -18,6 +18,12 @@ var _hp_ghost: float = 1.0
 var _panel: Control = null
 var _region_title_t: float = 0.0
 var _region_title: String = ""
+var _region_sub: String = ""
+## Cartão de título do chefe (estilo Hollow Knight)
+var _boss_card_t: float = 0.0
+var _boss_title: String = ""
+var _boss_sub: String = ""
+const FONT_TITLE := preload("res://assets/fonts/kenney_high.ttf")
 ## Frenesi / nota do encontro (anúncios grandes)
 const TIER_COLORS := [Color(1.0, 0.85, 0.5), Color(1.6, 1.5, 0.6), Color(2.2, 1.2, 0.4), Color(2.4, 0.6, 0.5), Color(1.6, 0.9, 2.6)]
 const RANK_COLORS := {"S": Color(2.4, 1.9, 0.5), "A": Color(1.2, 2.2, 1.2), "B": Color(1.0, 1.5, 2.4), "C": Color(1.4, 1.2, 1.2)}
@@ -82,7 +88,12 @@ func _ready() -> void:
 	if level:
 		player = level.player
 		_region_title = level.region.get("name", "")
-		_region_title_t = 3.5
+		_region_title_t = 4.0
+		var layer_names := {"surface": "Superfície", "sky": "Céu", "underground": "Subsolo"}
+		var b: Dictionary = DB.biome(str(level.region.get("biome", "")))
+		_region_sub = "%s  •  %s" % [b.get("name", ""), layer_names.get(level.region.get("layer", "surface"), "")]
+		if level.region.get("dimension", "prima") != "prima":
+			_region_sub = "Reflexo  •  " + str(DB.dimension(level.region["dimension"]).get("name", ""))
 
 
 func _process(delta: float) -> void:
@@ -93,6 +104,7 @@ func _process(delta: float) -> void:
 	_bonus_t = maxf(_bonus_t - delta, 0.0)
 	_rank_t = maxf(_rank_t - delta, 0.0)
 	_region_title_t = maxf(_region_title_t - delta, 0.0)
+	_boss_card_t = maxf(_boss_card_t - delta, 0.0)
 	if player:
 		var ratio: float = player.hp / maxf(player.max_hp(), 1.0)
 		_hp_ghost = move_toward(_hp_ghost, ratio, delta * 0.5) if _hp_ghost > ratio else ratio
@@ -132,6 +144,11 @@ func toast(text: String) -> void:
 
 
 func show_boss(b: Node) -> void:
+	if boss != b:
+		var info: Dictionary = DB.lore.get("bosses", {}).get(str(b.enemy_id), {})
+		_boss_title = str(info.get("title", b.data.get("name", "Chefe")))
+		_boss_sub = str(info.get("subtitle", ""))
+		_boss_card_t = 3.2
 	boss = b
 
 
@@ -238,6 +255,31 @@ func _draw_right() -> void:
 		_text(Vector2(px + 11, 38), str(potions), 9, Color(1.4, 0.7, 0.8))
 
 
+## Cartão de título estilo Hollow Knight: nome grande entre ornamentos, com
+## uma linha menor. `small_on_top` = subtítulo em cima (chefes).
+func _title_card(d: Control, top: String, bottom: String, y: float, a: float, col: Color, small_on_top: bool = false) -> void:
+	var big := bottom if small_on_top else top
+	var small := top if small_on_top else bottom
+	var big_size := 26
+	var bw := FONT_TITLE.get_string_size(big, HORIZONTAL_ALIGNMENT_LEFT, -1, big_size).x
+	var by := y + (10.0 if small_on_top else 0.0)
+	d.draw_string_outline(FONT_TITLE, Vector2(240 - bw * 0.5, by), big, HORIZONTAL_ALIGNMENT_LEFT, -1, big_size, 4, Color(0.03, 0.02, 0.06, a))
+	d.draw_string(FONT_TITLE, Vector2(240 - bw * 0.5, by), big, HORIZONTAL_ALIGNMENT_LEFT, -1, big_size, Color(col.r, col.g, col.b, a))
+	# ornamentos: linhas que crescem dos lados + losango
+	var grow := clampf(a * 1.4, 0.0, 1.0)
+	var lw := 70.0 * grow
+	var ly := by + 6.0
+	var oc := Color(col.r, col.g, col.b, a * 0.8)
+	d.draw_line(Vector2(240 - bw * 0.5 - 8 - lw, ly), Vector2(240 - bw * 0.5 - 8, ly), oc, 1.0)
+	d.draw_line(Vector2(240 + bw * 0.5 + 8, ly), Vector2(240 + bw * 0.5 + 8 + lw, ly), oc, 1.0)
+	for sx in [240 - bw * 0.5 - 8 - lw, 240 + bw * 0.5 + 8 + lw]:
+		d.draw_colored_polygon(PackedVector2Array([Vector2(sx, ly - 2), Vector2(sx + 2, ly), Vector2(sx, ly + 2), Vector2(sx - 2, ly)]), oc)
+	if small != "":
+		var sw := FONT.get_string_size(small, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
+		var sy := by - 22.0 if small_on_top else by + 18.0
+		_text(Vector2(240 - sw * 0.5, sy), small, 11, Color(0.9, 0.88, 0.95, a * 0.9))
+
+
 ## Contador do Frenesi (acertos seguidos), barra da janela, anúncios de
 ## nível, bônus ao terminar e a nota (S/A/B/C) do encontro.
 func _draw_frenzy(d: Control) -> void:
@@ -296,9 +338,11 @@ func _draw_hud() -> void:
 		_bar(Rect2(140, 250, 200, 6), br, Color(1.4, 0.35, 0.2))
 	# título da região
 	if _region_title_t > 0.0 and _region_title != "":
-		var a := minf(_region_title_t, 1.0) * minf((3.5 - _region_title_t) * 2.0, 1.0)
-		var w := FONT.get_string_size(_region_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
-		_text(Vector2(240 - w * 0.5, 80), _region_title, 20, Color(1.0, 0.85, 0.55, a))
+		var a := minf(_region_title_t, 1.0) * minf((4.0 - _region_title_t) * 1.5, 1.0)
+		_title_card(d, _region_title, _region_sub, 86.0, a, Color(1.0, 0.9, 0.7))
+	if _boss_card_t > 0.0 and _boss_title != "":
+		var ab := minf(_boss_card_t, 1.0) * minf((3.2 - _boss_card_t) * 2.0, 1.0)
+		_title_card(d, _boss_sub, _boss_title, 150.0, ab, Color(1.3, 0.75, 0.6), true)
 	# sobreposição do sigilo
 	if player.state == Player.State.SIGIL:
 		d.draw_rect(Rect2(0, 0, 480, 270), Color(0.05, 0.0, 0.12, 0.35))
@@ -665,6 +709,22 @@ func open_quests(region_id: String, only_npc: String = "") -> void:
 	if not active.is_empty():
 		v.add_child(UIKit.label("Ativas: " + ", ".join(active.map(func(a): return a["title"])), 10, UIKit.DIM))
 	v.add_child(UIKit.button("Fechar", close_panel, 80))
+	_open_panel(p)
+
+
+## Leitura de uma inscrição (pausa o jogo até fechar).
+func show_lore(title: String, text: String, is_new: bool) -> void:
+	var p := UIKit.panel(Vector2(300, 0))
+	var v := UIKit.vbox(6)
+	p.add_child(v)
+	v.add_child(UIKit.title(title, 16))
+	var l := UIKit.label("“" + text + "”", 12, UIKit.INK)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD
+	l.custom_minimum_size = Vector2(280, 0)
+	v.add_child(l)
+	if is_new:
+		v.add_child(UIKit.label("Anotado no Códice (pausa).", 10, UIKit.GOLD))
+	v.add_child(UIKit.button("Fechar", close_panel, 90))
 	_open_panel(p)
 
 

@@ -77,8 +77,7 @@ func _ready() -> void:
 	Music.play_ambience(str(biome.get("ambience", "")))
 	Audio.set_space(str(biome.get("space", "open")))
 	Events.room_entered.emit({"index": 0})
-	if not training:
-		Events.toast.emit(region.get("name", ""))
+	pass # o nome da região aparece no cartão de título da HUD
 
 
 func _resolve_params() -> void:
@@ -307,6 +306,12 @@ func _spawn_entities() -> void:
 				al.boss_id = params.get("boss", "") if params.get("boss", "") != "" else region.get("boss", "")
 				al.position = _tile_feet(e["tile"])
 				node = al
+			"inscription":
+				var ins := Inscription.new()
+				ins.biome_id = str(data.get("biome", params.get("biome", "")))
+				ins.index = int(data.get("idx", 0))
+				ins.position = _tile_feet(e["tile"])
+				node = ins
 			"impeto_orb":
 				var orb := ImpetoOrb.new()
 				orb.position = _tile_center(e["tile"])

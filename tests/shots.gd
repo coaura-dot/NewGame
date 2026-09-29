@@ -49,6 +49,8 @@ func _ready() -> void:
 			Game.pending = {"region": rid}
 			await _shot_overview("fase_" + biome)
 			SaveSystem.delete_save(9)
+	if scenario in ["intro", "all"]:
+		await _shot_intro()
 	if scenario in ["juice", "all"]:
 		Game.pending = {"training": true}
 		await _shot_juice()
@@ -252,6 +254,30 @@ func _shot_juice() -> void:
 	level.queue_free()
 	await _frames(2)
 	Game.end_training()
+
+
+## Os 6 quadros da abertura numa folha.
+func _shot_intro() -> void:
+	Game.new_game(1234, 9)
+	var intro: Node = load("res://scenes/intro.tscn").instantiate()
+	add_child(intro)
+	var frames: Array[Image] = []
+	for i in intro._panels.size():
+		intro._show(i)
+		await _frames(150)
+		await RenderingServer.frame_post_draw
+		var img: Image = get_viewport().get_texture().get_image()
+		img.resize(640, 360, Image.INTERPOLATE_NEAREST)
+		img.convert(Image.FORMAT_RGBA8)
+		frames.append(img)
+	var sheet := Image.create(640 * 3, 360 * 2, false, Image.FORMAT_RGBA8)
+	for i in frames.size():
+		sheet.blit_rect(frames[i], Rect2i(0, 0, 640, 360), Vector2i((i % 3) * 640, (i / 3) * 360))
+	sheet.save_png(out_dir.path_join("abertura.png"))
+	intro._leaving = true
+	intro.queue_free()
+	await _frames(2)
+	SaveSystem.delete_save(9)
 
 
 ## Mapa do mundo contínuo: visita a região inicial e as vizinhas (resumo

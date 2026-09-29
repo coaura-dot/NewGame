@@ -146,8 +146,7 @@ func _ready() -> void:
 		ai_state = "spawn"
 		ai_t = 0.8
 		play_anim(spawn_anim, true)
-	if boss:
-		Events.toast.emit(data.get("name", "Chefe"))
+	pass # chefes: cartão de título na HUD (show_boss)
 
 
 func body_center() -> Vector2:

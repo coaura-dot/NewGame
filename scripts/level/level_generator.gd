@@ -243,6 +243,8 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 				key_placed = true
 				break
 
+	_place_inscriptions(grid, room_list, entities, rng, biome_id, int(params.get("inscriptions", 2)))
+
 	var spawn := Vector2i(-1, -1)
 	var exit_tile := Vector2i(-1, -1)
 	for e in entities:
@@ -289,6 +291,45 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 		"sky_rooms": sky_rooms,
 		"ports": ports_out,
 	}
+
+
+## Inscrições de lore (data/lore.json) em salas calmas: tesouro, segredo,
+## passagem, corredor, entrada. Ficam num chão livre com espaço acima.
+static func _place_inscriptions(grid: Array, room_list: Array, entities: Array, rng: RandomNumberGenerator, biome_id: String, count: int) -> void:
+	var prefer := ["treasure", "secret", "passage", "corridor", "entrance", "hub", "platforming", "shaft"]
+	var cands: Array = []
+	for r in room_list:
+		if str(r.get("type", "")) in prefer:
+			cands.append(r)
+	RngUtil.shuffle(rng, cands)
+	var placed := 0
+	var used_idx := {}
+	for r in cands:
+		if placed >= count:
+			break
+		var o: Array = r["origin"]
+		for attempt in 20:
+			var x: int = int(o[0]) + rng.randi_range(5, LevelConst.ROOM_W - 6)
+			var y: int = int(o[1]) + LevelConst.FLOOR_ROW - 1
+			# sobe até achar chão com ar em cima
+			while y > int(o[1]) + 2 and grid[y][x] == "#":
+				y -= 1
+			if grid[y][x] != "." or grid[y - 1][x] != "." or grid[y + 1][x] != "#":
+				continue
+			var busy := false
+			for e in entities:
+				if absi(int(e["tile"][0]) - x) <= 2 and absi(int(e["tile"][1]) - y) <= 2:
+					busy = true
+					break
+			if busy:
+				continue
+			var idx := rng.randi_range(0, 8)
+			while used_idx.has(idx % 3):
+				idx += 1
+			used_idx[idx % 3] = true
+			entities.append({"type": "inscription", "tile": [x, y], "room": r["index"], "data": {"biome": biome_id, "idx": idx}})
+			placed += 1
+			break
 
 
 ## Salas que nunca têm paredes derrubadas (trancas, alavancas, segredos).

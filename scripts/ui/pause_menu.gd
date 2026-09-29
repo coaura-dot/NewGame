@@ -65,6 +65,7 @@ func _show_main() -> void:
 	v.add_child(UIKit.title("Pausa", 24))
 	v.add_child(UIKit.button("Continuar", close))
 	v.add_child(UIKit.button("Equipamento", _show_equipment))
+	v.add_child(UIKit.button("Códice", _show_codex))
 	v.add_child(UIKit.button("Opções", _show_options))
 	if level and not level.training and level.map_screen:
 		v.add_child(UIKit.button("Mapa (M)", func():
@@ -184,6 +185,68 @@ func _show_equipment() -> void:
 	wrap.add_child(p)
 	wrap.add_child(back)
 	_set_content(wrap, "Equipment")
+
+
+## Códice: a história de Cindária, os Dons obtidos, os Reflexos visitados e
+## as inscrições lidas (por bioma).
+func _show_codex() -> void:
+	var lore: Dictionary = DB.lore
+	var p := UIKit.panel(Vector2(440, 240))
+	var tabs := TabContainer.new()
+	tabs.custom_minimum_size = Vector2(430, 220)
+	p.add_child(tabs)
+	var hv := _tab(tabs, "História")
+	for e in lore.get("codex", []):
+		hv.add_child(UIKit.label(str(e["title"]), 12, UIKit.GOLD))
+		hv.add_child(_wrap(str(e["text"])))
+	for panel in lore.get("intro", []):
+		hv.add_child(_wrap("• " + str(panel["text"]), UIKit.DIM))
+	var av := _tab(tabs, "Dons")
+	var any_ab := false
+	for ab in Game.profile.get("abilities", []):
+		var t: String = lore.get("abilities", {}).get(ab, "")
+		if t != "":
+			av.add_child(_wrap(t))
+			any_ab = true
+	if not any_ab:
+		av.add_child(UIKit.label("Derrote guardiões para recuperar os Dons de Ignara.", 11, UIKit.DIM))
+	var dv := _tab(tabs, "Reflexos")
+	var any_dim := false
+	for r in Game.world.get("regions", {}).values():
+		if r.get("dimension", "prima") != "prima" and r.get("visited", false):
+			dv.add_child(_wrap(str(lore.get("dimensions", {}).get(r["dimension"], r["name"]))))
+			any_dim = true
+	if not any_dim:
+		dv.add_child(UIKit.label("Nenhum Reflexo visitado ainda. (Chave Dimensional + fendas)", 11, UIKit.DIM))
+	var iv := _tab(tabs, "Inscrições")
+	var read: Array = Game.profile.get("codex", [])
+	var by_biome := {}
+	for id in read:
+		var parts: PackedStringArray = str(id).split(":")
+		if parts.size() == 2:
+			if not by_biome.has(parts[0]):
+				by_biome[parts[0]] = []
+			by_biome[parts[0]].append(int(parts[1]))
+	if by_biome.is_empty():
+		iv.add_child(UIKit.label("Leia as inscrições de pedra espalhadas pelas regiões.", 11, UIKit.DIM))
+	for b in by_biome.keys():
+		iv.add_child(UIKit.label(str(DB.biome(b).get("name", b)), 12, UIKit.GOLD))
+		var lines: Array = lore.get("biomes", {}).get(b, [])
+		for i in by_biome[b]:
+			if not lines.is_empty():
+				iv.add_child(_wrap("“" + str(lines[i % lines.size()]) + "”"))
+	var back := UIKit.button("Voltar", _show_main, 80)
+	var v := UIKit.vbox(4)
+	v.add_child(p)
+	v.add_child(back)
+	_set_content(v, "Codex")
+
+
+func _wrap(text: String, color: Color = UIKit.INK) -> Label:
+	var l := UIKit.label(text, 11, color)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD
+	l.custom_minimum_size = Vector2(400, 0)
+	return l
 
 
 func _tab(tabs: TabContainer, title: String) -> VBoxContainer:

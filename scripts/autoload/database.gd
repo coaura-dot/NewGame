@@ -14,6 +14,8 @@ var armor_sets: Dictionary = {}
 var armor: Dictionary = {} ## peças geradas (<set>_<slot>) + berloques
 var buffs: Dictionary = {}
 var enemies: Dictionary = {}
+## História e lore (data/lore.json): abertura, inscrições, títulos, códice
+var lore: Dictionary = {}
 var items: Dictionary = {}
 var biomes: Dictionary = {}
 var dimensions: Dictionary = {}
@@ -46,6 +48,7 @@ func reload() -> void:
 	abilities = _load("abilities")
 	npc_data = _load("npcs")
 	quest_data = _load("quests")
+	lore = _load("lore")
 	_build_armor(armor_raw.get("trinkets", {}))
 	_validate()
 	for e in errors:

@@ -1,0 +1,118 @@
+{
+ "_doc": "História e lore de Cindária. intro: painéis da abertura (art = ilustração desenhada em código). biomes: inscrições por bioma (achadas nas salas). bosses: título/subtítulo (cartão estilo Hollow Knight). abilities/dimensions/codex: entradas do Códice.",
+ "world": "Cindária",
+ "intro": [
+  {"art": "flame", "text": "No coração de Cindária ardia a Chama Primeira. Enquanto ela queimasse, a Maré dormia sob o mundo."},
+  {"art": "tide", "text": "Mas a cada mil anos a Maré sobe. Um oceano de sombra que não afoga: esvazia. O que ela toca vira Oco."},
+  {"art": "guardian", "text": "No último Cerco, a guardiã Ignara partiu a Chama em mil brasas e as escondeu dentro das criaturas do mundo, para que a Maré não pudesse apagá-la de uma só vez."},
+  {"art": "embers", "text": "A Maré recuou. Ignara não voltou. E as brasas, esquecidas, foram se apagando uma a uma nos corações dos Ocos."},
+  {"art": "spark", "text": "Mil anos depois, a última brasa intacta desperta num santuário em ruínas. Pequena. Muda. Com uma lâmina."},
+  {"art": "tide_rising", "text": "A Maré já está subindo. Junte as brasas. Reacenda o que puder. E quando o Cerco vier, escolha onde queimar."}
+ ],
+ "biomes": {
+  "cemiterio": [
+   "Aqui enterramos os que a Maré esvaziou. Ninguém nos disse que eles se levantariam.",
+   "As lápides não têm nomes. Os Ocos esquecem os seus primeiro.",
+   "Se um corvo pousar em você, não se mexa. Eles só levam o que está morto."
+  ],
+  "castelo": [
+   "Os cavaleiros de Ignara acendiam as lanternas sobre os abismos. Golpeie-as, e a chama te levará adiante.",
+   "O rei fechou os portões quando a Maré chegou. Os portões ainda estão fechados. O rei, não sabemos.",
+   "Cada estandarte vermelho foi tingido no primeiro Cerco. Dizem que ainda não secaram."
+  ],
+  "catacumbas": [
+   "Desça devagar: o eco aqui embaixo às vezes responde.",
+   "Os ossos nas paredes foram guardiões. Mesmo mortos, ainda vigiam.",
+   "A água que pinga do teto é salgada. Ninguém sabe de que mar."
+  ],
+  "cidade_gotica": [
+   "Chove há cem anos. Os sinos tocam sozinhos quando algo grande anda na neblina.",
+   "Não olhe para o gigante entre as torres. Ele só caminha. Até o dia em que parar.",
+   "As janelas acesas são de quem ainda espera alguém voltar para casa."
+  ],
+  "templo_dourado": [
+   "O ouro deste templo foi fundido das coroas dos reis que se ajoelharam diante da Chama.",
+   "Os sacerdotes rezavam de costas para o altar. Diziam que a Chama não gosta de ser encarada.",
+   "Toda porta daqui se abre com uma pergunta. A maioria das respostas é 'não'."
+  ],
+  "ruinas": [
+   "Aqui havia uma cidade que decidiu não fugir do Cerco. Os arcos ainda estão de pé por teimosia.",
+   "Os pássaros voltam todo fim de tarde. Acho que ainda se lembram de quem os alimentava.",
+   "Não há pedra que a Maré não tenha tocado. Há pedras que ela não conseguiu levar."
+  ],
+  "floresta": [
+   "As árvores mais velhas têm brasas nas raízes. Por isso a Maré nunca entrou na floresta inteira.",
+   "Se ouvir alguém assobiando, responda. Se ninguém responder de volta, corra.",
+   "Os bichos daqui saltam antes de pensar. Seja mais rápido que eles."
+  ],
+  "deserto": [
+   "O deserto já foi mar. A Maré bebeu tudo e deixou só a areia.",
+   "Quando a areia tremer, não pare de correr. O verme escuta o silêncio.",
+   "As pirâmides não são túmulos. São chaminés: por elas a Chama respirava."
+  ],
+  "pantano": [
+   "As luzes sobre a água não são fogo. Não as siga.",
+   "No pântano o reflexo às vezes se mexe antes de você.",
+   "Os sapos cantam para manter a Maré dormindo. Quando eles se calam, prepare a lâmina."
+  ],
+  "cidade_ceu": [
+   "Construíram a cidade nas nuvens para ficar longe da Maré. A Maré aprendeu a subir.",
+   "A baleia do céu não é hostil. Ela só está procurando o mar que perdeu.",
+   "Aqui em cima, cair é a única coisa que ninguém esquece."
+  ],
+  "cidade_subterranea": [
+   "Descemos para nos esconder da Maré. Esquecemos que ela vem de baixo.",
+   "As lanternas daqui nunca se apagam. Quem as apaga não é daqui.",
+   "Os mineiros ouvem a Maré respirando atrás das paredes."
+  ],
+  "cidade_magos": [
+   "Os magos tentaram engarrafar a Maré. As garrafas estão todas vazias agora.",
+   "Todo feitiço é uma promessa. A Maré só cobra as que não foram cumpridas.",
+   "O sigilo certo, desenhado com a mão firme, queima mais que qualquer lâmina."
+  ],
+  "fortaleza_orc": [
+   "Os orcs não fugiram da Maré. Declararam guerra a ela. Ainda estão lutando.",
+   "Os tambores de guerra marcam o ritmo. Ataque no tempo certo e o golpe fica mais forte.",
+   "Honra aqui se conta em cicatrizes. Você ainda não tem nenhuma."
+  ],
+  "acampamento_barbaro": [
+   "Os bárbaros queimam tudo o que a Maré tocou. Inclusive os próprios mortos.",
+   "O fogo das fogueiras daqui é emprestado da Chama. Ninguém lembra de devolvê-lo.",
+   "Não pergunte o nome deles. Nomes são as primeiras coisas que a Maré leva."
+  ],
+  "toca_goblin": [
+   "Os goblins colecionam brasas apagadas. Acham que um dia elas vão acender de novo.",
+   "Cuidado com o chão que parece chão.",
+   "Cada túnel daqui foi cavado para fugir de outro túnel."
+  ]
+ },
+ "bosses": {
+  "duelist": {"title": "Duelista Sombrio", "subtitle": "Último cavaleiro de Ignara"},
+  "brood_mother": {"title": "Mãe da Ninhada", "subtitle": "Rainha que devorou as brasas do Sul"},
+  "colossus": {"title": "Colosso de Pedra", "subtitle": "O muro vivo da Cidadela"},
+  "nightmare": {"title": "Corcel do Pesadelo", "subtitle": "Montaria da Maré"},
+  "archdemon": {"title": "Arquidemônio", "subtitle": "Arauto da Maré"}
+ },
+ "abilities": {
+  "double_jump": "Asas de Cinza: o último sopro de uma fênix que se recusou a morrer. Pule de novo no ar.",
+  "wall_climb": "Garras: dadas pela guardiã das montanhas. Agarre-se às paredes e escale.",
+  "dash_2": "Coração do Vendaval: um segundo dash, arrancado do peito de um guardião.",
+  "ground_pound": "Queda Esmagadora: caia como uma estrela. Quebra pisos rachados e esmaga quem estiver embaixo.",
+  "blink": "Passo Etéreo: atravesse o espaço por um instante.",
+  "dimension_shift": "Chave Dimensional: abre as fendas para os Reflexos, mundos que a Maré já engoliu."
+ },
+ "dimensions": {
+  "umbra": "Umbra: o Reflexo de um mundo que perdeu a luz. As sombras aqui têm fome.",
+  "eter": "Éter: o que sobrou de uma cidade que flutuou para longe demais. O ar é leve; os passos, longos.",
+  "cronos": "Cronos: um mundo que parou no instante em que a Maré o tocou. O tempo aqui obedece de má vontade.",
+  "espelho": "Espelho: tudo aqui é seu reflexo. Inclusive você.",
+  "abismo": "Abismo: o fundo da Maré. Ninguém deveria conseguir entrar. Ninguém deveria conseguir sair."
+ },
+ "codex": [
+  {"id": "faisca", "title": "A Faísca", "text": "Nasceu da última brasa intacta de Ignara. Não fala; sente. Cada Oco derrotado devolve um pouco de brasa ao mundo."},
+  {"id": "ocos", "title": "Os Ocos", "text": "Criaturas que a Maré tocou. Por dentro, só tinta escura e brasas apagadas. Libertá-los é o único descanso que ainda lhes resta."},
+  {"id": "lanternas", "title": "Lanternas de Ímpeto", "text": "Os cavaleiros de Ignara penduravam lanternas sobre os abismos. Golpeá-las devolve o fôlego do dash e do pulo."},
+  {"id": "santuarios", "title": "Santuários", "text": "Fogueiras acesas com brasas de Ignara. Descansar nelas cura, e quem as encontra pode viajar entre elas."},
+  {"id": "cerco", "title": "O Cerco", "text": "A cada mil anos a Maré sobe em todas as terras ao mesmo tempo. Nenhuma chama é grande o bastante para proteger tudo."}
+ ]
+}
