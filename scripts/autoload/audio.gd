@@ -13,6 +13,7 @@ const EVENTS := {
 	"parry_perfect": ["g_parry"],
 	"kill": ["g_kill"],
 	"birds": ["g_birds"],
+	"splash": ["g_splash"],
 	"thunder": ["g_thunder"],
 	"rumble": ["g_rumble"],
 	"aim": ["g_aim"],

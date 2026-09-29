@@ -95,6 +95,10 @@ func _resolve_params() -> void:
 			"force_path": ["entrance", "corridor", "platforming", "combat", "shaft", "puzzle", "challenge", "combat", "boss", "exit"],
 		}
 		region = {"name": "Salão de Treino", "biome": "castelo", "tier": 1}
+		if pending.has("biome"): # screenshots/debug: treino em outro bioma
+			params["biome"] = pending["biome"]
+			params["force_path"] = ["entrance", "combat", "platforming", "arena", "combat", "exit"]
+			region = {"name": DB.biome(pending["biome"]).get("name", ""), "biome": pending["biome"], "tier": 1}
 		var arena: String = pending.get("arena", "")
 		if arena != "":
 			params["boss"] = arena
@@ -490,6 +494,11 @@ func _spawn_player() -> void:
 	var amb := AmbientParticles.new()
 	amb.setup(biome.get("particles", "dust"), camera)
 	world.add_child(amb)
+	if str(biome.get("props", "")) != "":
+		var props := PropsLayer.new()
+		props.camera = camera
+		props.build(layout["rows"], str(biome["props"]), int(params.get("seed", 1)) + 7)
+		world.add_child(props)
 
 
 func _build_layers() -> void:

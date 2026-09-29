@@ -49,6 +49,8 @@ func _ready() -> void:
 			Game.pending = {"region": rid}
 			await _shot_overview("fase_" + biome)
 			SaveSystem.delete_save(9)
+	if scenario in ["biomes", "all"]:
+		await _shot_biomes()
 	if scenario in ["intro", "all"]:
 		await _shot_intro()
 	if scenario in ["juice", "all"]:
@@ -254,6 +256,39 @@ func _shot_juice() -> void:
 	level.queue_free()
 	await _frames(2)
 	Game.end_training()
+
+
+## Um quadro por bioma (treino no bioma): tiles, fundo, água, adereços.
+func _shot_biomes() -> void:
+	var list := ["floresta", "pantano", "castelo", "cidade_gotica", "deserto", "cidade_ceu", "toca_goblin", "fortaleza_orc", "catacumbas", "cemiterio", "cidade_magos", "ruinas"]
+	var frames: Array[Image] = []
+	for b in list:
+		Game.pending = {"training": true, "biome": b}
+		var level: Node = load("res://scenes/level.tscn").instantiate()
+		add_child(level)
+		await _frames(20)
+		var p: Player = level.player
+		var rows: PackedStringArray = level.layout["rows"]
+		# prefere a sala 1 ou 2 (combate/parkour)
+		var room: Dictionary = level.layout["rooms"][mini(1, level.layout["rooms"].size() - 1)]
+		var o: Array = room["origin"]
+		p.global_position = _stand_spot(rows, int(o[0]), int(o[1]))
+		p.velocity = Vector2.ZERO
+		p.reset_physics_interpolation()
+		level._focus_camera_on_player()
+		await _frames(40)
+		await RenderingServer.frame_post_draw
+		var img: Image = get_viewport().get_texture().get_image()
+		img.resize(640, 360, Image.INTERPOLATE_NEAREST)
+		img.convert(Image.FORMAT_RGBA8)
+		frames.append(img)
+		level.queue_free()
+		await _frames(3)
+		Game.end_training()
+	var sheet := Image.create(640 * 3, 360 * 4, false, Image.FORMAT_RGBA8)
+	for i in frames.size():
+		sheet.blit_rect(frames[i], Rect2i(0, 0, 640, 360), Vector2i((i % 3) * 640, (i / 3) * 360))
+	sheet.save_png(out_dir.path_join("biomas.png"))
 
 
 ## Os 6 quadros da abertura numa folha.

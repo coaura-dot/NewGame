@@ -3,7 +3,7 @@
  "cemiterio": {
   "music": "catacumbas",
   "name": "Cemitério Esquecido",
-  "tileset": "cemetery",
+  "tileset": "graveyard",
   "background": "cemetery",
   "tint": [
    1,
@@ -41,7 +41,15 @@
   ],
   "scenery": "graveyard",
   "ambience": "noite",
-  "space": "open"
+  "space": "open",
+  "water": true,
+  "props": "graveyard",
+  "water_color": [
+   0.16,
+   0.2,
+   0.3,
+   0.8
+  ]
  },
  "castelo": {
   "music": "castelo",
@@ -79,17 +87,19 @@
   ],
   "scenery": "castle",
   "ambience": "salao",
-  "space": "hall"
+  "space": "hall",
+  "water": false,
+  "props": "castle"
  },
  "catacumbas": {
   "music": "catacumbas",
   "name": "Catacumbas",
-  "tileset": "temple",
+  "tileset": "catacomb",
   "background": "temple",
   "tint": [
-   0.8,
-   0.75,
-   0.7
+   1,
+   1,
+   1
   ],
   "ambient": [
    0.26,
@@ -118,7 +128,9 @@
   ],
   "scenery": "cave",
   "ambience": "caverna",
-  "space": "cave"
+  "space": "cave",
+  "water": false,
+  "props": "catacomb"
  },
  "cidade_gotica": {
   "music": "castelo",
@@ -162,7 +174,15 @@
   ],
   "scenery": "gothic",
   "ambience": "chuva",
-  "space": "open"
+  "space": "open",
+  "water": true,
+  "props": "town",
+  "water_color": [
+   0.16,
+   0.2,
+   0.32,
+   0.8
+  ]
  },
  "templo_dourado": {
   "music": "deserto",
@@ -199,17 +219,19 @@
   ],
   "scenery": "desert",
   "ambience": "salao",
-  "space": "hall"
+  "space": "hall",
+  "water": false,
+  "props": "temple"
  },
  "ruinas": {
   "music": "floresta",
   "name": "Ruínas Antigas",
-  "tileset": "town",
+  "tileset": "ruins",
   "background": "town",
   "tint": [
-   0.85,
-   0.9,
-   0.8
+   1,
+   1,
+   1
   ],
   "ambient": [
    0.5,
@@ -236,17 +258,25 @@
   ],
   "scenery": "ruins",
   "ambience": "vento",
-  "space": "open"
+  "space": "open",
+  "water": true,
+  "props": "ruins",
+  "water_color": [
+   0.34,
+   0.3,
+   0.42,
+   0.75
+  ]
  },
  "floresta": {
   "music": "floresta",
   "name": "Floresta Sussurrante",
-  "tileset": "cemetery",
+  "tileset": "forest",
   "background": "cemetery",
   "tint": [
-   0.8,
-   1.1,
-   0.8
+   1,
+   1,
+   1
   ],
   "ambient": [
    0.4,
@@ -278,17 +308,25 @@
   ],
   "scenery": "forest",
   "ambience": "floresta",
-  "space": "open"
+  "space": "open",
+  "water": true,
+  "props": "forest",
+  "water_color": [
+   0.2,
+   0.38,
+   0.44,
+   0.75
+  ]
  },
  "deserto": {
   "music": "deserto",
   "name": "Deserto de Âmbar",
-  "tileset": "temple",
+  "tileset": "desert",
   "background": "temple",
   "tint": [
-   1.25,
-   1.05,
-   0.75
+   1,
+   1,
+   1
   ],
   "ambient": [
    0.8,
@@ -321,17 +359,19 @@
   ],
   "scenery": "desert",
   "ambience": "deserto",
-  "space": "open"
+  "space": "open",
+  "water": false,
+  "props": "desert"
  },
  "pantano": {
   "music": "floresta",
   "name": "Pântano Pútrido",
-  "tileset": "cemetery",
+  "tileset": "swamp",
   "background": "cemetery",
   "tint": [
-   0.7,
-   0.95,
-   0.6
+   1,
+   1,
+   1
   ],
   "ambient": [
    0.36,
@@ -358,17 +398,25 @@
   ],
   "scenery": "swamp",
   "ambience": "pantano",
-  "space": "open"
+  "space": "open",
+  "water": true,
+  "props": "swamp",
+  "water_color": [
+   0.26,
+   0.36,
+   0.26,
+   0.8
+  ]
  },
  "cidade_ceu": {
   "music": "ceu",
   "name": "Cidadela Celeste",
-  "tileset": "temple",
+  "tileset": "sky",
   "background": "temple",
   "tint": [
-   1.05,
-   1.1,
-   1.3
+   1,
+   1,
+   1
   ],
   "ambient": [
    0.72,
@@ -401,17 +449,19 @@
   ],
   "scenery": "sky",
   "ambience": "ceu",
-  "space": "open"
+  "space": "open",
+  "water": false,
+  "props": "sky"
  },
  "cidade_subterranea": {
   "music": "catacumbas",
   "name": "Cidade Subterrânea",
-  "tileset": "castle",
+  "tileset": "cave",
   "background": "castle",
   "tint": [
-   0.85,
-   0.8,
-   0.95
+   1,
+   1,
+   1
   ],
   "ambient": [
    0.3,
@@ -439,17 +489,25 @@
   ],
   "scenery": "cave",
   "ambience": "caverna",
-  "space": "cave"
+  "space": "cave",
+  "water": true,
+  "props": "cave",
+  "water_color": [
+   0.12,
+   0.2,
+   0.3,
+   0.82
+  ]
  },
  "cidade_magos": {
   "music": "castelo",
   "name": "Torres dos Magos",
-  "tileset": "castle",
+  "tileset": "arcane",
   "background": "castle",
   "tint": [
-   0.9,
-   0.85,
-   1.25
+   1,
+   1,
+   1
   ],
   "ambient": [
    0.45,
@@ -476,17 +534,19 @@
   ],
   "scenery": "castle",
   "ambience": "salao",
-  "space": "hall"
+  "space": "hall",
+  "water": false,
+  "props": "arcane"
  },
  "fortaleza_orc": {
   "music": "guerra",
   "name": "Fortaleza Orc",
-  "tileset": "town",
+  "tileset": "war",
   "background": "town",
   "tint": [
-   0.85,
-   1.0,
-   0.75
+   1,
+   1,
+   1
   ],
   "ambient": [
    0.55,
@@ -514,17 +574,19 @@
   ],
   "scenery": "war",
   "ambience": "guerra",
-  "space": "open"
+  "space": "open",
+  "water": false,
+  "props": "war"
  },
  "acampamento_barbaro": {
   "music": "guerra",
   "name": "Acampamento Bárbaro",
-  "tileset": "cemetery",
+  "tileset": "war",
   "background": "town",
   "tint": [
-   1.1,
-   0.9,
-   0.8
+   1,
+   1,
+   1
   ],
   "ambient": [
    0.6,
@@ -552,17 +614,19 @@
   ],
   "scenery": "war",
   "ambience": "guerra",
-  "space": "open"
+  "space": "open",
+  "water": false,
+  "props": "war"
  },
  "toca_goblin": {
   "music": "catacumbas",
   "name": "Toca dos Goblins",
-  "tileset": "castle",
+  "tileset": "cave",
   "background": "castle",
   "tint": [
-   0.8,
-   1.05,
-   0.7
+   1,
+   1,
+   1
   ],
   "ambient": [
    0.35,
@@ -590,6 +654,14 @@
   ],
   "scenery": "cave",
   "ambience": "caverna",
-  "space": "cave"
+  "space": "cave",
+  "water": true,
+  "props": "cave",
+  "water_color": [
+   0.2,
+   0.28,
+   0.22,
+   0.82
+  ]
  }
 }

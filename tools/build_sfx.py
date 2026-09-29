@@ -217,6 +217,19 @@ def wave(v):
     return finish(mix(d, low, shimmer), 0.75)
 
 
+def splash(v):
+    d = 0.45
+    body = onepole_lp(noise(d), np.linspace(4000, 900, int(SR * d))) * env(d, 0.004, 0.09)
+    bub = np.zeros(int(SR * d))
+    for k in range(5):
+        f = 600 + k * 180 + v * 50
+        t = t_axis(0.06)
+        b = np.sin(2 * np.pi * np.cumsum(f * (1 + 0.8 * t / 0.06)) / SR) * env(0.06, 0.002, 0.02)
+        s0 = int(SR * (0.05 + k * 0.05))
+        bub[s0:s0 + len(b)] += b[: len(bub) - s0] * 0.3
+    return finish(mix(d, body, bub), 0.6)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     for v in range(3):
@@ -234,6 +247,8 @@ def main():
     save("g_aim_0", aim(0))
     save("g_orb_0", orb(0))
     save("g_wave_0", wave(0))
+    for v in range(2):
+        save("g_splash_%d" % v, splash(v))
     for letter in "sabc":
         save("g_rank_" + letter, rank(letter))
 

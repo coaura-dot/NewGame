@@ -11,7 +11,7 @@ func _ready() -> void:
 	FX.clear_time_effects()
 	get_tree().paused = false
 	Music.play("menu")
-	Music.play_ambience("")
+	Music.play_ambience("floresta")
 	Audio.set_space("open")
 	_cam = Camera2D.new()
 	_cam.position = Vector2(160, 90)
@@ -19,7 +19,9 @@ func _ready() -> void:
 	_cam.make_current()
 	var bg := BackgroundLayer.new()
 	bg.camera = _cam
-	bg.build("town", Color(1.0, 1.0, 1.0))
+	bg.W = 320.0
+	bg.H = 180.0
+	bg.build("ruins", Color(1.0, 1.0, 1.0))
 	add_child(bg)
 	var env := Environment.new()
 	env.background_mode = Environment.BG_CANVAS

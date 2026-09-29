@@ -8,14 +8,15 @@ extends CanvasLayer
 ## guerra, morcegos cruzando a lua, fogos-fátuos no pântano).
 ## Inspiração: Kingdom Two Crowns, Blasphemous, Dead Cells.
 
-const W := LevelConst.VIEW.x
-const H := LevelConst.VIEW.y
 const DIR := "res://assets/art/scenery/"
 const LAYER_W := 512.0
 
 static var _meta: Dictionary = {}
 
 var camera: Camera2D = null
+## Tamanho da tela onde o cenário é desenhado (fase: 256x144; menu: 320x180)
+var W: float = LevelConst.VIEW.x
+var H: float = LevelConst.VIEW.y
 var style_id: String = "forest"
 var tint: Color = Color.WHITE
 ## Linha de referência (y do mundo) em que as camadas ficam na posição de
@@ -71,7 +72,7 @@ func build(set_id: String, color: Color, level_top: float = 0.0) -> void:
 		if tex:
 			_layers.append([tex, float(par[i]), float(vpar[i]), Color(str(meta.get(names[i] + "_fill", "#000000")))])
 	_draw = Control.new()
-	_draw.size = LevelConst.VIEW
+	_draw.size = Vector2(W, H)
 	_draw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_draw.draw.connect(_on_draw)
 	add_child(_draw)
@@ -188,7 +189,7 @@ func _on_draw() -> void:
 	var sky_off := _vy(0.015)
 	var flash_mod := Color(1, 1, 1).lerp(Color(1.6, 1.6, 1.9), _flash)
 	if _sky:
-		_draw.draw_texture(_sky, Vector2(0, -sky_off), tint * flash_mod)
+		_draw.draw_texture_rect(_sky, Rect2(0, -sky_off, maxf(W, _sky.get_width()), _sky.get_height()), false, tint * flash_mod)
 		if sky_off < 0.0:
 			_draw.draw_rect(Rect2(0, 0, W, -sky_off + 1), _sky_top * tint * flash_mod)
 		elif sky_off > 0.0:

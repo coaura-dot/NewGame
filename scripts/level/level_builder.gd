@@ -32,6 +32,7 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 	var rows: PackedStringArray = layout["rows"]
 	var w: int = layout["width"]
 	var h: int = layout["height"]
+	var windows := _windows(layout, biome)
 	var room_mask := _room_mask(layout)
 	# fora (céu aberto) só as salas mais altas; as de baixo são subterrâneas
 	# e ganham parede de rocha ao fundo
@@ -48,7 +49,7 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 				_place_solid(solid, trim, ceil, deco, rows, x, y, w, h)
 			else:
 				var rc := Vector2i(x / LevelConst.ROOM_W, y / LevelConst.ROOM_H)
-				if room_mask.has(rc) and (indoor or not open_sky.has(rc)):
+				if room_mask.has(rc) and (indoor or not open_sky.has(rc)) and not windows.has(cell):
 					bg.set_cell(cell, TileSetBuilder.SOURCE, TileSetBuilder.BG[TileSetBuilder.variant(x, y, 4)])
 				if c == "-":
 					var l := _ch(rows, x - 1, y, w, h) == "-"
@@ -77,7 +78,90 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 			TileSetBuilder.SPIKE_RIGHT: r = Rect2(r.position.x, r.position.y + 1, 4, T - 2)
 		hazard.add_rect(r)
 	root.add_child(hazard)
-	return {"terrain": solid, "background": bg, "hazard": hazard, "spikes": spikes}
+	var pools := 0
+	if biome.get("water", false):
+		pools = _water(root, rows, w, h, biome)
+	return {"terrain": solid, "background": bg, "hazard": hazard, "spikes": spikes, "pools": pools}
+
+
+## Poças rasas (até 2 tiles) nos buracos do terreno cercados de chão dos
+## dois lados. Só decoração (o fundo continua firme).
+static func _water(root: Node2D, rows: PackedStringArray, w: int, h: int, biome: Dictionary) -> int:
+	var water := {}
+	var surfaces: Array = [] ## [x0, x1, y]
+	for y in range(h - 2, 0, -1):
+		var x := 1
+		while x < w - 1:
+			if rows[y][x] != "." or not (rows[y + 1][x] == "#" or water.has(Vector2i(x, y + 1))):
+				x += 1
+				continue
+			var x0 := x
+			var ok := true
+			while x < w - 1 and rows[y][x] == ".":
+				if not (rows[y + 1][x] == "#" or water.has(Vector2i(x, y + 1))):
+					ok = false
+				x += 1
+			var x1 := x - 1
+			if not ok or rows[y][x0 - 1] != "#" or rows[y][x1 + 1] != "#" or x1 - x0 + 1 < 2 or x1 - x0 + 1 > 18:
+				continue
+			# no máximo 2 de profundidade
+			var depth := 0
+			var yy := y + 1
+			while water.has(Vector2i(x0, yy)):
+				depth += 1
+				yy += 1
+			if depth >= 2:
+				continue
+			for xx in range(x0, x1 + 1):
+				water[Vector2i(xx, y)] = true
+			surfaces.append([x0, x1, y])
+	# uma poça por superfície (a linha mais alta de cada bacia)
+	var n := 0
+	var wc: Array = biome.get("water_color", [0.22, 0.36, 0.46, 0.78])
+	for s in surfaces:
+		if water.has(Vector2i(int(s[0]), int(s[2]) - 1)):
+			continue
+		var bottom := int(s[2])
+		while water.has(Vector2i(int(s[0]), bottom + 1)):
+			bottom += 1
+		var pool := WaterPool.new()
+		pool.position = Vector2(int(s[0]) * T, int(s[2]) * T + 3)
+		pool.size = Vector2((int(s[1]) - int(s[0]) + 1) * T, (bottom - int(s[2]) + 1) * T - 3)
+		pool.color = Color(wc[0], wc[1], wc[2], wc[3])
+		root.add_child(pool)
+		n += 1
+	return n
+
+
+## Janelas em arco na parede de fundo (castelos, templos, salões): o
+## cenário pintado aparece por elas (Blasphemous). Só em biomas "indoor".
+static func _windows(layout: Dictionary, biome: Dictionary) -> Dictionary:
+	var out := {}
+	if not layout.get("indoor", false) or biome.get("tags", []).has("underground"):
+		return out
+	var rows: PackedStringArray = layout["rows"]
+	for r in layout.get("rooms", []):
+		var o: Array = r.get("origin", [0, 0])
+		var ox: int = int(o[0])
+		var oy: int = int(o[1])
+		var seed_v: int = absi(hash([ox, oy, "janela"]))
+		if seed_v % 10 < 4 or str(r.get("type", "")) in ["secret", "boss"]:
+			continue
+		var n := 1 + seed_v % 3
+		for k in n:
+			var ww := 3 + (seed_v >> (k + 2)) % 3
+			var wh := 6 + (seed_v >> (k + 4)) % 4
+			var wx := ox + 6 + k * (28 / n) + (seed_v >> k) % 4
+			var wy := oy + 3 + (seed_v >> (k + 1)) % 3
+			for y in range(wy, wy + wh):
+				for x in range(wx, wx + ww):
+					# topo em arco: corta os cantos das 2 primeiras linhas
+					var dy := y - wy
+					if dy == 0 and (x == wx or x == wx + ww - 1) and ww > 3:
+						continue
+					if y < rows.size() and x < rows[y].length() and rows[y][x] != "#":
+						out[Vector2i(x, y)] = true
+	return out
 
 
 static func _layer(n: String, ts: TileSet, z: int, tint: Color) -> TileMapLayer:
