@@ -21,6 +21,7 @@ var light_enabled: bool = true
 
 var _hit: Dictionary = {}
 var _trail: Array[Vector2] = []
+var _fx_t: float = 0.0 ## partículas da escola (magias)
 var _anim_t: float = 0.0
 var _dead: bool = false
 
@@ -64,6 +65,10 @@ func _physics_process(delta: float) -> void:
 	_trail.push_front(global_position)
 	if _trail.size() > 5:
 		_trail.pop_back()
+	_fx_t -= d
+	if _fx_t <= 0.0 and _school() != "":
+		_fx_t = 0.035
+		SchoolFX.trail(get_parent(), _school(), global_position, velocity, color)
 	lifetime -= d
 	if lifetime <= 0.0:
 		_explode(false)
@@ -100,12 +105,22 @@ func _on_body(_body: Node) -> void:
 	_explode(true)
 
 
+## Escola da magia (vazio se não for magia: facas, balas de torreta...).
+func _school() -> String:
+	if info == null or not info.is_spell:
+		return ""
+	return info.school
+
+
 func _explode(impact: bool) -> void:
 	if _dead:
 		return
 	_dead = true
 	if impact:
-		FX.burst(global_position, color, 5, 70.0)
+		if _school() != "":
+			SchoolFX.impact(get_parent(), _school(), global_position, velocity, color, 0.8 + radius * 0.08)
+		else:
+			FX.burst(global_position, color, 5, 70.0)
 	queue_free()
 
 

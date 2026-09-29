@@ -87,10 +87,23 @@ func grounded() -> bool:
 	return is_on_floor()
 
 
+## Status à mostra: queimando solta brasas, gelo cintila, choque estala.
+const STATUS_FX := {"burn": "fire", "chill": "ice", "frozen": "ice", "shock": "lightning", "wet": "water", "bleed": "earth", "mark": "arcane"}
+var _status_fx_t: float = 0.0
+
+
 func _physics_process(delta: float) -> void:
 	local_time = _compute_local_time()
 	var d := delta * local_time
 	status.update(d)
+	_status_fx_t -= delta
+	if _status_fx_t <= 0.0 and not status.active.is_empty() and not dead:
+		_status_fx_t = 0.12
+		for id in status.active.keys():
+			if STATUS_FX.has(id) and id != "bleed":
+				var at := body_center() + Vector2(randf_range(-4, 4), randf_range(-4, 3))
+				SchoolFX.trail(get_parent(), STATUS_FX[id], at, Vector2(0, 20), StatusController.DEFS[id]["color"])
+				break
 	invuln_time = maxf(invuln_time - d, 0.0)
 	stagger_time = maxf(stagger_time - d, 0.0)
 	if ward_time > 0.0:

@@ -9,6 +9,7 @@ const Burst := preload("res://scripts/fx/burst.gd")
 const HitSpark := preload("res://scripts/fx/hit_spark.gd")
 const RingFx := preload("res://scripts/fx/ring_fx.gd")
 const SpeedLines := preload("res://scripts/fx/speed_lines.gd")
+const CutFx := preload("res://scripts/fx/cut_fx.gd")
 const FONT_SMALL := preload("res://assets/fonts/kenney_mini.ttf")
 
 var camera: Node = null
@@ -194,11 +195,25 @@ func speed_lines(pos: Vector2, dir: Vector2, color: Color = Color(2.0, 2.0, 2.4,
 	_root().add_child(s)
 
 
-## Pacote padrão de impacto: hitstop + tremor + faísca + número (opcional).
+## Marca de corte atravessando o alvo na direção do golpe.
+func cut(pos: Vector2, dir: Vector2, color: Color = Color(3.0, 3.0, 3.0), length: float = 16.0, width: float = 2.0) -> void:
+	var c := CutFx.new()
+	c.global_position = pos
+	c.dir = dir.rotated(randf_range(-0.45, 0.45)) if dir != Vector2.ZERO else Vector2.from_angle(randf_range(-0.6, 0.6))
+	c.color = color
+	c.length = length
+	c.width = width
+	_root().add_child(c)
+
+
+## Pacote padrão de impacto: hitstop + tremor + corte + faísca + número (opcional).
 func impact(pos: Vector2, dir: Vector2, amount: float, crit: bool, heavy: bool, color: Color = Color(2.2, 2.0, 1.8)) -> void:
 	hitstop(0.075 if crit or heavy else 0.045)
 	shake(0.28 if heavy else (0.2 if crit else 0.12))
+	cut(pos, dir, Color(3.0, 3.0, 2.8), 22.0 if crit or heavy else 15.0, 3.0 if crit or heavy else 2.0)
 	hit_spark(pos, dir, color, crit or heavy)
+	if crit or heavy:
+		ring(pos, color, 9.0, 0.16)
 	burst(pos, Color(color.r * 0.6, color.g * 0.6, color.b * 0.6), 4 if not heavy else 7, 110.0, dir, 50.0, 0.22, 1.0)
 	damage_number(pos + Vector2(0, -6), amount, crit)
 	if crit or heavy:

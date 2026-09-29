@@ -75,6 +75,8 @@ func cast(spell_id: String, level: int, aim: Vector2, target: Vector2, power: fl
 			actor.ward_charges = int(DB.spell_value(spell_id, "count", level))
 			actor.ward_time = DB.spell_value(spell_id, "duration", level)
 			FX.burst(actor.body_center(), _color(s), 12, 70.0)
+	if mode in ["projectile", "beam", "eruption", "smite", "grab"]:
+		SchoolFX.cast(_world(), str(s.get("school", "arcane")), actor.body_center() + aim * 6.0, aim, _color(s))
 	var school_snd: String = "spell_" + str(s.get("school", "arcane"))
 	if Audio.has_event(school_snd):
 		Audio.play(school_snd, 0.08, -4.0 if int(s.get("tier", 1)) >= 2 else -6.0)
@@ -166,6 +168,11 @@ func _beam(spell_id: String, s: Dictionary, level: int, aim: Vector2, power: flo
 	var col := _color(s)
 	var lightning: bool = s.get("school", "") == "lightning"
 	LightningFX.spawn(_world(), from, end, col, 2.0, lightning)
+	var school: String = s.get("school", "arcane")
+	var along := int(from.distance_to(end) / 24.0)
+	for i in along:
+		SchoolFX.trail(_world(), school, from.lerp(end, (i + 0.5) / float(along)), end - from, col)
+	SchoolFX.impact(_world(), school, end, end - from, col, 0.8)
 	# alvos ao longo do feixe
 	var hits := []
 	var steps := int(from.distance_to(end) / 6.0) + 1
@@ -211,7 +218,8 @@ func _eruption(spell_id: String, s: Dictionary, level: int, aim: Vector2, power:
 		info.knockback = Vector2(dx * 30.0, -float(s.get("knockup", 150)))
 		info.stagger = 3.0
 		hb.receive(info)
-	FX.burst(ground, _color(s), 10, 110.0, Vector2.UP, 35.0, 0.45, 2.0)
+	FX.burst(ground, _color(s), 6, 110.0, Vector2.UP, 35.0, 0.45, 2.0)
+	SchoolFX.impact(_world(), str(s.get("school", "earth")), ground, Vector2.UP, _color(s), 1.4)
 	FX.shake(0.2)
 
 
@@ -228,6 +236,11 @@ func _nova(spell_id: String, s: Dictionary, level: int, center: Vector2, power: 
 	ring.color = _color(s)
 	ring.global_position = center
 	_world().add_child(ring)
+	var school: String = s.get("school", "arcane")
+	SchoolFX.impact(_world(), school, center, Vector2.UP, _color(s), 1.3)
+	for i in 6:
+		var at := center + Vector2.from_angle(TAU * i / 6.0) * r * 0.7
+		SchoolFX.trail(_world(), school, at, at - center, _color(s))
 	FX.shake(0.2)
 
 
@@ -249,7 +262,8 @@ func _smite(spell_id: String, s: Dictionary, level: int, aim: Vector2, target: V
 	for hb in _hurtboxes_in(point, DB.spell_value(spell_id, "radius", level)):
 		hb.receive(_info(spell_id, s, level, power))
 	LightningFX.spawn(_world(), point + Vector2(0, -60), point, _color(s), 2.0, false)
-	FX.burst(point, _color(s), 8, 90.0)
+	FX.burst(point, _color(s), 4, 90.0)
+	SchoolFX.impact(_world(), str(s.get("school", "psychic")), point, Vector2.DOWN, _color(s), 1.2)
 
 
 func _storm(spell_id: String, s: Dictionary, level: int, power: float) -> void:
@@ -264,6 +278,7 @@ func _storm(spell_id: String, s: Dictionary, level: int, power: float) -> void:
 			break
 		var a: Node = targets[i % targets.size()]
 		LightningFX.spawn(_world(), a.body_center() + Vector2(randf_range(-10, 10), -80), a.body_center(), _color(s), 2.0)
+		SchoolFX.impact(_world(), str(s.get("school", "lightning")), a.body_center(), Vector2.DOWN, _color(s), 0.9)
 		for hb in a.get_children():
 			if hb is Hurtbox:
 				hb.receive(_info(spell_id, s, level, power))
@@ -318,7 +333,9 @@ func _blink(s: Dictionary, level: int, aim: Vector2) -> void:
 	actor.reset_physics_interpolation()
 	actor.invuln_time = maxf(actor.invuln_time, 0.2)
 	LightningFX.spawn(_world(), from + Vector2(0, -6), best + Vector2(0, -6), _color(s), 1.0, false)
-	FX.burst(best + Vector2(0, -6), _color(s), 8, 80.0)
+	FX.burst(best + Vector2(0, -6), _color(s), 4, 80.0)
+	SchoolFX.impact(_world(), str(s.get("school", "teleport")), from + Vector2(0, -6), Vector2.UP, _color(s), 0.7)
+	SchoolFX.impact(_world(), str(s.get("school", "teleport")), best + Vector2(0, -6), Vector2.UP, _color(s), 1.0)
 
 
 func _grab(spell_id: String, s: Dictionary, level: int, aim: Vector2, power: float) -> void:

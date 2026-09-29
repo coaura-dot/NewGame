@@ -63,3 +63,33 @@ func test_sigilos() -> void:
 	var bad := SigilRecognizer.recognize(scribble)
 	check(bad["accuracy"] < 0.8, "rabisco aleatório tem precisão baixa (%.2f)" % bad["accuracy"])
 	check(SigilRecognizer.power_from_accuracy(1.0) > SigilRecognizer.power_from_accuracy(0.6), "dano escala com precisão")
+
+
+## Cada escola tem partículas próprias que aparecem e somem sozinhas.
+func test_efeitos_por_escola() -> void:
+	var root := Node2D.new()
+	tree.root.add_child(root)
+	var schools := ["fire", "ice", "lightning", "void", "gravity", "light", "heal", "earth", "water", "arcane", "time"]
+	var styles := {}
+	for sc in schools:
+		SchoolFX.impact(root, sc, Vector2.ZERO, Vector2.UP, Color(2, 2, 2), 1.0)
+		SchoolFX.trail(root, sc, Vector2.ZERO, Vector2.RIGHT * 100.0, Color(2, 2, 2))
+		SchoolFX.cast(root, sc, Vector2.ZERO, Vector2.RIGHT, Color(2, 2, 2))
+		styles[SchoolFX.style_of(sc)] = true
+	check(styles.size() >= 9, "escolas com estilos diferentes (%d)" % styles.size())
+	eq(SchoolFX.style_of("fire"), "ember", "fogo = brasas")
+	eq(SchoolFX.style_of("ice"), "shard", "gelo = estilhaços")
+	eq(SchoolFX.style_of("lightning"), "zig", "raio = zigue-zague")
+	eq(SchoolFX.style_of("void"), "spiral", "sombra = espiral")
+	eq(SchoolFX.style_of("heal"), "cross", "cura = cruzes")
+	eq(SchoolFX.style_of("earth"), "rock", "terra = pedras")
+	await tree.process_frame
+	check(root.get_child_count() >= schools.size(), "partículas criadas (%d lotes)" % root.get_child_count())
+	for i in 90:
+		await tree.process_frame
+	# os lotes duram < 1 s; dá margem ao tempo real do teste
+	var t0 := Time.get_ticks_msec()
+	while root.get_child_count() > 0 and Time.get_ticks_msec() - t0 < 2000:
+		await tree.process_frame
+	eq(root.get_child_count(), 0, "partículas somem sozinhas")
+	root.queue_free()

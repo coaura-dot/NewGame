@@ -19,6 +19,7 @@ var spell_id: String = ""
 
 var _t: float = 0.0
 var _tick_t: float = 0.0
+var _fx_t: float = 0.0
 
 
 func _ready() -> void:
@@ -52,13 +53,20 @@ func _physics_process(delta: float) -> void:
 		for p in get_tree().get_nodes_in_group("projectiles"):
 			if p.team != team and p.global_position.distance_to(global_position) < radius:
 				p.time_scale = minf(p.time_scale, maxf(time_scale, 0.0))
+	# partículas da escola: espiral entrando (vazio/gravidade), tiques (tempo)
+	_fx_t -= delta
+	if _fx_t <= 0.0 and _t < duration - 0.2:
+		_fx_t = 0.07
+		var at := global_position + Vector2.from_angle(randf() * TAU) * radius * randf_range(0.5, 0.9)
+		SchoolFX.trail(get_parent(), school, at, global_position - at, color)
 	queue_redraw()
 	if _t >= duration:
 		if implode > 0.0:
 			for a in get_tree().get_nodes_in_group("actors"):
 				if a.team != team and not a.dead and a.body_center().distance_to(global_position) <= radius * 0.8:
 					_hit(a, implode, true)
-			FX.burst(global_position, color * 1.6, 16, 130.0)
+			FX.burst(global_position, color * 1.6, 10, 130.0)
+			SchoolFX.impact(get_parent(), school, global_position, Vector2.UP, color * 1.6, 1.6)
 			FX.shake(0.35)
 			Audio.play("explosion")
 		queue_free()

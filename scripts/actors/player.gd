@@ -920,6 +920,10 @@ func _start_dash() -> void:
 	dash_dir = dir.normalized()
 	if dash_dir.x != 0.0:
 		facing = int(signf(dash_dir.x))
+	# cor do dash GASTO (a do cachecol antes de gastar): anel, riscos e fita
+	var dash_col := Color(2.6, 0.75, 0.85)
+	if dashes >= 2:
+		dash_col = Color(2.8, 1.0, 2.5)
 	if not Settings.gameplay("infinite_dash"):
 		dashes -= 1
 	_update_scarf_color()
@@ -942,6 +946,11 @@ func _start_dash() -> void:
 	rig.bump(Vector2(1.35, 0.7) if absf(dash_dir.x) > absf(dash_dir.y) else Vector2(0.7, 1.35))
 	if on_ground and dash_dir.y >= 0.0:
 		FX.dust(global_position, Vector2(-facing, -0.3), 3)
+	# efeitos do dash: anel achatado na direção, riscos de velocidade e a fita
+	var perp := Vector2(absf(dash_dir.y), absf(dash_dir.x))
+	FX.ring(body_center(), dash_col, 9.0, 0.18, Vector2(0.55, 0.55) + perp * 0.45)
+	FX.speed_lines(body_center() + Vector2(0, 6), dash_dir, Color(dash_col.r * 0.8 + 0.4, dash_col.g * 0.8 + 0.4, dash_col.b * 0.8 + 0.4, 0.9), 5, 10.0)
+	DashTrail.spawn(get_parent(), self, dash_col, func(): return is_instance_valid(self) and state == State.DASH)
 
 
 func _st_dash(d: float) -> void:
@@ -949,8 +958,9 @@ func _st_dash(d: float) -> void:
 	velocity = dash_dir * DASH_SPEED
 	_after_t -= d
 	if _after_t <= 0.0:
-		_after_t = 0.035
-		_ghost(Color(0.9, 1.6, 2.4, 0.8) if dashes <= 0 else Color(2.2, 0.9, 1.0, 0.8), 0.2)
+		# fantasmas mais espaçados e leves: a fita colorida faz o rastro
+		_after_t = 0.05
+		_ghost(Color(0.9, 1.6, 2.4, 0.5) if dashes <= 0 else Color(2.2, 0.9, 1.0, 0.5), 0.16)
 	# ataque em dash (corta tudo pelo caminho)
 	if attack_buffer_t > 0.0 and not attack.is_busy() and moveset.has("dash"):
 		attack_buffer_t = 0.0
@@ -1674,7 +1684,7 @@ func _st_heal(d: float) -> void:
 	_gravity_step(d)
 	heal_t += d
 	if fmod(heal_t, 0.12) < d:
-		FX.burst(body_center() + Vector2(randf_range(-5, 5), 4), Color(1.6, 1.8, 2.4), 1, 25.0, Vector2.UP, 20.0, 0.4)
+		SchoolFX.trail(get_parent(), "heal", body_center() + Vector2(randf_range(-6, 6), 2), Vector2(0, 30), Color(1.4, 2.6, 1.6))
 	if not Input.is_action_pressed("heal") or not on_ground or focus < HEAL_COST:
 		heal_hold_t = 0.0
 		_set_state(State.NORMAL)
@@ -1684,7 +1694,8 @@ func _st_heal(d: float) -> void:
 		gain_focus(-HEAL_COST)
 		heal(HEAL_AMOUNT)
 		Events.player_health_changed.emit(hp, max_hp())
-		FX.burst(body_center(), Color(2.2, 2.4, 2.8), 10, 70.0)
+		FX.burst(body_center(), Color(2.2, 2.4, 2.8), 6, 70.0)
+		SchoolFX.impact(get_parent(), "heal", body_center(), Vector2.UP, Color(1.4, 2.8, 1.6))
 		rig.bump(Vector2(0.85, 1.2))
 		rig.set_expression("happy", 0.5)
 		rig.flame_pop(0.8)

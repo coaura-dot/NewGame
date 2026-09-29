@@ -3,7 +3,8 @@ extends SceneTree
 ##   godot --path . --script tools/screenshot.gd -- <prefixo> [treino|menu|salas|heroi] [seed] [bioma] [tier]
 ## treino: anda, pula e ataca; menu: menu principal; salas: um print por sala
 ## do treino (teleporta o herói para cada sala); heroi: closes do Pavio em
-## várias poses (parado, correndo, pulando, dash, golpe, feliz, ferido, morto).
+## várias poses (parado, correndo, pulando, dash, golpe, feliz, ferido, morto);
+## efeitos: dash, golpe e os efeitos de cada escola de magia.
 
 var _out := "user://shot"
 var _mode := "treino"
@@ -51,6 +52,8 @@ func _process(_d: float) -> bool:
 		return _sala_unica()
 	if _mode == "heroi":
 		return _heroi()
+	if _mode == "efeitos":
+		return _efeitos()
 	if _mode != "menu":
 		if _n == 60:
 			Input.action_press("move_right")
@@ -183,3 +186,41 @@ func _crop(p: Node, tag: String) -> void:
 	var r := Rect2i(Vector2i((at - sz * 0.5).round()), Vector2i(sz.round()))
 	r = r.intersection(Rect2i(Vector2i.ZERO, img.get_size()))
 	img.get_region(r).save_png("%s_%s.png" % [_out, tag])
+
+
+## Efeitos: dash no meio, golpe no meio e as escolas de magia lado a lado.
+func _efeitos() -> bool:
+	var p = _level.player if _level else null
+	if p == null:
+		return false
+	match _n:
+		40:
+			Input.action_press("dash")
+		42:
+			Input.action_release("dash")
+		80:
+			Input.action_press("attack")
+		82:
+			Input.action_release("attack")
+		120, 150:
+			var schools := ["fire", "ice", "lightning", "void", "heal", "earth", "water", "arcane"]
+			var cols := [Color(3.2, 1.2, 0.3), Color(0.8, 1.8, 3.0), Color(2.4, 2.6, 4.0), Color(1.0, 0.4, 2.0), Color(1.4, 2.8, 1.6), Color(1.3, 0.9, 0.5), Color(0.4, 1.4, 2.6), Color(2.2, 0.8, 3.0)]
+			var fx_cls = load("res://scripts/fx/school_fx.gd")
+			for i in schools.size():
+				var at: Vector2 = p.global_position + Vector2(-84 + i * 24, -40)
+				fx_cls.impact(p.get_parent(), schools[i], at, Vector2.UP, cols[i], 1.3)
+				for k in 4:
+					fx_cls.trail(p.get_parent(), schools[i], at + Vector2(0, 16 + k * 4), Vector2(0, -60), cols[i])
+	if _n == 44:
+		_crop(p, "dash")
+	if _n == 46:
+		_crop(p, "dash2")
+	if _n in [83, 85, 87, 89]:
+		_crop(p, "golpe%d" % _n)
+	if _n == 127:
+		_save("escolas_a")
+	if _n == 162:
+		_save("escolas_b")
+	if _n > 165:
+		quit()
+	return false
