@@ -241,6 +241,19 @@ func _spawn_entities() -> void:
 				var orb := ImpulseOrb.new()
 				orb.position = _tile_center(e["tile"])
 				node = orb
+			"jump_feather":
+				var jf := JumpFeather.new()
+				jf.position = _tile_center(e["tile"])
+				node = jf
+			"reset_bell":
+				var rb := ResetBell.new()
+				rb.position = _tile_center(e["tile"])
+				node = rb
+			"double_crystal":
+				var dc2 := DashCrystal.new()
+				dc2.double = true
+				dc2.position = _tile_center(e["tile"])
+				node = dc2
 			"turret":
 				var tu := Turret.new()
 				tu.dir = {"L": Vector2.LEFT, "R": Vector2.RIGHT, "U": Vector2.UP, "D": Vector2.DOWN}.get(data.get("dir", "L"), Vector2.LEFT)
@@ -477,6 +490,9 @@ const HINTS := {
 	"hunt": "Caçada: a sala só abre quando todos os inimigos caírem!",
 	"chase": "FUJA! A muralha de espinhos avança — não pare de correr!",
 	"zigzag": "Chão de espinhos! Encadeie orbes, pogos e inimigos sem pousar.",
+	"jump_feather": "PENA VERDE: encoste no ar e ganhe mais um pulo!",
+	"reset_bell": "SINO: golpeie para recarregar o dash e ganhar um pulo, sem perder a trajetória.",
+	"double_crystal": "CRISTAL ROSA: dois dashes seguidos!",
 	"turret": "Torretas atiram no ritmo. GOLPEIE a bala para rebater: recarrega o dash e a devolve!",
 }
 
@@ -767,6 +783,8 @@ func complete_level() -> void:
 		return
 	_completed = true
 	result["completed"] = true
+	if player:
+		result["best_chain"] = player.best_chain
 	result["rank"] = rank_for(result, layout["rooms"].size())
 	var quests_done: Array = []
 	if not training:

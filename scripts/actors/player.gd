@@ -27,6 +27,9 @@ const MAX_RUN := 90.0
 const RUN_ACCEL := 1000.0
 const RUN_REDUCE := 400.0 ## acima da velocidade máxima (preserva o embalo)
 const AIR_MULT := 0.65
+const AIR_REDUCE := 140.0 ## no ar, acima da velocidade máxima, segurando para frente: embalo dura
+const AIR_DRAG_FAST := 200.0 ## no ar, acima da máxima, sem segurar nada: perde embalo devagar
+const LAND_GRACE := 0.1 ## logo depois de pousar o embalo não cai (pular em seguida mantém tudo)
 const DUCK_FRICTION := 500.0
 # --- Gravidade / pulo (Celeste) ---
 const GRAVITY := 900.0
@@ -93,6 +96,8 @@ const ATTACK_BUFFER := 0.12
 const COMBO_TIMEOUT := 1.2
 const AIR_STALL := 35.0 ## golpe acertado no ar segura a queda (combos aéreos)
 const AIR_STALL_MAX := 3 ## quantas vezes por salto
+const KILL_POP := 100.0 ## abater no ar dá um quique (continua a cadeia)
+const CHAIN_MIN := 3 ## cadeia aérea mínima que dá recompensa ao pousar
 const FOCUS_MAX_BASE := 100.0
 const HEAL_HOLD := 0.2 ## segurar para focar; toque rápido = poção
 const HEAL_TIME := 0.85
@@ -119,6 +124,10 @@ var jump_buffer_t := 0.0
 var var_jump_t := 0.0
 var var_jump_speed := 0.0
 var auto_jump_t := 0.0 ## quiques (orbe, pogo): age como se o pulo estivesse segurado
+var land_grace_t := 0.0
+var air_chain := 0 ## ações encadeadas sem tocar o chão
+var bonus_jumps := 0 ## pulo extra de Pena/Sino (some ao pousar)
+var best_chain := 0
 var force_move_x := 0
 var force_move_t := 0.0
 var wall_dir := 0 ## parede encostada (-1/1) segurando na direção dela
@@ -323,12 +332,29 @@ func gain_focus(v: float) -> void:
 
 func refill_dash() -> void:
 	var had := dashes
-	dashes = max_dashes()
+	dashes = maxi(dashes, max_dashes()) # o extra do cristal duplo fica até usar
 	air_jumps = max_air_jumps()
 	if dashes > had and scarf:
 		scarf.flash = 1.0
 	_update_scarf_color()
 	Events.player_dash_changed.emit(dashes, max_dashes())
+
+
+## Cristal duplo: dashes acima do máximo até usar.
+func grant_dashes(n: int) -> void:
+	var had := dashes
+	dashes = maxi(dashes, n)
+	if dashes > had and scarf:
+		scarf.flash = 1.0
+	_update_scarf_color()
+	Events.player_dash_changed.emit(dashes, max_dashes())
+
+
+## Pena/Sino: um pulo extra no ar (vale mesmo sem o pulo duplo).
+func grant_bonus_jump() -> void:
+	bonus_jumps = 1
+	if scarf:
+		scarf.flash = 1.0
 
 
 func grounded() -> bool:
@@ -442,6 +468,7 @@ func _timers(d: float) -> void:
 	jump_buffer_t -= d
 	var_jump_t -= d
 	auto_jump_t -= d
+	land_grace_t -= d
 	force_move_t -= d
 	dash_cd -= d
 	dash_refill_cd -= d
@@ -604,10 +631,18 @@ func _run(d: float, accel_mult: float = 1.0) -> void:
 	var move := input_x
 	if force_move_t > 0.0:
 		move = force_move_x
+	var fast := absf(velocity.x) > max_run
 	if ducking and on_ground:
 		velocity.x = move_toward(velocity.x, 0.0, DUCK_FRICTION * d)
-	elif absf(velocity.x) > max_run and signf(velocity.x) == move:
-		velocity.x = move_toward(velocity.x, max_run * move, RUN_REDUCE * mult * d)
+	elif fast and signf(velocity.x) == move:
+		# embalo (super, hyper, quiques): no ar dura bem mais; no chão, logo
+		# após pousar, não cai nada (bunny hop)
+		if not on_ground:
+			velocity.x = move_toward(velocity.x, max_run * move, AIR_REDUCE * d)
+		elif land_grace_t <= 0.0:
+			velocity.x = move_toward(velocity.x, max_run * move, RUN_REDUCE * mult * d)
+	elif fast and move == 0.0 and not on_ground:
+		velocity.x = move_toward(velocity.x, signf(velocity.x) * max_run, AIR_DRAG_FAST * d)
 	else:
 		var friction := float(phys.get("friction", 1.0)) if move == 0.0 else 1.0
 		velocity.x = move_toward(velocity.x, max_run * move, RUN_ACCEL * mult * friction * d)
@@ -674,6 +709,15 @@ func _try_jump() -> bool:
 	if wd != 0 and Game.has_ability("wall_jump"):
 		_wall_jump(wd, jmult)
 		return true
+	if bonus_jumps > 0:
+		bonus_jumps -= 1
+		_jump(DOUBLE_JUMP_SPEED * jmult)
+		if input_x != 0.0:
+			velocity.x = maxf(absf(velocity.x), MAX_RUN) * input_x
+		FX.burst(global_position, Color(1.0, 2.4, 1.0, 0.9), 6, 60.0, Vector2.DOWN, 60.0)
+		_ghost(Color(0.9, 1.8, 0.9, 0.7))
+		rig.bump(Vector2(0.75, 1.3))
+		return true
 	if air_jumps > 0:
 		air_jumps -= 1
 		_jump(DOUBLE_JUMP_SPEED * jmult)
@@ -696,6 +740,7 @@ func _wall_jump(wd: int, jmult: float) -> void:
 		return
 	_jump(JUMP_SPEED * jmult)
 	velocity.x = -wd * WALL_JUMP_H
+	add_chain()
 	force_move_x = -wd
 	force_move_t = WALL_JUMP_FORCE_TIME
 	facing = -wd
@@ -1208,15 +1253,56 @@ func _on_attack_landed(target: Node, info: DamageInfo, result: int) -> void:
 	if result == DamageInfo.Result.KILLED:
 		Game.profile["kills"] = int(Game.profile.get("kills", 0)) + 1
 		refill_dash()
+		if not on_ground:
+			add_chain()
+			if not info.pogo and state != State.DASH and _vy() > -KILL_POP:
+				_set_vy(-KILL_POP) # quique do abate: segue no ar
+				var_jump_t = 0.0
 		buffs.trigger("kill", ctx)
 		if rng.randf() < 0.35:
 			rig.set_expression("happy", 0.5)
+
+
+## Cadeia aérea: orbe, pogo, abate, rebate, salto de parede e cristal sem
+## tocar o chão. Ao pousar, 3+ dão brasas e foco (mais para cadeias longas).
+func add_chain() -> void:
+	if on_ground:
+		return
+	air_chain += 1
+	best_chain = maxi(best_chain, air_chain)
+	Events.air_chain_changed.emit(air_chain)
+	if air_chain >= CHAIN_MIN:
+		Audio.play("pickup", 0.0, -12.0, 0.9 + minf(air_chain, 14) * 0.07)
+
+
+func end_chain(reward: bool) -> void:
+	if air_chain <= 0:
+		return
+	var n := air_chain
+	air_chain = 0
+	Events.air_chain_changed.emit(0)
+	if n < CHAIN_MIN:
+		return
+	if not reward:
+		FX.text(body_center() + Vector2(0, -12), "cadeia perdida", Color(0.8, 0.7, 0.9))
+		return
+	var gain := n + (4 if n >= 6 else 0) + (10 if n >= 10 else 0)
+	if level and level.has_method("spawn_currency"):
+		level.spawn_currency(gain, body_center())
+	gain_focus(n * 3.0)
+	FX.text(body_center() + Vector2(0, -14), "CADEIA x%d!" % n, Color(2.4, 2.0, 0.9) if n >= 6 else Color(1.9, 1.9, 2.2))
+	FX.burst(body_center(), Color(2.2, 1.8, 0.8), mini(4 + n, 14), 90.0)
+	Audio.play("confirmation", 0.0, -8.0, 1.0 + minf(n, 12) * 0.03)
+	if n >= 6:
+		emote.show_emote("spark", 0.8, true)
+		rig.set_expression("happy", 0.8)
 
 
 ## Rebater uma bala (Katana Zero): recarrega o dash e, no ar, segura a queda
 ## (ou quica, se foi o golpe para baixo) — dá para "pisar" em balas.
 func _on_reflect(_p: Node) -> void:
 	refill_dash()
+	add_chain()
 	gain_focus(4.0)
 	combo_count += 1
 	combo_timer = COMBO_TIMEOUT
@@ -1235,6 +1321,9 @@ func _on_reflect(_p: Node) -> void:
 func _recoil(info: DamageInfo) -> void:
 	if info.is_dash_attack or state == State.DASH:
 		return
+	# correndo rápido na direção do golpe: atravessa sem perder o embalo
+	if absf(velocity.x) > MAX_RUN * 1.2 and signf(velocity.x) == signf(info.direction.x):
+		return
 	if info.direction.y * g_dir < -0.5:
 		# golpe para cima: leve empurrão para baixo no ar
 		if not on_ground and _vy() < RECOIL_UP:
@@ -1251,6 +1340,7 @@ func _pogo() -> void:
 	auto_jump_t = 0.1
 	var_jump_speed = POGO_SPEED * float(phys.get("jump", 1.0))
 	refill_dash()
+	add_chain()
 	buffs.trigger("pogo")
 	FX.burst(global_position + Vector2(0, 3), Color(2.2, 2.2, 2.6), 4, 60.0, Vector2.UP, 60.0)
 	rig.bump(Vector2(0.8, 1.25))
@@ -1435,6 +1525,7 @@ func _on_damaged(info: DamageInfo, amount: float) -> void:
 		_recent_hits.clear()
 	elif hp / maxf(max_hp(), 1.0) < 0.3:
 		emote.show_emote("sweat", 1.2)
+	end_chain(false)
 	if info.is_hazard:
 		_hazard_respawn()
 		return
@@ -1458,6 +1549,7 @@ func _st_hurt(d: float) -> void:
 
 
 func _hazard_respawn() -> void:
+	end_chain(false)
 	_set_state(State.RESPAWN)
 	velocity = Vector2.ZERO
 	var tw := create_tween()
@@ -1784,6 +1876,9 @@ func _after_move(d: float) -> void:
 
 
 func _on_land() -> void:
+	land_grace_t = LAND_GRACE
+	bonus_jumps = 0
+	end_chain(true)
 	var impact := clampf(_land_speed / MAX_FALL, 0.0, 1.5)
 	rig.bump(Vector2(1.0 + 0.35 * impact, 1.0 - 0.3 * impact))
 	if impact > 0.4:

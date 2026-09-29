@@ -456,7 +456,7 @@ static func _hits(res: Dictionary, x0: int, x1: int) -> bool:
 # ---------------------------------------------------------------------------
 
 const BEATS_EASY := {"hop": 4.0, "leap": 2.0, "orb": 2.5, "crumble": 1.5, "mover": 1.2, "crystal": 1.5, "chimney": 1.0,
-	"thorns": 1.0, "sawgap": 1.0, "needle": 0.8}
+	"thorns": 1.0, "sawgap": 1.0, "needle": 0.8, "bells": 1.2}
 ## Chance de um poço com saída para cima virar torre de escalada.
 const TOWER_CHANCE := 0.75
 
@@ -466,7 +466,7 @@ const SWITCHBACK_CHANCE := 0.35
 ## Batidas que mantêm a altura (evitadas quando o perfil pede subir).
 const FLAT_BEATS := ["needle", "saw", "crumble", "mover", "sawgap", "leap"]
 const BEATS_HARD := {"hop": 1.5, "leap": 2.0, "orb": 3.0, "crumble": 2.0, "mover": 1.0, "crystal": 2.5, "chimney": 1.5, "saw": 2.0, "orbchain": 2.0,
-	"thorns": 2.5, "sawgap": 1.5, "needle": 1.5}
+	"thorns": 2.5, "sawgap": 1.5, "needle": 1.5, "bells": 2.0}
 
 
 ## Plataforma/desafio: sequência de batidas da esquerda para a direita sobre
@@ -658,7 +658,9 @@ static func _beat(g: Array, rng: RandomNumberGenerator, kind: String, x: int, to
 				return {}
 			var ntop: int = toward.call(2, 3)
 			fill(g, nx, ntop, nx + w - 1, FLOOR + 1, "#")
-			put(g, x + gap / 2, mini(top, ntop) - 3, "D")
+			var cr := rng.randf()
+			var item := "D" if cr < 0.55 else ("j" if cr < 0.8 or not hard else "d")
+			put(g, x + gap / 2, mini(top, ntop) - 3, item)
 			return {"x": nx + w - 1, "top": ntop, "island": [nx, w, ntop]}
 		"crumble":
 			var n := rng.randi_range(2, 3) + h
@@ -727,6 +729,26 @@ static func _beat(g: Array, rng: RandomNumberGenerator, kind: String, x: int, to
 			if nx + w > W - 4 or _hits(res, nx, nx + w - 1):
 				return {}
 			var ntop := clampi(sy - rng.randi_range(0, 2), 8, FLOOR)
+			fill(g, nx, ntop, nx + w - 1, FLOOR + 1, "#")
+			return {"x": nx + w - 1, "top": ntop, "island": [nx, w, ntop]}
+		"bells":
+			# fila de sinos sobre o fosso: golpe, pulo, dash, golpe... sem pousar
+			var n := rng.randi_range(2, 3)
+			var step := rng.randi_range(5, 6) + h
+			while n > 1 and x + step * (n + 1) + 2 > W - 4:
+				n -= 1
+			var by := clampi(top - 3 - rng.randi_range(0, 1), 5, FLOOR - 3)
+			var cx := x
+			for k in n:
+				cx += step
+				if res.has(cx):
+					return {}
+				put(g, cx, by + rng.randi_range(-1, 1), "b")
+			var nx := cx + step - 1
+			var w := rng.randi_range(2, 4)
+			if nx + w > W - 4 or _hits(res, nx, nx + w - 1):
+				return {}
+			var ntop: int = toward.call(2, 3)
 			fill(g, nx, ntop, nx + w - 1, FLOOR + 1, "#")
 			return {"x": nx + w - 1, "top": ntop, "island": [nx, w, ntop]}
 		"sawgap":
@@ -881,13 +903,17 @@ static func _zigzag(g: Array, rng: RandomNumberGenerator, exits: String, tier: i
 		var y := (hi_y if hi else lo_y) + rng.randi_range(-1, 0)
 		var roll := rng.randf()
 		if hi:
-			if roll < 0.55:
+			if roll < 0.42:
 				put(g, x, y, "I")
-			elif roll < 0.8:
+			elif roll < 0.62:
 				put(g, x, y + 1, "^") # espinho de pogo no alto: caia nele com ↓+golpe
 				put(g, x, y + 2, "#")
-			else:
+			elif roll < 0.78:
+				put(g, x, y, "b") # sino: golpeie (recarrega dash + pulo, sem quicar)
+			elif roll < 0.9:
 				put(g, x, y, "D")
+			else:
+				put(g, x, y, "d") # cristal duplo
 			# estalagmite com espinho embaixo do nó alto (não caia!)
 			if rng.randf() < 0.45:
 				var top := y + 6
@@ -896,12 +922,16 @@ static func _zigzag(g: Array, rng: RandomNumberGenerator, exits: String, tier: i
 					put(g, x, top, "^")
 		else:
 			var node_y := y + 1
-			if roll < 0.5:
+			if roll < 0.35:
 				put(g, x, y, "I")
-			elif roll < 0.85:
+			elif roll < 0.65:
 				put(g, x, y + 1, "^") # espinho de pogo flutuando sobre o fosso
 				put(g, x, y + 2, "#")
 				node_y = y
+			elif roll < 0.8:
+				put(g, x, y, "b")
+			elif roll < 0.9:
+				put(g, x, y, "j") # pena: encoste para ganhar um pulo
 			else:
 				put(g, x, y, "D")
 			# estalactite com ponta de espinho sobre o nó baixo (fecha o canal por
@@ -1095,7 +1125,8 @@ static func _tower(g: Array, rng: RandomNumberGenerator, exits: String, tier: in
 			continue
 		climb_cols.append([from, ny - 1, cy])
 		if kind == "orb":
-			put(g, el.x, el.y, "I")
+			var rr := rng.randf()
+			put(g, el.x, el.y, "I" if rr < 0.5 else ("b" if rr < 0.8 else "j"))
 		elif kind == "thorn":
 			put(g, el.x, el.y, "^")
 			put(g, el.x, el.y + 1, "#")

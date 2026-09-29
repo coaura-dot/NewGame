@@ -273,3 +273,75 @@ func test_muralha_da_fuga() -> void:
 	Input.action_release("move_right")
 	check(p.hp >= hp1, "correndo sem parar, a muralha não alcança")
 	await _teardown()
+
+
+func test_resets_no_ar() -> void:
+	var p := await _setup()
+	await _frames(10)
+	# pena: encostar no ar dá um pulo extra (mesmo sem pulo duplo)
+	p.global_position += Vector2(0, -40)
+	p._prev_pos = p.global_position
+	p.on_ground = false
+	var jf := JumpFeather.new()
+	jf.position = p.global_position + Vector2(0, -6)
+	_root.add_child(jf)
+	await _frames(3)
+	check(p.bonus_jumps == 1, "pena dá um pulo extra")
+	p.coyote_t = 0.0
+	Input.action_press("jump")
+	await _frames(3)
+	Input.action_release("jump")
+	check(p.velocity.y < -60.0 and p.bonus_jumps == 0, "pulo extra usado no ar")
+	await _frames(90)
+	# cristal duplo: 2 dashes
+	p.global_position += Vector2(0, -40)
+	p._prev_pos = p.global_position
+	p.on_ground = false
+	p.dashes = 0
+	var dc := DashCrystal.new()
+	dc.double = true
+	dc.position = p.global_position + Vector2(0, -6)
+	_root.add_child(dc)
+	await _frames(3)
+	check(p.dashes == 2, "cristal duplo dá 2 dashes (%d)" % p.dashes)
+	await _frames(90)
+	# sino: golpear recarrega dash e dá pulo, e conta na cadeia
+	p.dashes = 0
+	p.global_position += Vector2(0, -30)
+	p._prev_pos = p.global_position
+	p.on_ground = false
+	p.facing = 1
+	var bell := ResetBell.new()
+	bell.position = p.global_position + Vector2(10, -6)
+	_root.add_child(bell)
+	await _frames(2)
+	var chain0: int = p.air_chain
+	Input.action_press("attack")
+	await _frames(3)
+	Input.action_release("attack")
+	await _frames(4)
+	check(p.dashes >= 1 and p.bonus_jumps == 1, "sino recarrega dash e dá pulo extra")
+	check(p.air_chain > chain0, "sino soma na cadeia aérea")
+	await _teardown()
+
+
+func test_embalo_no_ar() -> void:
+	var p := await _setup()
+	await _frames(20)
+	# super e solta tudo: no ar o embalo deve durar (inércia)
+	Input.action_press("move_right")
+	await _frames(1)
+	Input.action_press("dash")
+	await _frames(3)
+	Input.action_press("jump")
+	await _frames(3)
+	Input.action_release("dash")
+	Input.action_release("move_right")
+	await _frames(20)
+	var vx := p.velocity.x
+	Input.action_release("jump")
+	print("    embalo 0,17 s depois do super, sem segurar nada: %.0f px/s" % vx)
+	check(not p.grounded(), "ainda no ar")
+	check(vx >= 180.0, "embalo no ar se mantém (%.0f px/s)" % vx)
+	await _frames(80)
+	await _teardown()

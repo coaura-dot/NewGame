@@ -11,6 +11,8 @@ var _draw_node: Control
 var _toasts: VBoxContainer
 var _combo: int = 0
 var _combo_pop: float = 0.0
+var _chain: int = 0
+var _chain_pop: float = 0.0
 var _hp_ghost: float = 1.0
 var _panel: Control = null
 var _region_title_t: float = 0.0
@@ -41,6 +43,10 @@ func _ready() -> void:
 	_toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_toasts)
 	Events.toast.connect(toast)
+	Events.air_chain_changed.connect(func(c):
+		if c > _chain:
+			_chain_pop = 1.0
+		_chain = c)
 	Events.combo_changed.connect(func(c):
 		if c > _combo:
 			_combo_pop = 1.0
@@ -60,6 +66,7 @@ func _process(delta: float) -> void:
 	if player == null and level:
 		player = level.player
 	_combo_pop = maxf(_combo_pop - delta * 4.0, 0.0)
+	_chain_pop = maxf(_chain_pop - delta * 5.0, 0.0)
 	_region_title_t = maxf(_region_title_t - delta, 0.0)
 	_weapon_t = maxf(_weapon_t - delta, 0.0)
 	if player:
@@ -173,6 +180,15 @@ func _draw_hud() -> void:
 		d.draw_rect(Rect2(x + 1, 16, 1, 1), c)
 		d.draw_rect(Rect2(x, 16, 1, 1), c)
 		d.draw_rect(Rect2(x + 2, 16, 1, 1), c)
+	# dash extra (cristal duplo) e pulo extra (pena/sino)
+	var ex := 25.0 + md * 6.0
+	for i in maxi(player.dashes - md, 0):
+		d.draw_rect(Rect2(ex - 1, 15, 5, 3), INK)
+		d.draw_rect(Rect2(ex, 16, 3, 1), Color(1.0, 0.45, 0.85))
+		ex += 6.0
+	if player.bonus_jumps > 0:
+		d.draw_rect(Rect2(ex - 1, 14, 5, 5), INK)
+		d.draw_rect(Rect2(ex, 15, 3, 3), Color(0.5, 1.0, 0.5))
 	# status ativos
 	var sx := 24.0
 	for id in player.status.active.keys():
@@ -225,6 +241,14 @@ func _draw_hud() -> void:
 		_text(Vector2(24, 36 - roundf(_combo_pop * 2.0)), "x%d" % _combo, 8, col)
 		if player.rhythm_stacks > 0:
 			_text(Vector2(40, 36), "♪%d" % player.rhythm_stacks, 8, Color(0.8, 0.6, 1.0))
+	# cadeia aérea (orbe, pogo, abate, rebate, sino... sem tocar o chão)
+	if _chain >= 2:
+		var ctext := "CADEIA x%d" % _chain
+		var cwid := SMALL.get_string_size(ctext, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		var cyy := 40.0 if (boss and is_instance_valid(boss) and not boss.dead) else 24.0
+		var hot := clampf((_chain - 2) / 8.0, 0.0, 1.0)
+		var ccol := Color(0.9, 0.95, 1.0).lerp(Color(1.0, 0.8, 0.3), hot)
+		_text(Vector2(160 - cwid * 0.5, cyy - roundf(_chain_pop * 3.0)), ctext, 8, ccol)
 	# chefe: nome e barra no topo central
 	if boss and is_instance_valid(boss) and not boss.dead:
 		var br: float = boss.hp / maxf(boss.max_hp(), 1.0)
@@ -411,6 +435,8 @@ func show_summary(result: Dictionary, quests_done: Array) -> void:
 	var rank_col: Color = {"S": Color(1.0, 0.85, 0.3), "A": Color(0.6, 0.9, 1.0), "B": Color(0.8, 0.8, 0.9), "C": Color(0.8, 0.6, 0.6)}.get(rank, UIKit.INK)
 	v.add_child(UIKit.label("Nota  %s" % rank, 20, rank_col, HORIZONTAL_ALIGNMENT_CENTER))
 	v.add_child(UIKit.label("Tempo %s   Mortes %d   Golpes sofridos %d" % [Level.format_time(float(result.get("time", 0.0))), int(result.get("deaths", 0)), int(result.get("hits", 0))], 12, UIKit.INK, HORIZONTAL_ALIGNMENT_CENTER))
+	if int(result.get("best_chain", 0)) >= 3:
+		v.add_child(UIKit.label("Maior cadeia aérea  x%d" % int(result.get("best_chain", 0)), 12, Color(0.75, 0.55, 0.1), HORIZONTAL_ALIGNMENT_CENTER))
 	v.add_child(UIKit.label("Inimigos derrotados: %d" % int(result.get("kills", 0))))
 	if result.get("boss_killed", false):
 		v.add_child(UIKit.label("Chefe derrotado!", 12, Color(1.4, 0.8, 0.5)))

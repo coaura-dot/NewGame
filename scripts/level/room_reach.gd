@@ -26,7 +26,9 @@ const CAPS := {
 ## Elementos que viram "nós aéreos" (dá para quicar/recarregar no ar):
 ##   I = Orbe de Impulso (golpear quica ~4 tiles), D = cristal de dash (só no
 ##   modo dash: recarrega o dash), J = mola (no chão; lança ~5 tiles),
-##   ^ acima do fosso = espinho de pogo (golpe para baixo quica ~4 tiles).
+##   ^ acima do fosso = espinho de pogo (golpe para baixo quica ~4 tiles),
+##   b = sino (golpear: recarrega dash + pulo extra), j = pena (encostar: pulo
+##   extra), d = cristal duplo (modo dash).
 
 
 static func _ch(g: Array, x: int, y: int) -> String:
@@ -197,19 +199,22 @@ static func moves(gr: Grid, x: int, y: int, cap: Dictionary) -> Array:
 
 static func specials(g: Array, dash_mode: bool) -> Dictionary:
 	var orbs: Array = []
+	var touch: Array = []
 	var springs := {}
 	var thorns: Array = []
 	for y in H:
 		for x in W:
 			var c: String = g[y][x]
-			if c == "I" or (c == "D" and dash_mode):
-				orbs.append(Vector2i(x, y))
+			if c == "I" or c == "b":
+				orbs.append(Vector2i(x, y)) # golpear: alcance do golpe conta
+			elif c == "j" or ((c == "D" or c == "d") and dash_mode):
+				touch.append(Vector2i(x, y)) # encostar: só o corpo
 			elif c == "J":
 				springs[Vector2i(x, y)] = true
 			elif c == HAZARD and y < LevelConst.FLOOR_ROW and y >= 3 and _ch(g, x, y - 1) == "." and _ch(g, x, y - 2) == ".":
 				# espinho "de pé" acima do fosso: dá para quicar nele (pogo)
 				thorns.append(Vector2i(x, y))
-	return {"orbs": orbs, "springs": springs, "thorns": thorns}
+	return {"orbs": orbs, "touch": touch, "springs": springs, "thorns": thorns}
 
 
 ## Dá para cair em cima do espinho s (golpe para baixo = pogo) a partir de p?
@@ -238,7 +243,7 @@ static func _can_reach_pogo(gr: Grid, p: Vector2i, s: Vector2i, cap: Dictionary)
 
 
 ## Dá para golpear/tocar o orbe o a partir de p (pés em p)?
-static func _can_reach_orb(gr: Grid, p: Vector2i, o: Vector2i, cap: Dictionary) -> bool:
+static func _can_reach_orb(gr: Grid, p: Vector2i, o: Vector2i, cap: Dictionary, bonus: int = 2) -> bool:
 	var feet := Vector2i(o.x, o.y + 1)
 	if not gr.f(feet.x, feet.y):
 		return false
@@ -247,7 +252,7 @@ static func _can_reach_orb(gr: Grid, p: Vector2i, o: Vector2i, cap: Dictionary) 
 	if dy > up + 2 or dy < -6:
 		return false
 	var reach: Array = cap["reach"]
-	var r: int = int(reach[clampi(dy, 0, reach.size() - 1)]) + 2 # + alcance do golpe (~2,5 tiles)
+	var r: int = int(reach[clampi(dy, 0, reach.size() - 1)]) + bonus # + alcance do golpe (~2,5 tiles) ou do corpo
 	if absi(o.x - p.x) > r:
 		return false
 	if dy >= 0:
@@ -317,6 +322,7 @@ static func reachable_from(g: Array, start: Vector2i, cap: Dictionary, gr: Grid 
 	var orbs: Array = sp["orbs"]
 	var springs: Dictionary = sp["springs"]
 	var thorns: Array = sp.get("thorns", [])
+	var touch: Array = sp.get("touch", [])
 	var st := [start]
 	seen[start] = true
 	while not st.is_empty():
@@ -338,6 +344,11 @@ static func reachable_from(g: Array, start: Vector2i, cap: Dictionary, gr: Grid 
 			if not seen.has(node) and _can_reach_orb(gr, p, o, cap):
 				seen[node] = true
 				st.append(node)
+		for o in touch:
+			var tnode := Vector2i(o.x, o.y + 1)
+			if not seen.has(tnode) and _can_reach_orb(gr, p, o, cap, 1):
+				seen[tnode] = true
+				st.append(tnode)
 		for t in thorns:
 			var tn := Vector2i(t.x, t.y - 1)
 			if not seen.has(tn) and _can_reach_pogo(gr, p, t, cap):

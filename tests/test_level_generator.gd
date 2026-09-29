@@ -99,7 +99,8 @@ func test_fases_atravessaveis() -> void:
 		var rows: PackedStringArray = L["rows"]
 		var marks := {}
 		for e in L["entities"]:
-			var ch: String = {"impulse_orb": "I", "dash_crystal": "D", "jump_pad": "J", "falling_platform": "O", "moving_platform": "U"}.get(e["type"], "")
+			var ch: String = {"impulse_orb": "I", "dash_crystal": "D", "jump_pad": "J", "falling_platform": "O", "moving_platform": "U",
+				"reset_bell": "b", "jump_feather": "j", "double_crystal": "d"}.get(e["type"], "")
 			if ch != "":
 				marks[Vector2i(int(e["tile"][0]), int(e["tile"][1]))] = ch
 		for r in L["rooms"]:

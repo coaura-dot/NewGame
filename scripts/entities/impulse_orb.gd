@@ -77,6 +77,7 @@ func bounce(p: Player, strong: bool) -> void:
 	if p.attack.kind == "down_air":
 		p.attack.cancel()
 	p.rig.bump(Vector2(0.75, 1.3))
+	p.add_chain()
 	p.buffs.trigger("pogo")
 	_pop()
 
@@ -96,6 +97,7 @@ func _on_body(b: Node) -> void:
 	if _down > 0.0 or not (b is Player) or b.state != Player.State.DASH:
 		return
 	b.refill_dash()
+	b.add_chain()
 	_pop()
 
 
