@@ -101,6 +101,15 @@ Técnicas: ↓+golpe no ar em inimigo/espinho = **pogo** (recarrega dash e pulo)
 - `tools/screenshot.gd -- <prefixo> salas <seed> <bioma> <tier>` tira print de cada sala com outra seed/bioma;
   `tools/room_sheet.gd -- <png> <tipo> LR <tier> 8` gera prancha ampliada.
 
+## Sessão 5 — parede e sons
+- **Parede recarrega o dash** (e o pulo) ao encostar no ar — uma vez por toque (saia e volte para recarregar).
+- **Chute de parede**: dash + pulo encostado numa parede = impulso forte para longe, com embalo.
+- Salas adaptadas: paredes suspensas para quicar, chaminés largas no desafio, espinhos nas faces de pilares
+  e da torre para manter a dificuldade; o validador entende a recarga na parede.
+- **Sons próprios** (sintetizados por `tools/sfx_gen.py`) para pulo, dash, parede, orbe, sino, pena, cristal,
+  pogo, cadeia (nota sobe a cada elo), golpes, abates, torreta, muralha, magias por escola etc.
+- Pendente: efeitos visuais novos em magias/golpes e personagens novos com seleção.
+
 ## Testes
 `godot --headless --path . res://tests/test_runner.tscn` — 5500+ verificações (dados, balanceamento, mundo, fases,
 combate, sigilos, inventário, social, save e um teste que joga o treino: anda, pula, dash, ataca, magia, aparo).
