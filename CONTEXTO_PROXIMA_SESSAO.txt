@@ -108,8 +108,41 @@ SESSÃO 2 (atual): refez visual e feel:
    scale 2/3 (root Control com size 480x270, NÃO usar anchors full rect).
  - efeitos: grain/vinheta/aberração/números de dano/partículas desligados por
    padrão (Settings.VERSION=2 reseta vídeo antigo).
- - Screenshot atual: docs/screenshot_treino.png
- - Testes: 4412 verificações passando.
+ - Testes: 4412 verificações passando (na época).
+
+SESSÃO 3: câmera, salas, golpes, música, loja e chefes (tudo testado):
+ - Câmera por sala estilo Celeste (scripts/level/game_camera.gd: set_room,
+   Level.room_rect/room_at). Impulso de transição ao subir de sala
+   (Player.transition_boost / TRANSITION_PROBE) — a escada da saída de cima
+   termina na linha 4; o pulo + impulso leva à sala de cima.
+ - HUD no topo (hud.gd: _draw_left/_draw_right, translúcido sob o jogador).
+ - Raios de luz em tela sem pontilhado e DESLIGADOS por padrão
+   (Settings.VERSION=3 reseta vídeo). Arco de corte sem halo de bloom.
+ - Mapa-múndi estava vazio (Control raiz com tamanho 0): corrigido; nomes em
+   2D nítido. Fontes Kenney: minúsculas acentuadas eram maiúsculas —
+   tools/fix_font_accents.py corrige (já aplicado nos .ttf).
+ - Golpes animados: CreatureSprite.BLADES/SWINGS + AttackRunner.swing_phase/
+   swing_kind (arma gira: preparação 0-0.3, corte -0.75, volta). Inimigos
+   também mostram a arma (telegrafa). Squash no alvo em Actor.take_hit.
+ - Salas: RoomReach (scripts/level/room_reach.gd) SIMULA a física do jogador
+   e valida que toda saída leva a toda outra (tests/test_room_reach.gd).
+   RoomSynth reescrito (perfil de chão com degraus <= 3, fossos <= 4, tetos,
+   camadas de one-way, escada zigue-zague). 4 templates refeitos.
+   REGRA: bloco sólido flutuante sobre chão cria "teto baixo" e trava a
+   subida — use one-way sobre chão firme, sólido só sobre espinhos.
+ - Música: tools/build_music.py (numpy+soundfile; pip install numpy
+   soundfile) gera 11 OGG em assets/audio/music. Autoload Music (crossfade,
+   loop). Trilha por bioma em data/biomes.json -> "music".
+ - Loja/forja/estudo/cura: scripts/social/commerce.gd + painéis em hud.gd
+   (open_shop/open_forge/open_study). Forja de arma = Game.profile
+   ["upgrade_levels"] (+12%/nível, aplicado em Player.equip_weapon).
+ - Chefes novos em enemies.json + IA em enemy.gd: duelist (boss_duelist),
+   brood_mother (boss_horde, "minions", Level.spawn_minion), colossus
+   (boss_colossus). WorldGenerator sorteia um chefe diferente por faixa.
+   Menu: "Arena de chefes" (Game.start_training(boss_id)).
+ - Ferramenta de screenshots: tests/shots.tscn (cenários rooms, region,
+   menu, pause, map, combat, shop, bosses). Screenshot: docs/screenshot_treino.png
+ - Testes: ~4340 verificações passando (a contagem varia com as salas).
 
 -------------------------------------------------------------------------------
 3. MAPA DO CÓDIGO
@@ -127,7 +160,8 @@ data/               tudo é dirigido por JSON (chaves "_doc" são ignoradas)
 
 scripts/autoload/  Events (sinais), Settings (opções/controles), DB (carrega
                    e valida JSON), Game (estado, seed, perfil, cenas, treino),
-                   FX (hitstop, shake, slowmo, faíscas), Audio, SaveSystem
+                   FX (hitstop, shake, slowmo, faíscas), Audio (SFX),
+                   Music (trilhas com crossfade), SaveSystem
 scripts/core/      DamageInfo, StatBlock, CombatMath, PowerBudget, RngUtil,
                    Inventory
 scripts/combat/    Hitbox, Hurtbox, Hazard, StatusController, AttackRunner,
@@ -137,7 +171,8 @@ scripts/actors/    Actor (base), Player (~1300 linhas), Enemy (IA: melee,
                    lunger, caster, turret, charger, boss_demon)
 scripts/world/     WorldGenerator (grafo macro, gates solúveis por construção)
 scripts/level/     LevelGenerator (layout Dead Cells), RoomSynth (sala
-                   procedural p/ qualquer saída), ChunkLibrary, LevelBuilder,
+                   procedural p/ qualquer saída), RoomReach (validador que
+                   simula a física), ChunkLibrary, LevelBuilder,
                    TileSetBuilder, Level (runtime), GameCamera, BackgroundLayer,
                    AmbientParticles, PostFX, LevelConst (TILE=8, sala 40x24)
 scripts/entities/  porta, baú, pickup, cristal de dash, mola, serra, tocha,
@@ -145,27 +180,31 @@ scripts/entities/  porta, baú, pickup, cristal de dash, mola, serra, tocha,
                    que cai, relíquia, mural de missões, fenda dimensional,
                    altar de chefe, portão de habilidade, parede quebrável
 scripts/social/    SocialSystem (NPCs, afinidade, presentes, casamento,
-                   reputação, missões por faixa, resgate, O Cerco)
+                   reputação, missões por faixa, resgate, O Cerco),
+                   Commerce (loja, venda, forja, estudo, cura)
 scripts/ui/        UIKit, HUD, PauseMenu (equipamento), OptionsMenu,
                    MainMenu, WorldMap (3D pixelado), Ending
 scripts/fx/        CreatureSprite, SlashArc, Burst, FloatingText, NovaFX,
                    LightningFX, AfterImage, LightUtil
 shaders/           post_fx, light_shaft, linear_to_srgb, sprite_fx (legado)
 scenes/            boot, main_menu, world_map, level, ending (raízes finas)
-tests/             test_runner.tscn + test_*.gd, screenshot.tscn
-tools/             build_tiles.py (tiles 8px), build_assets.py (legado CC0),
+tests/             test_runner.tscn + test_*.gd, screenshot.tscn, shots.tscn
+tools/             build_tiles.py (tiles 8px), build_music.py (trilhas),
+                   fix_font_accents.py, build_assets.py (legado CC0),
                    validate_rooms.py, check_scripts.sh
 assets/            ícones/fontes/sons CC0 (Kenney etc.); art/characters e
                    backgrounds antigos (Gothicvania) NÃO são mais usados
 
 Controles: WASD/setas, Espaço pular, Shift dash, J ataque, K pesado (segurar),
 L/F aparar, Ctrl esquiva, Q/E magias, R sigilo (segurar+desenhar), H poção,
-G trocar arma, W/↑ interagir, Esc pausa. Menu tem "Treino" (tudo liberado).
+G trocar arma, W/↑ interagir, Esc pausa. Menu tem "Treino" (tudo liberado) e "Arena de chefes".
 
 -------------------------------------------------------------------------------
 4. COMO TRABALHAR NO CONTAINER (nuvem)
 -------------------------------------------------------------------------------
- - Godot NÃO vem instalado e os sites de download do Godot são bloqueados.
+ - Godot pode já estar no container: /opt/godot-headless (link em
+   /usr/local/bin/godot) e /opt/godot-gfx (com janela, para screenshots).
+   Se não estiver: os sites de download do Godot são bloqueados.
    Na sessão 1 foi compilado do código-fonte (git clone do GitHub funciona):
      git clone --depth 1 --branch 4.7.2-stable https://github.com/godotengine/godot.git /opt/godot-src
      pip3 install scons
@@ -195,38 +234,42 @@ G trocar arma, W/↑ interagir, Esc pausa. Menu tem "Treino" (tudo liberado).
 -------------------------------------------------------------------------------
 5. O QUE FALTA (prioridade sugerida)
 -------------------------------------------------------------------------------
+PRIMEIRO: pergunte ao usuário o que ele achou jogando a versão da sessão 3
+(câmera por sala, salas novas, golpes, música, loja, chefes, arena) e ajuste.
+
 ALTA (feel / o que o usuário vai notar primeiro)
- 1. Ajustar feel jogando/recebendo feedback: física (player.gd), escalas de
-    golpe (attack_runner.gd), velocidade/alcance de inimigos (enemies.json).
- 2. Animação do golpe do player: hoje só o arco (SlashArc) + pose; desenhar o
-    ferrão/lâmina balançando no CreatureSprite; squash no acerto.
- 3. Recalibrar templates de sala (data/rooms/core.txt) e RoomSynth para o
-    novo tamanho (herói 12px, pulo ~4 tiles): alturas de plataforma, vãos.
- 4. Menus/HUD revisados para 320x180 (hoje só escalados 2/3); mais emoções
-    contextuais (NPC querido perto = ♥, etc).
- 5. Música/ambiente sonoro (nenhuma música ainda).
+ 1. Feel jogando: física (player.gd), escalas de golpe (attack_runner.gd),
+    dificuldade/tempos dos chefes (enemy.gd, _ai_duelist/_ai_horde/
+    _ai_colossus), velocidade/alcance de inimigos (enemies.json).
+ 2. Menus/HUD ainda são layouts 480x270 escalados 2/3 (funcionam e estão
+    legíveis); revisar se o usuário reclamar. Mais emoções contextuais.
+ 3. Música é procedural (tools/build_music.py); ajustar estilos se o
+    usuário não gostar (andamento, modo, instrumentos por trilha).
 
 MÉDIA (conteúdo)
- 6. Chefes: só existem Corcel (elite) e Arquidemônio. Faltam chefe de horda,
-    de puzzle, de parkour, monstro gigante, arena 1v1 com espadachim.
- 7. Mais inimigos e variantes por bioma/dimensão (hoje 9).
- 8. Mais templates de sala por bioma e tipo; puzzles de verdade (hoje só
-    alavanca/portão e paredes quebráveis).
- 9. Loja/ferreiro/sábio: upgrade de armas, magias e armaduras (os serviços
-    existem nos dados dos NPCs, mas não há UI de compra/upgrade).
-10. Mundos paralelos: física por dimensão já funciona (gravidade, invertida,
-    tempo inimigo, regras); faltam criaturas/visual exclusivos de cada uma.
-11. Hubs visitáveis mais ricos (cidade/vila com casas, NPCs andando).
-12. Mais conteúdo de missões (objetivos reais: alvo de assassinato, entrega,
-    escolta) e consequências de reputação.
+ 4. Mais inimigos por bioma (hoje 9 + 3 chefes novos). Planejado e NÃO
+    feito: goblin (lunger, garra_felina), bruto orc (melee, montante),
+    guardião de ferro (guarda_cidadela), cogumelo esporento (turret,
+    clarao_cegante), escorpião (lunger, serrilhada), fagulha celeste
+    (caster, lanca_radiante), aprendiz arcano (caster, seta_arcana +
+    estilhaco_gelo) e criaturas dos mundos paralelos: sombra (umbra),
+    medusa etérea (eter), autômato (cronos), reflexo mímico (espelho),
+    horror (abismo). dimensions.json "creatures" de cronos/espelho/abismo
+    ainda estão vazios (usam os inimigos do bioma).
+ 5. Chefes de puzzle e de parkour (arenas especiais).
+ 6. Mais templates de sala por bioma e tipo; puzzles de verdade. Todo
+    template novo precisa passar em tests/test_room_reach.gd.
+ 7. Mundos paralelos: visual exclusivo de cada um.
+ 8. Hubs visitáveis mais ricos (casas, NPCs andando).
+ 9. Missões com objetivos reais (alvo, entrega, escolta) e consequências.
 
 BAIXA / polimento
-13. Arte final (o usuário vai editar; tudo procedural é fácil de trocar).
-14. Rebinding de controles na UI; suporte melhor a controle nos menus.
-15. Mapa 3D: estética, animações de viagem, ícones.
-16. Limpeza: remover assets/art/characters e backgrounds antigos + shader
-    sprite_fx se confirmado sem uso; tools/build_assets.py é legado.
-17. Exportar builds (Windows) quando o usuário pedir.
+10. Arte final (o usuário vai editar; tudo procedural é fácil de trocar).
+11. Rebinding de controles na UI; suporte melhor a controle nos menus.
+12. Mapa 3D: estética, animações de viagem, ícones.
+13. Limpeza: assets/art/characters e backgrounds antigos + shader sprite_fx
+    parecem sem uso; tools/build_assets.py é legado.
+14. Exportar builds (Windows) quando o usuário pedir.
 
 -------------------------------------------------------------------------------
 6. COMO O USUÁRIO ABRE O JOGO
