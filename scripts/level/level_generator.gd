@@ -159,6 +159,7 @@ static func generate(params: Dictionary, library: ChunkLibrary, db: Node) -> Dic
 			room["template"] = "synth:" + room["type"]
 		else:
 			g = RoomSynth.from_rows(tpl["rows"])
+			RoomSynth.resolve_tokens(g, rng)
 			room["template"] = tpl["id"]
 			room["tags"] = tpl["tags"]
 			for e in tpl["exits"]:
@@ -443,8 +444,9 @@ static func _choose_template(library: ChunkLibrary, t: String, exits: String, bi
 	var found := library.find(t, exits, biome)
 	if found.is_empty():
 		return {}
-	# 35% das vezes usa o sintetizador mesmo havendo template (variedade)
-	if t in ["combat", "corridor", "platforming", "shaft"] and rng.randf() < 0.35:
+	# partes aleatórias (Dead Cells): às vezes o sintetizador mesmo havendo
+	# estrutura pronta
+	if t in ["combat", "corridor", "platforming", "shaft"] and rng.randf() < 0.25:
 		return {}
 	return RngUtil.weighted_item(rng, found)
 

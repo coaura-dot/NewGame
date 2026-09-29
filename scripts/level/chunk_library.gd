@@ -64,6 +64,21 @@ func _finish(t: Dictionary) -> void:
 			errors.append("%s: linha %d com %d colunas" % [t["id"], i, rows[i].length()])
 			return
 	templates.append(t)
+	# cópia espelhada (L<->R): dobra a variedade; a física é simétrica, então
+	# a validação do original vale para o espelho
+	if not t["tags"].has("nomirror"):
+		var m := t.duplicate(true)
+		m["id"] = t["id"] + "~m"
+		m["mirror_of"] = t["id"]
+		var mr := PackedStringArray()
+		for row in rows:
+			mr.append(row.reverse())
+		m["rows"] = mr
+		var ex := ""
+		for e in t["exits"]:
+			ex += {"L": "R", "R": "L"}.get(e, e)
+		m["exits"] = ex
+		templates.append(m)
 
 
 ## Templates que suportam TODAS as saídas pedidas.

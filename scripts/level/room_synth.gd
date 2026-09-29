@@ -69,6 +69,52 @@ static func synth(room_type: String, exits: String, rng: RandomNumberGenerator, 
 
 
 # ---------------------------------------------------------------------------
+# Tokens aleatórios dos templates (tools/build_rooms.py)
+# ---------------------------------------------------------------------------
+
+## Tokens "seguros" (não mudam o caminho): chance e o que viram.
+const SAFE_TOKENS := {
+	"e": [0.6, "E"], "f": [0.5, "F"], "u": [0.55, "U"], "i": [0.65, "I"], "s": [0.45, "S"],
+	"c": [0.3, "C"], "d": [0.6, "D"], "j": [0.5, "J"], "+": [0.5, "-"],
+}
+## Grupos (todo o grupo decide junto): 1 2 3 = bloco sólido, 4 5 = espinho.
+const GROUP_TOKENS := {"1": "#", "2": "#", "3": "#", "4": "^", "5": "^"}
+
+
+## Resolve os tokens de um template. `groups` (opcional) força a decisão de
+## cada grupo ({"1": true, ...}); `strip_entities` troca os tokens seguros
+## por vazio (usado pelo validador, que não enxerga entidades).
+static func resolve_tokens(g: Array, rng: RandomNumberGenerator, groups: Dictionary = {}, strip_entities: bool = false) -> void:
+	var decided := groups.duplicate()
+	for y in H:
+		for x in W:
+			var c: String = g[y][x]
+			if GROUP_TOKENS.has(c):
+				if not decided.has(c):
+					decided[c] = rng.randf() < 0.5 if rng else false
+				g[y][x] = GROUP_TOKENS[c] if decided[c] else "."
+			elif SAFE_TOKENS.has(c):
+				if strip_entities:
+					g[y][x] = "-" if c == "o" else "."
+				else:
+					var spec: Array = SAFE_TOKENS[c]
+					g[y][x] = spec[1] if rng.randf() < float(spec[0]) else "."
+			elif c == "o":
+				g[y][x] = "-" if strip_entities else ("O" if rng.randf() < 0.6 else "-")
+
+
+## Grupos usados num template (para os testes enumerarem as combinações).
+static func token_groups(rows: PackedStringArray) -> Array:
+	var out: Array = []
+	for r in rows:
+		for c in GROUP_TOKENS.keys():
+			if r.contains(c) and not out.has(c):
+				out.append(c)
+	out.sort()
+	return out
+
+
+# ---------------------------------------------------------------------------
 # Grade
 # ---------------------------------------------------------------------------
 
