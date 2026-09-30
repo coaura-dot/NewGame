@@ -350,7 +350,7 @@ static func fixed(db: Node = null) -> Dictionary:
 		}
 	for e in src["edges"]:
 		var dir := str(e["dir"])
-		var back := {"R": "L", "L": "R", "U": "D", "D": "U"}[dir]
+		var back: String = {"R": "L", "L": "R", "U": "D", "D": "U"}[dir]
 		var la: String = world["regions"][e["a"]]["layer"]
 		var lb: String = world["regions"][e["b"]]["layer"]
 		var kind := "road"

@@ -17,7 +17,8 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 	var w: int = layout["width"]
 	var h: int = layout["height"]
 
-	var bg := _layer("BackWall", ts, -20, tint * Color(0.62, 0.62, 0.7))
+	var bw: Array = biome.get("backwall", [0.62, 0.62, 0.7])
+	var bg := _layer("BackWall", ts, -20, tint * Color(float(bw[0]), float(bw[1]), float(bw[2])))
 	var solid := _layer("Terrain", ts, 0, tint)
 	var trim := _layer("Fringe", ts, 1, tint)
 	var ceil := _layer("Hang", ts, 1, tint)
@@ -30,6 +31,9 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 	# profundidade: distância de cada célula sólida até o ar (0 = borda)
 	var depth := _depth_texture(rows, w, h)
 	solid.material = TileSetBuilder.terrain_material(tsname, depth, Vector2(w, h))
+	if biome.has("deep"):
+		var dc: Array = biome["deep"]
+		solid.material.set_shader_parameter("deep_color", Color(float(dc[0]), float(dc[1]), float(dc[2])))
 	bg.material = TileSetBuilder.terrain_material(tsname, null, Vector2(w, h), true)
 	var grassy := _has_fringe(tsname)
 
@@ -140,7 +144,7 @@ static func _depth_texture(rows: PackedStringArray, w: int, h: int) -> ImageText
 
 
 static func _has_fringe(tsname: String) -> bool:
-	return tsname in ["castle", "ruins", "forest", "graveyard", "swamp", "cave", "desert", "war"]
+	return tsname in ["castle", "ruins", "forest", "graveyard", "swamp", "cave", "desert", "war", "bosque", "cinzal"]
 
 
 ## Lagos desenhados pelo RegionDesigner: [x0, x1, y_topo, y_fundo] em tiles.

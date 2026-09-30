@@ -144,3 +144,5 @@
 @ent 128,30 sign R "Cidade de Vésper"
 @ent 145,20 arrival
 @ent 141,20 decor lamppost_broken
+// Tordo abre a loja na praça depois de resgatado no Bosque
+@ent 98,30 npc tordo

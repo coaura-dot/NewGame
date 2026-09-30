@@ -17,10 +17,20 @@ var fade: float = 0.0
 var _dash_blur: float = 0.0
 
 
-func build(parent: Node, dimension: Dictionary, is_outdoor: bool) -> void:
+## Vinheta própria da área (direção de arte), aplicada mesmo com a opção
+## de vinheta desligada.
+var area_vignette: float = 0.0
+
+
+func build(parent: Node, dimension: Dictionary, is_outdoor: bool, area_grade: Dictionary = {}) -> void:
 	layer = 5
 	outdoor = is_outdoor
-	grade = dimension.get("grade", {})
+	# cor da área (bioma) e, por cima, a do mundo paralelo
+	grade = area_grade.duplicate()
+	var dg: Dictionary = dimension.get("grade", {})
+	for k in dg.keys():
+		grade[k] = dg[k]
+	area_vignette = float(area_grade.get("vignette", 0.0))
 	env = Environment.new()
 	env.background_mode = Environment.BG_CANVAS
 	env.background_canvas_max_layer = 6
@@ -54,7 +64,8 @@ func apply_settings() -> void:
 	mat.set_shader_parameter("motion_blur_on", bool(Settings.video("motion_blur")))
 	mat.set_shader_parameter("rays_on", bool(Settings.video("god_rays")))
 	mat.set_shader_parameter("ray_strength", 0.9 if outdoor else 0.55)
-	mat.set_shader_parameter("vignette_on", bool(Settings.video("vignette")))
+	mat.set_shader_parameter("vignette_on", bool(Settings.video("vignette")) or area_vignette > 0.0)
+	mat.set_shader_parameter("vignette", area_vignette if area_vignette > 0.0 else 0.35)
 	mat.set_shader_parameter("grain_on", bool(Settings.video("film_grain")))
 	var tint: Array = grade.get("tint", [1, 1, 1])
 	mat.set_shader_parameter("grade_tint", Vector3(tint[0], tint[1], tint[2]))

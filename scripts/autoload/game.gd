@@ -64,6 +64,7 @@ func new_game(seed_in: int = -1, save_slot: int = 0) -> void:
 	profile = START_PROFILE.duplicate(true)
 	profile["region"] = world["start"]
 	social = SocialSystem.create(world, seed_value, DB)
+	_register_story_merchants()
 	world["regions"][world["start"]]["visited"] = true
 	has_game = true
 	save()
@@ -261,6 +262,19 @@ func complete_region(region_id: String) -> void:
 	SocialSystem.on_region_cleared(social, region_id)
 	Events.level_completed.emit(region_id)
 	save()
+
+
+## Personagens da história que também vendem (Tordo): entram no estado
+## social como mercadores, para usar a loja de sempre.
+func _register_story_merchants() -> void:
+	var arch: Dictionary = DB.npc_data.get("archetypes", {}).get("mercador", {})
+	social["npcs"]["tordo"] = {
+		"id": "tordo", "name": "Tordo", "role": "mercador", "title": "o mercador", "region": "cinzal",
+		"culture": "humano", "personality": "alegre", "affinity": 40, "romanceable": false,
+		"likes": arch.get("likes", []), "dislikes": arch.get("dislikes", []),
+		"services": arch.get("services", ["shop", "buy_sell"]), "assist": "none", "met": true,
+		"alive": true, "married": false, "last_gift_day": -1, "rescues": 0, "story": true,
+	}
 
 
 func unlock_ability(ability_id: String) -> void:

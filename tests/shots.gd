@@ -23,7 +23,11 @@ func _ready() -> void:
 		await _shot_pause()
 	if scenario in ["region", "all"]:
 		Game.new_game(1234, 9)
+		Game.profile["flags"] = {"despertou": true, "scene:despertar": true}
 		var start: String = Game.world["start"]
+		if args.size() > 2:
+			start = args[2]
+			Game.world["regions"][start]["visited"] = true
 		Game.pending = {"region": start}
 		await _shot_rooms("regiao")
 		SaveSystem.delete_save(9)

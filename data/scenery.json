@@ -321,5 +321,98 @@
   "underground": false,
   "water": true,
   "cloud": "#c8d8b0"
+ },
+ "galerias": {
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.08,
+    "vpar": 0.029,
+    "fill": "#26324e"
+   },
+   {
+    "file": "l1",
+    "par": 0.22,
+    "vpar": 0.055,
+    "fill": "#000000"
+   },
+   {
+    "file": "l2",
+    "par": 0.45,
+    "vpar": 0.096,
+    "fill": "#000001"
+   }
+  ],
+  "fog": "#2a3858",
+  "fog_alpha": 0.12,
+  "event": "eyes",
+  "birds": false,
+  "rays": false,
+  "weather": "",
+  "underground": true,
+  "water": false,
+  "cloud": "#2a3858"
+ },
+ "bosque": {
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.08,
+    "vpar": 0.029,
+    "fill": "#1b3326"
+   },
+   {
+    "file": "l1",
+    "par": 0.22,
+    "vpar": 0.055,
+    "fill": "#14271c"
+   },
+   {
+    "file": "l2",
+    "par": 0.45,
+    "vpar": 0.096,
+    "fill": "#030805"
+   }
+  ],
+  "fog": "#1e3a2c",
+  "fog_alpha": 0.14,
+  "event": "wisps",
+  "birds": false,
+  "rays": false,
+  "weather": "",
+  "underground": true,
+  "water": false,
+  "cloud": "#1e3a2c"
+ },
+ "cinzal": {
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.05,
+    "vpar": 0.024,
+    "fill": "#59303a"
+   },
+   {
+    "file": "l1",
+    "par": 0.18,
+    "vpar": 0.047,
+    "fill": "#341d25"
+   },
+   {
+    "file": "l2",
+    "par": 0.4,
+    "vpar": 0.087,
+    "fill": "#0b070b"
+   }
+  ],
+  "fog": "#7a3e44",
+  "fog_alpha": 0.16,
+  "event": "bats",
+  "birds": false,
+  "rays": false,
+  "weather": "",
+  "underground": false,
+  "water": false,
+  "cloud": "#5a3440"
  }
 }

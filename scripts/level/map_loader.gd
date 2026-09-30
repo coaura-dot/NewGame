@@ -498,12 +498,20 @@ func _owner_room(x: int, y: int) -> int:
 # ---------------------------------------------------------------------------
 
 func _output() -> Dictionary:
+	# dono de cada entidade = a MENOR sala que contém o tile (uma sala só de
+	# retângulo dentro de um bloco maior, como um portão, fica com o que é seu)
 	for e in entities:
-		if int(e["room"]) < 0:
-			e["room"] = maxi(_owner_room(int(e["tile"][0]), int(e["tile"][1])), 0)
+		var o := _owner_room(int(e["tile"][0]), int(e["tile"][1]))
+		if o >= 0:
+			e["room"] = o
+		elif int(e["room"]) < 0:
+			e["room"] = 0
 	for d in decor:
-		if int(d["room"]) < 0:
-			d["room"] = maxi(_owner_room(int(d["tile"][0]), int(d["tile"][1])), 0)
+		var o2 := _owner_room(int(d["tile"][0]), int(d["tile"][1]))
+		if o2 >= 0:
+			d["room"] = o2
+		elif int(d["room"]) < 0:
+			d["room"] = 0
 	var rows := PackedStringArray()
 	var bg_rows := PackedStringArray()
 	for y in h:
@@ -527,7 +535,10 @@ func _output() -> Dictionary:
 			continue
 		var spawn := [-1, -1]
 		for e in entities:
-			if e["type"] == "arrival" and int(e["room"]) == room:
+			if e["type"] == "arrival" and int(e["room"]) == room and str(e["data"].get("port", "")) == "":
+				spawn = e["tile"]
+		for e in entities:
+			if e["type"] == "arrival" and str(e["data"].get("port", "")) == dir:
 				spawn = e["tile"]
 		rooms[room]["port"] = {"dir": dir, "to": pt["to"], "requires": pt.get("requires", "")}
 		ports_out.append({"dir": dir, "to": pt["to"], "requires": pt.get("requires", ""), "room": room,

@@ -5,24 +5,57 @@ extends Interactable
 var active: bool = false
 var _t: float = 0.0
 var _light: PointLight2D
+var _glow: Node2D
+## já foi aceso alguma vez (fica aceso para sempre, mesmo sem ser o atual)
+var lit: bool = false
 
 
 func _ready() -> void:
 	prompt = "Descansar"
-	size = Vector2(12, 12)
+	size = Vector2(14, 16)
 	super._ready()
+	z_index = -1
+	var key := _key()
+	lit = key != "" and Game.profile.get("braziers", []).has(key)
+	_glow = DecorSprite.glow_node(self, func(n: Node2D):
+		if lit:
+			DecorSprite.draw_glow(n, "brazier_lit", Vector2.ZERO, false, 0.85 + 0.15 * sin(_t * 9.0)))
+	if lit:
+		_make_light()
+
+
+func _key() -> String:
+	if level == null or not ("region_id" in level):
+		return ""
+	return "%s:%d,%d" % [level.region_id, int(global_position.x), int(global_position.y)]
+
+
+func _make_light() -> void:
+	if _light:
+		return
+	_light = LightUtil.make_light(Color(1.0, 0.72, 0.42), 1.0, 1.1)
+	if _light:
+		_light.position = Vector2(0, -12)
+		add_child(_light)
 
 
 func _on_player_near(_player: Node) -> void:
 	if not active and level:
 		active = true
 		level.set_checkpoint(self)
-		FX.burst(global_position + Vector2(0, -6), Color(2.0, 1.6, 0.6), 8, 80.0)
-		Audio.play("confirmation", 0.0, -6.0)
-		_light = LightUtil.make_light(Color(1.0, 0.75, 0.45), 0.9, 0.9)
-		if _light:
-			_light.position = Vector2(0, -6)
-			add_child(_light)
+		if not lit:
+			# o Lume acende o braseiro com a própria brasa
+			lit = true
+			var key := _key()
+			if key != "" and not Game.training:
+				if not Game.profile.has("braziers"):
+					Game.profile["braziers"] = []
+				Game.profile["braziers"].append(key)
+			FX.burst(global_position + Vector2(0, -12), Color(3.0, 1.8, 0.6), 18, 90.0)
+			FX.shake(0.12)
+			Audio.play("confirmation", 0.0, -4.0)
+			Events.toast.emit("Braseiro aceso")
+		_make_light()
 
 
 func interact(player: Node) -> void:
@@ -35,21 +68,16 @@ func interact(player: Node) -> void:
 
 func deactivate() -> void:
 	active = false
-	if _light:
-		_light.queue_free()
-		_light = null
 
 
 func _process(delta: float) -> void:
 	super._process(delta)
 	_t += delta
+	if _light and lit:
+		_light.energy = 0.72 + 0.06 * sin(_t * 8.0) + 0.04 * sin(_t * 19.0)
+	if _glow:
+		_glow.queue_redraw()
 
 
 func _draw_body() -> void:
-	draw_rect(Rect2(-5, -2, 10, 2), Color(0.35, 0.3, 0.3))
-	draw_rect(Rect2(-3, -3, 2, 1), Color(0.5, 0.35, 0.25))
-	draw_rect(Rect2(1, -3, 2, 1), Color(0.5, 0.35, 0.25))
-	if active:
-		var h := 3.0 + (1.0 if fmod(_t * 8.0, 2.0) > 1.0 else 0.0)
-		draw_rect(Rect2(-1, -3 - h, 2, h), Color(2.6, 1.4, 0.4))
-		draw_rect(Rect2(-2, -5, 4, 2), Color(2.4, 1.0, 0.3))
+	DecorSprite.draw(self, "brazier_lit" if lit else "brazier_cold", Vector2.ZERO, false)

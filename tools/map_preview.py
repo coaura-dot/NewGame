@@ -202,8 +202,8 @@ def parse(path):
             if x0 <= x < x0 + rw and y0 <= y < y0 + rh and rw * rh < ba:
                 best, ba = i, rw * rh
         return best
-    ents[:] = [(ty, x, y, owner(x, y) if idx < 0 else idx) for (ty, x, y, idx) in ents]
-    decor[:] = [(ch, x, y, owner(x, y) if idx < 0 else idx) for (ch, x, y, idx) in decor]
+    ents[:] = [(ty, x, y, owner(x, y) if owner(x, y) >= 0 else idx) for (ty, x, y, idx) in ents]
+    decor[:] = [(ch, x, y, owner(x, y) if owner(x, y) >= 0 else idx) for (ch, x, y, idx) in decor]
     for t in late:
         x, y = [int(v) for v in t[1].split(",")]
         ty = t[2]

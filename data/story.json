@@ -1,151 +1,564 @@
 {
  "_doc": "História de Cindária. characters: nome, sprite (tools/build_sprites.py), falas em 'talk' (a primeira cuja condição 'if' vale e que ainda não foi dita; 'idle' = rotina que gira). Condições: flag, !flag, lamps>=N, boss:id, ability:id, region:id, here:id, unidas por &. Efeitos: set (marcas), give (itens), money, ability, scene (cena depois), after (serviço: map). scenes: passos do CutscenePlayer. on_enter: cena automática ao entrar numa região. triggers: condição das áreas de cena dos mapas. objectives: objetivo da HUD (o primeiro que vale).",
  "characters": {
-  "eco": {"name": "???"},
-  "lume": {"name": "Lume"},
+  "eco": {
+   "name": "???"
+  },
+  "lume": {
+   "name": "Lume"
+  },
   "borralha": {
-   "name": "Vovó Borralha", "title": "a anciã de Cinzal", "sprite": "npc_borralha", "facing": "R", "greet": "...",
+   "name": "Vovó Borralha",
+   "title": "a anciã de Cinzal",
+   "sprite": "npc_borralha",
+   "facing": "R",
+   "greet": "...",
    "talk": [
-    {"if": "!met_borralha", "set": "met_borralha", "lines": [
-     "Oh... Uma luz. Uma luz de verdade, andando sozinha pela praça.",
-     "Chegue mais perto, pequena lâmpada. Meus olhos já não são o que eram, mas essa brasa eu reconheceria em qualquer lugar.",
-     "Você é um Lampadeiro. O último, eu diria. Os seus acendiam as lâmpadas de Cindária inteira, lá embaixo, nas Galerias.",
-     "Mas a Maré subiu, e as lâmpadas foram se apagando uma a uma. E os Lampadeiros foram junto com elas.",
-     "Este braseiro é o último fogo de Cinzal. Está frio há mais tempo do que eu consigo lembrar... Será que a sua brasa o acende?"
-    ]},
-    {"if": "lamps>=4 & !borralha_lampioes", "set": "borralha_lampioes", "money": 25, "lines": [
-     "Olhe só para isso. A praça inteira acesa!",
-     "Ouvi portas rangendo. O povo está espiando pelas janelas, pela primeira vez em anos.",
-     "Tome, são as brasas que eu guardava para o meu funeral. Acho que ainda vou demorar para precisar delas."
-    ]},
-    {"if": "boss:colossus & !borralha_colosso", "set": "borralha_colosso", "lines": [
-     "Você derrubou o Colosso Apagado? ...Então ainda há esperança.",
-     "Ele guardava as Galerias muito antes da Maré. Ela o esvaziou por dentro, e ele continuou de pé, guardando sem saber o quê.",
-     "Descanse um pouco. Depois siga as raízes a oeste. Dizem que o Bosque ainda respira."
-    ]},
-    {"if": "tordo_salvo & !borralha_tordo", "set": "borralha_tordo", "lines": [
-     "O Tordo voltou! Aquele cabeçudo. Achei que a Maré tinha levado mais um.",
-     "O menino não para de rir. Fazia tanto tempo que Cinzal não ouvia uma risada..."
-    ]},
-    {"if": "!lamps>=4", "idle": true, "lines": [
-     "Os lampiões da praça... se você os acendesse, o povo sairia de casa de novo. Faz tanto tempo que ninguém sai."
-    ]},
-    {"if": "!region:galerias", "idle": true, "lines": [
-     "O Poço Velho, ali na praça, desce até as Galerias Apagadas. Era por lá que os Lampadeiros iam e vinham.",
-     "Lá embaixo há um guardião que ninguém consegue passar. Tome cuidado, pequena."
-    ]},
-    {"idle": true, "lines": ["A cinza cai, mas nunca se acumula. Ninguém sabe para onde ela vai."]},
-    {"idle": true, "lines": ["Descanse no braseiro quando precisar. O fogo que você acendeu vai esperar por você."]},
-    {"idle": true, "lines": ["Quando eu era menina, o sino da torre tocava ao anoitecer e todas as lâmpadas se acendiam de uma vez. Era como se o mundo inteiro suspirasse."]}
+    {
+     "if": "!met_borralha",
+     "set": "met_borralha",
+     "lines": [
+      "Oh... Uma luz. Uma luz de verdade, andando sozinha pela praça.",
+      "Chegue mais perto, pequena lâmpada. Meus olhos já não são o que eram, mas essa brasa eu reconheceria em qualquer lugar.",
+      "Você é um Lampadeiro. O último, eu diria. Os seus acendiam as lâmpadas de Cindária inteira, lá embaixo, nas Galerias.",
+      "Mas a Maré subiu, e as lâmpadas foram se apagando uma a uma. E os Lampadeiros foram junto com elas.",
+      "Este braseiro é o último fogo de Cinzal. Está frio há mais tempo do que eu consigo lembrar... Será que a sua brasa o acende?"
+     ]
+    },
+    {
+     "if": "lamps>=4 & !borralha_lampioes",
+     "set": "borralha_lampioes",
+     "money": 25,
+     "lines": [
+      "Olhe só para isso. A praça inteira acesa!",
+      "Ouvi portas rangendo. O povo está espiando pelas janelas, pela primeira vez em anos.",
+      "Tome, são as brasas que eu guardava para o meu funeral. Acho que ainda vou demorar para precisar delas."
+     ]
+    },
+    {
+     "if": "boss:colossus & !borralha_colosso",
+     "set": "borralha_colosso",
+     "lines": [
+      "Você derrubou o Colosso Apagado? ...Então ainda há esperança.",
+      "Ele guardava as Galerias muito antes da Maré. Ela o esvaziou por dentro, e ele continuou de pé, guardando sem saber o quê.",
+      "Descanse um pouco. Depois siga as raízes a oeste. Dizem que o Bosque ainda respira."
+     ]
+    },
+    {
+     "if": "tordo_salvo & !borralha_tordo",
+     "set": "borralha_tordo",
+     "lines": [
+      "O Tordo voltou! Aquele cabeçudo. Achei que a Maré tinha levado mais um.",
+      "O menino não para de rir. Fazia tanto tempo que Cinzal não ouvia uma risada..."
+     ]
+    },
+    {
+     "if": "!lamps>=4",
+     "idle": true,
+     "lines": [
+      "Os lampiões da praça... se você os acendesse, o povo sairia de casa de novo. Faz tanto tempo que ninguém sai."
+     ]
+    },
+    {
+     "if": "!region:galerias",
+     "idle": true,
+     "lines": [
+      "O Poço Velho, ali na praça, desce até as Galerias Apagadas. Era por lá que os Lampadeiros iam e vinham.",
+      "Lá embaixo há um guardião que ninguém consegue passar. Tome cuidado, pequena."
+     ]
+    },
+    {
+     "idle": true,
+     "lines": [
+      "A cinza cai, mas nunca se acumula. Ninguém sabe para onde ela vai."
+     ]
+    },
+    {
+     "idle": true,
+     "lines": [
+      "Descanse no braseiro quando precisar. O fogo que você acendeu vai esperar por você."
+     ]
+    },
+    {
+     "idle": true,
+     "lines": [
+      "Quando eu era menina, o sino da torre tocava ao anoitecer e todas as lâmpadas se acendiam de uma vez. Era como se o mundo inteiro suspirasse."
+     ]
+    }
    ]
   },
   "fuligem": {
-   "name": "Fuligem", "title": "o menino do poço", "sprite": "npc_fuligem", "facing": "L", "greet": "!",
+   "name": "Fuligem",
+   "title": "o menino do poço",
+   "sprite": "npc_fuligem",
+   "facing": "L",
+   "greet": "!",
    "talk": [
-    {"if": "!met_fuligem", "set": ["met_fuligem", "quest_tordo"], "lines": [
-     "Ei! Você brilha! Igualzinho a um lampião de verdade!",
-     "Meu pai desceu pelo poço pra buscar brasas. Ele disse que voltava antes de a cinza cobrir o sino.",
-     "Já cobriu três vezes.",
-     "Se você for lá embaixo... procura ele? O nome dele é Tordo. Ele usa um chapéu enorme, não tem como errar."
-    ]},
-    {"if": "tordo_salvo & !fuligem_feliz", "set": "fuligem_feliz", "give": "pocao_vida", "money": 10, "lines": [
-     "PAPAI VOLTOU! Você achou ele! Você achou ele de verdade!",
-     "Ele disse que estava preso numa gaiola de raízes, lá no Bosque. Que horror!",
-     "Toma. É o meu tesouro: uma poção que eu achei no campo e dez brasas. Não conta pra ninguém que eu tinha."
-    ]},
-    {"if": "!tordo_salvo", "idle": true, "lines": ["Lá embaixo é muito escuro? Eu acho que eu ia ter medo. Mas você é a própria luz, então tá tudo bem."]},
-    {"if": "!tordo_salvo", "idle": true, "lines": ["Às vezes eu grito pra dentro do poço e o eco volta com a voz errada."]},
-    {"idle": true, "lines": ["Quando eu crescer eu vou ser Lampadeiro também. Dá pra aprender? Ou tem que nascer com a cabeça de vidro?"]}
+    {
+     "if": "!met_fuligem",
+     "set": [
+      "met_fuligem",
+      "quest_tordo"
+     ],
+     "lines": [
+      "Ei! Você brilha! Igualzinho a um lampião de verdade!",
+      "Meu pai desceu pelo poço pra buscar brasas. Ele disse que voltava antes de a cinza cobrir o sino.",
+      "Já cobriu três vezes.",
+      "Se você for lá embaixo... procura ele? O nome dele é Tordo. Ele usa um chapéu enorme, não tem como errar."
+     ]
+    },
+    {
+     "if": "tordo_salvo & !fuligem_feliz",
+     "set": "fuligem_feliz",
+     "give": "pocao_vida",
+     "money": 10,
+     "lines": [
+      "PAPAI VOLTOU! Você achou ele! Você achou ele de verdade!",
+      "Ele disse que estava preso numa gaiola de raízes, lá no Bosque. Que horror!",
+      "Toma. É o meu tesouro: uma poção que eu achei no campo e dez brasas. Não conta pra ninguém que eu tinha."
+     ]
+    },
+    {
+     "if": "!tordo_salvo",
+     "idle": true,
+     "lines": [
+      "Lá embaixo é muito escuro? Eu acho que eu ia ter medo. Mas você é a própria luz, então tá tudo bem."
+     ]
+    },
+    {
+     "if": "!tordo_salvo",
+     "idle": true,
+     "lines": [
+      "Às vezes eu grito pra dentro do poço e o eco volta com a voz errada."
+     ]
+    },
+    {
+     "idle": true,
+     "lines": [
+      "Quando eu crescer eu vou ser Lampadeiro também. Dá pra aprender? Ou tem que nascer com a cabeça de vidro?"
+     ]
+    }
    ]
   },
   "mira": {
-   "name": "Mira", "title": "a cartógrafa", "sprite": "npc_mira", "facing": "L", "greet": "♪", "service": "map",
+   "name": "Mira",
+   "title": "a cartógrafa",
+   "sprite": "npc_mira",
+   "facing": "L",
+   "greet": "note",
+   "service": "map",
    "talk": [
-    {"if": "!met_mira", "set": "met_mira", "lines": [
-     "Hm hm hmm, hm hm... Ah! Uma luz! Cuidado onde pisa, você está em cima do meu mapa.",
-     "Sou Mira. Eu desenho os lugares antes que a Maré os leve. Se o mundo esquecer, pelo menos o papel lembra.",
-     "Posso vender o que já desenhei. O mapa completo mostra até os cantos por onde você ainda não andou."
-    ]},
-    {"idle": true, "lines": ["Hm hm hmm... Quer ver os mapas? As tintas estão acabando, mas o traço continua firme."]},
-    {"idle": true, "lines": ["Sabia que os Lampadeiros desenhavam os primeiros mapas? Eles precisavam saber onde ficava cada lâmpada."]}
+    {
+     "if": "!met_mira",
+     "set": "met_mira",
+     "lines": [
+      "Hm hm hmm, hm hm... Ah! Uma luz! Cuidado onde pisa, você está em cima do meu mapa.",
+      "Sou Mira. Eu desenho os lugares antes que a Maré os leve. Se o mundo esquecer, pelo menos o papel lembra.",
+      "Posso vender o que já desenhei. O mapa completo mostra até os cantos por onde você ainda não andou."
+     ]
+    },
+    {
+     "idle": true,
+     "lines": [
+      "Hm hm hmm... Quer ver os mapas? As tintas estão acabando, mas o traço continua firme."
+     ]
+    },
+    {
+     "idle": true,
+     "lines": [
+      "Sabia que os Lampadeiros desenhavam os primeiros mapas? Eles precisavam saber onde ficava cada lâmpada."
+     ]
+    }
    ]
   },
   "gaspar": {
-   "name": "Sir Gaspar", "title": "o Pavio Apagado", "sprite": "npc_gaspar", "facing": "R", "greet": "...", "anim": "idle",
+   "name": "Sir Gaspar",
+   "title": "o Pavio Apagado",
+   "sprite": "npc_gaspar",
+   "facing": "R",
+   "greet": "...",
+   "anim": "idle",
    "talk": [
-    {"if": "here:galerias & !met_gaspar", "set": "met_gaspar", "lines": [
-     "Uma lâmpada acesa... Que visão. Fazia um século que eu não via uma.",
-     "Sou Gaspar, da Ordem dos Lampadeiros. Ou do que resta dela.",
-     "Minha chama se apagou no último Cerco. Dizem que um Lampadeiro sem chama vira Oco em poucos dias.",
-     "Eu me recuso. Enquanto eu lembrar do meu juramento, a Maré não me leva.",
-     "O Colosso guarda o caminho para baixo, no fim das Galerias. Ele já foi meu amigo. Se puder... dê-lhe descanso."
-    ]},
-    {"if": "here:bosque & !gaspar_bosque", "set": "gaspar_bosque", "lines": [
-     "Você de novo. Rá! Eu disse que a Maré não me levava.",
-     "Vim atrás da Rainha da Ninhada. Ela devorou as brasas do Sul e prende quem passa em gaiolas de raiz.",
-     "Mas minhas pernas já não obedecem como antes. Vá na frente. Eu... eu alcanço você.",
-     "E pequena: o que quer que ouça naquele ninho, não pare de brilhar."
-    ]},
-    {"if": "boss:brood_mother & here:bosque & !gaspar_adeus", "set": "gaspar_adeus", "ability": "", "lines": [
-     "Então a Rainha caiu. Eu ouvi daqui. O Bosque inteiro suspirou.",
-     "Pequena... chegue perto. Minha lanterna está fria, mas ainda guarda uma última faísca, bem no fundo do pavio.",
-     "Eu a guardei cem anos para acender o mundo de novo. Mas quem vai acender o mundo é você.",
-     "Leve-a. E quando passar por uma lâmpada apagada, lembre-se de um velho teimoso."
-    ], "money": 60},
-    {"if": "gaspar_adeus", "idle": true, "lines": ["...Onde houver escuro, levarei o fogo..."]},
-    {"idle": true, "lines": ["Ainda lembro o juramento: 'Onde houver escuro, levarei o fogo'. É só o que me resta."]}
+    {
+     "if": "here:galerias & !met_gaspar",
+     "set": "met_gaspar",
+     "lines": [
+      "Uma lâmpada acesa... Que visão. Fazia um século que eu não via uma.",
+      "Sou Gaspar, da Ordem dos Lampadeiros. Ou do que resta dela.",
+      "Minha chama se apagou no último Cerco. Dizem que um Lampadeiro sem chama vira Oco em poucos dias.",
+      "Eu me recuso. Enquanto eu lembrar do meu juramento, a Maré não me leva.",
+      "O Colosso guarda o caminho para baixo, no fim das Galerias. Ele já foi meu amigo. Se puder... dê-lhe descanso."
+     ]
+    },
+    {
+     "if": "here:bosque & !gaspar_bosque",
+     "set": "gaspar_bosque",
+     "lines": [
+      "Você de novo. Rá! Eu disse que a Maré não me levava.",
+      "Vim atrás da Rainha da Ninhada. Ela devorou as brasas do Sul e prende quem passa em gaiolas de raiz.",
+      "Mas minhas pernas já não obedecem como antes. Vá na frente. Eu... eu alcanço você.",
+      "E pequena: o que quer que ouça naquele ninho, não pare de brilhar."
+     ]
+    },
+    {
+     "if": "boss:brood_mother & here:bosque & !gaspar_adeus",
+     "set": "gaspar_adeus",
+     "ability": "",
+     "lines": [
+      "Então a Rainha caiu. Eu ouvi daqui. O Bosque inteiro suspirou.",
+      "Pequena... chegue perto. Minha lanterna está fria, mas ainda guarda uma última faísca, bem no fundo do pavio.",
+      "Eu a guardei cem anos para acender o mundo de novo. Mas quem vai acender o mundo é você.",
+      "Leve-a. E quando passar por uma lâmpada apagada, lembre-se de um velho teimoso."
+     ],
+     "money": 60
+    },
+    {
+     "if": "gaspar_adeus",
+     "idle": true,
+     "lines": [
+      "...Onde houver escuro, levarei o fogo..."
+     ]
+    },
+    {
+     "idle": true,
+     "lines": [
+      "Ainda lembro o juramento: 'Onde houver escuro, levarei o fogo'. É só o que me resta."
+     ]
+    }
    ]
   },
   "tordo": {
-   "name": "Tordo", "title": "o mercador", "sprite": "npc_tordo", "facing": "L", "greet": "!", "show_if": "tordo_salvo",
+   "name": "Tordo",
+   "title": "o mercador",
+   "sprite": "npc_tordo",
+   "facing": "L",
+   "greet": "!",
+   "show_if": "tordo_salvo",
    "talk": [
-    {"if": "here:bosque & !tordo_obrigado", "set": "tordo_obrigado", "lines": [
-     "Uma luz! Finalmente alguém! A Rainha me pendurou aqui como uma lanterna velha!",
-     "Você disse Fuligem? Meu menino? Ele mandou você? Aquele pestinha...",
-     "Vou voltar pra Cinzal agora mesmo. Passe na praça: o Tordo nunca esquece um favor. Nem um preço, rá!"
-    ]},
-    {"if": "here:cinzal", "idle": true, "lines": ["Bem-vindo à loja do Tordo! Tudo o que a Maré não levou, eu vendo. Com desconto pra quem me tirou da gaiola."], "after": "shop"}
+    {
+     "idle": true,
+     "lines": [
+      "Bem-vindo à loja do Tordo! Tudo o que a Maré não levou, eu vendo. Com desconto para quem me tirou da gaiola."
+     ],
+     "after": "shop"
+    }
    ]
   },
-  "umbral": {"name": "Umbral", "title": "o reflexo", "sprite": "duelist", "facing": "L", "prompt": ""}
+  "umbral": {
+   "name": "Umbral",
+   "title": "o reflexo",
+   "sprite": "duelist",
+   "facing": "L",
+   "prompt": "",
+   "show_if": "!scene:umbral_vislumbre"
+  },
+  "tordo_preso": {
+   "name": "Tordo",
+   "title": "o mercador",
+   "sprite": "npc_tordo",
+   "facing": "L",
+   "greet": "!",
+   "hide_if": "tordo_salvo",
+   "cage": "root_cage",
+   "cage_if": "!boss:brood_mother",
+   "talk": [
+    {
+     "if": "!boss:brood_mother & !tordo_pediu",
+     "set": "tordo_pediu",
+     "lines": [
+      "Ei! Ei, você! A luz! Aqui dentro da gaiola!",
+      "A Rainha me pendurou aqui como uma lanterna velha. As raízes só secam se ela cair.",
+      "Eu sei, eu sei, estou pedindo muito para alguém do seu tamanho. Mas eu tenho um filho esperando lá em cima..."
+     ]
+    },
+    {
+     "if": "!boss:brood_mother",
+     "idle": true,
+     "lines": [
+      "Cuidado com a Rainha. Ela não para de chamar os filhotes."
+     ]
+    },
+    {
+     "if": "boss:brood_mother & !tordo_salvo",
+     "set": [
+      "tordo_salvo",
+      "tordo_obrigado"
+     ],
+     "lines": [
+      "As raízes secaram! Estou livre! Estou LIVRE!",
+      "Você disse Fuligem? Meu menino? Ele mandou você? Aquele pestinha...",
+      "Vou voltar para Cinzal agora mesmo. Passe na praça: o Tordo nunca esquece um favor. Nem um preço, rá!"
+     ]
+    }
+   ]
+  }
  },
  "objectives": [
-  {"if": "!scene:despertar", "text": ""},
-  {"if": "!met_borralha", "text": "Siga até a vila de Cinzal"},
-  {"if": "!region:galerias", "text": "Desça pelo Poço Velho, na praça de Cinzal"},
-  {"if": "!boss:colossus", "text": "Encontre o guardião das Galerias Apagadas"},
-  {"if": "!boss:brood_mother", "text": "Siga as raízes a oeste: o Bosque Sussurrante"},
-  {"if": "quest_tordo & !tordo_salvo", "text": "Procure Tordo, o pai de Fuligem"},
-  {"if": "tordo_salvo & !fuligem_feliz", "text": "Volte a Cinzal: Fuligem espera notícias"},
-  {"if": "!boss:duelist", "text": "Com as Asas de Cinza, suba o penhasco leste até Vésper"}
+  {
+   "if": "!scene:despertar",
+   "text": ""
+  },
+  {
+   "if": "!met_borralha",
+   "text": "Siga até a vila de Cinzal"
+  },
+  {
+   "if": "!region:galerias",
+   "text": "Desça pelo Poço Velho, na praça de Cinzal"
+  },
+  {
+   "if": "!boss:colossus",
+   "text": "Encontre o guardião das Galerias Apagadas"
+  },
+  {
+   "if": "!boss:brood_mother",
+   "text": "Siga as raízes a oeste: o Bosque Sussurrante"
+  },
+  {
+   "if": "quest_tordo & !tordo_salvo",
+   "text": "Procure Tordo, o pai de Fuligem"
+  },
+  {
+   "if": "tordo_salvo & !fuligem_feliz",
+   "text": "Volte a Cinzal: Fuligem espera notícias"
+  },
+  {
+   "if": "!boss:duelist",
+   "text": "Com as Asas de Cinza, suba o penhasco leste até Vésper"
+  }
  ],
  "on_enter": [
-  {"region": "cinzal", "scene": "despertar", "if": "!despertou"}
+  {
+   "region": "cinzal",
+   "scene": "despertar",
+   "if": "!despertou"
+  }
  ],
- "triggers": {},
+ "triggers": {
+  "colosso_desperta": "!boss:colossus",
+  "rainha_desperta": "!boss:brood_mother",
+  "umbral_vislumbre": ""
+ },
  "scenes": {
   "despertar": [
-   {"do": "bars", "on": true},
-   {"do": "sleep"},
-   {"do": "fade", "to": 1.0, "t": 0.01},
-   {"do": "wait", "t": 0.8},
-   {"do": "fade", "to": 0.0, "t": 2.5},
-   {"do": "wait", "t": 0.6},
-   {"do": "say", "who": "eco", "lines": ["...", "Pequena lâmpada.", "Acorde."]},
-   {"do": "wait", "t": 0.4},
-   {"do": "ignite"},
-   {"do": "wait", "t": 1.0},
-   {"do": "wake"},
-   {"do": "emote", "who": "player", "kind": "!"},
-   {"do": "wait", "t": 0.9},
-   {"do": "say", "who": "eco", "lines": [
-    "A Maré está subindo outra vez. Você é a última brasa que ela não conseguiu apagar.",
-    "Junte o que restou do fogo. Acenda o que puder.",
-    "E quando o escuro chegar... escolha onde queimar."
-   ]},
-   {"do": "bars", "on": false},
-   {"do": "title", "text": "CINZAL", "sub": "a última vila da superfície", "t": 4.5},
-   {"do": "flag", "set": "despertou"}
+   {
+    "do": "bars",
+    "on": true
+   },
+   {
+    "do": "sleep"
+   },
+   {
+    "do": "fade",
+    "to": 1.0,
+    "t": 0.01
+   },
+   {
+    "do": "wait",
+    "t": 0.8
+   },
+   {
+    "do": "fade",
+    "to": 0.0,
+    "t": 2.5
+   },
+   {
+    "do": "wait",
+    "t": 0.6
+   },
+   {
+    "do": "say",
+    "who": "eco",
+    "lines": [
+     "...",
+     "Pequena lâmpada.",
+     "Acorde."
+    ]
+   },
+   {
+    "do": "wait",
+    "t": 0.4
+   },
+   {
+    "do": "ignite"
+   },
+   {
+    "do": "wait",
+    "t": 1.0
+   },
+   {
+    "do": "wake"
+   },
+   {
+    "do": "emote",
+    "who": "player",
+    "kind": "!"
+   },
+   {
+    "do": "wait",
+    "t": 0.9
+   },
+   {
+    "do": "say",
+    "who": "eco",
+    "lines": [
+     "A Maré está subindo outra vez. Você é a última brasa que ela não conseguiu apagar.",
+     "Junte o que restou do fogo. Acenda o que puder.",
+     "E quando o escuro chegar... escolha onde queimar."
+    ]
+   },
+   {
+    "do": "bars",
+    "on": false
+   },
+   {
+    "do": "title",
+    "text": "CINZAL",
+    "sub": "a última vila da superfície",
+    "t": 4.5
+   },
+   {
+    "do": "flag",
+    "set": "despertou"
+   }
+  ],
+  "umbral_vislumbre": [
+   {
+    "do": "bars",
+    "on": true
+   },
+   {
+    "do": "camera",
+    "to": "npc:umbral",
+    "t": 1.8,
+    "rate": 2.0
+   },
+   {
+    "do": "wait",
+    "t": 0.5
+   },
+   {
+    "do": "emote",
+    "who": "umbral",
+    "kind": "...",
+    "t": 1.4
+   },
+   {
+    "do": "wait",
+    "t": 1.2
+   },
+   {
+    "do": "sound",
+    "id": "dash",
+    "db": -4.0
+   },
+   {
+    "do": "npc_hide",
+    "id": "umbral"
+   },
+   {
+    "do": "shake",
+    "t": 0.2
+   },
+   {
+    "do": "wait",
+    "t": 0.7
+   },
+   {
+    "do": "camera",
+    "to": "player",
+    "t": 0.8
+   },
+   {
+    "do": "emote",
+    "who": "player",
+    "kind": "?",
+    "t": 1.4
+   },
+   {
+    "do": "bars",
+    "on": false
+   },
+   {
+    "do": "flag",
+    "set": "viu_umbral"
+   }
+  ],
+  "colosso_desperta": [
+   {
+    "do": "bars",
+    "on": true
+   },
+   {
+    "do": "camera",
+    "to": [
+     80,
+     89
+    ],
+    "t": 1.3,
+    "rate": 2.2
+   },
+   {
+    "do": "shake",
+    "t": 0.6
+   },
+   {
+    "do": "sound",
+    "id": "explosion",
+    "db": -6.0
+   },
+   {
+    "do": "wait",
+    "t": 0.9
+   },
+   {
+    "do": "camera",
+    "to": "player",
+    "t": 0.6
+   },
+   {
+    "do": "bars",
+    "on": false
+   }
+  ],
+  "rainha_desperta": [
+   {
+    "do": "bars",
+    "on": true
+   },
+   {
+    "do": "camera",
+    "to": [
+     100,
+     78
+    ],
+    "t": 1.3,
+    "rate": 2.2
+   },
+   {
+    "do": "shake",
+    "t": 0.4
+   },
+   {
+    "do": "wait",
+    "t": 0.4
+   },
+   {
+    "do": "say",
+    "who": "tordo_preso",
+    "lines": [
+     "Ela está vindo! Cuidado com os filhotes!"
+    ]
+   },
+   {
+    "do": "camera",
+    "to": "player",
+    "t": 0.6
+   },
+   {
+    "do": "bars",
+    "on": false
+   }
   ]
  }
 }

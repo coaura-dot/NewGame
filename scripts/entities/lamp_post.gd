@@ -47,7 +47,7 @@ func interact(player: Node) -> void:
 	FX.burst(global_position + Vector2(0, -21), Color(2.8, 1.8, 0.7), 14, 70.0)
 	Audio.play("confirmation", 0.05, -4.0)
 	if player.has_method("emote"):
-		player.emote("♪", 1.0)
+		player.emote("note", 1.0)
 	Events.toast.emit("Lampião aceso  +3 brasas")
 	Events.lamp_lit.emit(lamp_key)
 

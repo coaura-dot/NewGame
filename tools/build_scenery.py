@@ -955,10 +955,204 @@ def paint_swamp(st, rng):
     return out
 
 
+
+# ---------------------------------------------------------------------------
+# Áreas feitas à mão (direção de arte estilo Hollow Knight: escuro, névoa,
+# silhuetas em camadas e poucas luzes quentes)
+# ---------------------------------------------------------------------------
+
+def paint_galerias(st, rng):
+    """Galerias Apagadas: arcadas dos Lampadeiros sumindo na névoa azul,
+    algumas lâmpadas ainda acesas lá longe, colunas e estalactites."""
+    p = st["pal"]
+    fog = rgb(st["fog"])
+    out = []
+    # l0: galeria distante — arcos em fileira e lampiões minúsculos
+    L = Layer()
+    fc = rgb(p["far"])
+    L.rect(0, 0, W, 40, fc)
+    L.rect(0, 200, W, 70, fc)
+    x = 0
+    while x < W:
+        w = int(rng.integers(46, 70))
+        arch(L, x, 200, w, int(rng.integers(90, 120)), fc, thick=6)
+        if rng.random() < 0.55:
+            ly = 200 - int(rng.integers(40, 70))
+            L.rect(x + w // 2, 40, 1, ly - 40, fc)
+            L.rect(x + w // 2 - 1, ly, 3, 4, rgb(p["lamp"]), glow=True)
+        x += w
+    light_pass(L, fc, rgb(p["far_rim"]), sun_dir=1, top_light=0.0, bottom_dark=0.0, rim_w=1, tex=0.03, seed=1)
+    haze(L, fog, 0.35, 0.55, 0, 270)
+    out.append(finish(L))
+    # l1: colunas e estalactites grandes
+    L = Layer()
+    mc = rgb(p["mid"])
+    nz = pnoise(W, 10, st["seed"] + 1, 3)
+    for x in range(W):
+        L.rect(x, 0, 1, int(14 + nz[x] * 30), mc)
+        L.rect(x, int(236 - nz[(x * 3) % W] * 24), 1, 40, mc)
+    for i in range(22):
+        x = int(rng.integers(0, W))
+        ln = int(rng.integers(20, 70))
+        wd = int(rng.integers(5, 12))
+        L.poly([(x - wd, 30), (x + wd, 30), (x, 30 + ln)], mc)
+    for x in range(40, W, 160):
+        cx = x + int(rng.integers(-20, 20))
+        column(L, cx, 240, int(rng.integers(150, 200)), mc, broken=rng.random() < 0.4, w=int(rng.integers(12, 18)))
+    for i in range(6):
+        x = int(rng.integers(0, W))
+        L.rect(x, 30, 1, int(rng.integers(40, 90)), mc)
+    light_pass(L, mc, rgb(p["mid_rim"]), sun_dir=1, top_light=0.0, bottom_dark=0.1, rim_w=1, tex=0.04, seed=2)
+    haze(L, fog, 0.12, 0.3, 0, 270)
+    out.append(finish(L))
+    # l2: rocha escura perto (moldura)
+    L = Layer()
+    nc = rgb(p["near"])
+    nz = pnoise(W, 6, st["seed"] + 3, 3)
+    for x in range(W):
+        L.rect(x, 0, 1, int(6 + nz[x] * 26), nc)
+        L.rect(x, int(250 - nz[(x * 2) % W] * 26), 1, 30, nc)
+    for i in range(10):
+        x = int(rng.integers(0, W))
+        ln = int(rng.integers(40, 100))
+        L.poly([(x - 10, 0), (x + 10, 0), (x + int(rng.integers(-3, 4)), ln)], nc)
+    light_pass(L, nc, mix(nc, rgb(p["mid_rim"]), 0.5), sun_dir=1, top_light=0.0, bottom_dark=0.0, rim_w=1, tex=0.03, seed=3)
+    out.append(finish(L))
+    return out
+
+
+def paint_bosque(st, rng):
+    """Bosque Sussurrante: troncos gigantes e raízes descendo do teto,
+    cogumelos que brilham, samambaias, névoa verde."""
+    p = st["pal"]
+    fog = rgb(st["fog"])
+    out = []
+    # l0: troncos distantes e raízes penduradas
+    L = Layer()
+    fc = rgb(p["far"])
+    L.rect(0, 0, W, 30, fc)
+    ridge(L, 214, 16, 4, st["seed"], fc, octaves=3)
+    for x in range(20, W, 90):
+        tx = x + int(rng.integers(-20, 20))
+        tw = int(rng.integers(16, 30))
+        L.poly([(tx - tw, 230), (tx - tw * 0.6, 120), (tx - tw * 0.8, 0), (tx + tw * 0.8, 0), (tx + tw * 0.6, 120), (tx + tw, 230)], fc)
+    for i in range(40):
+        x = int(rng.integers(0, W))
+        ln = int(rng.integers(30, 120))
+        pts = [(x + math.sin(k * 0.7 + i) * 4, 30 + ln * k / 8) for k in range(9)]
+        L.line(pts, fc, width=2)
+    for i in range(30):
+        x = int(rng.integers(0, W))
+        y = int(rng.integers(150, 220))
+        L.rect(x, y, 2, 2, rgb(p["glow"]), glow=True)
+    light_pass(L, fc, rgb(p["far_rim"]), sun_dir=1, top_light=0.0, bottom_dark=0.0, rim_w=1, tex=0.03, seed=1)
+    haze(L, fog, 0.3, 0.55, 0, 270)
+    out.append(finish(L))
+    # l1: cogumelos gigantes, raízes grossas, samambaias
+    L = Layer()
+    mc = rgb(p["mid"])
+    t = ridge(L, 232, 12, 4, st["seed"] + 1, mc, octaves=2)
+    L.rect(0, 0, W, 16, mc)
+    for x in range(30, W, 120):
+        mx = x + int(rng.integers(-30, 30))
+        gy = int(t[mx % W]) + 2
+        hh = int(rng.integers(50, 90))
+        L.rect(mx - 2, gy - hh, 5, hh, mc)
+        rr = int(rng.integers(18, 30))
+        L.ellipse(mx - rr, gy - hh - rr // 2, mx + rr, gy - hh + rr // 3, mc)
+        for k in range(5):
+            L.rect(mx - rr + 6 + k * (rr // 3), gy - hh - 1, 2, 2, rgb(p["glow"]), glow=True)
+    for i in range(16):
+        x = int(rng.integers(0, W))
+        ln = int(rng.integers(40, 110))
+        pts = [(x + math.sin(k * 0.9 + i) * 6, 12 + ln * k / 8) for k in range(9)]
+        L.line(pts, mc, width=4)
+    for x in range(0, W, 3):
+        if rng.random() < 0.35:
+            hh = int(rng.integers(6, 18))
+            gy = int(t[x % W])
+            L.line([(x, gy), (x + int(rng.integers(-4, 5)), gy - hh)], mc, width=1)
+    light_pass(L, mc, rgb(p["mid_rim"]), sun_dir=1, top_light=0.0, bottom_dark=0.1, rim_w=1, tex=0.04, seed=2)
+    haze(L, fog, 0.1, 0.28, 0, 270)
+    out.append(finish(L))
+    # l2: raízes e galhos pretos perto
+    L = Layer()
+    nc = rgb(p["near"])
+    t = ridge(L, 252, 8, 5, st["seed"] + 2, nc, octaves=2)
+    for x in range(0, W, 140):
+        rx = x + int(rng.integers(0, 60))
+        pts = [(rx + math.sin(k * 0.5) * 12, k * 14) for k in range(10)]
+        L.line(pts, nc, width=7)
+    for x in range(0, W, 2):
+        if rng.random() < 0.5:
+            hh = int(rng.integers(6, 24))
+            L.line([(x, int(t[x])), (x + int(rng.integers(-5, 6)), int(t[x]) - hh)], nc, width=1)
+    light_pass(L, nc, mix(nc, rgb(p["mid_rim"]), 0.5), sun_dir=1, rim_w=1, tex=0.03, seed=3)
+    out.append(finish(L))
+    return out
+
+
+def paint_cinzal(st, rng):
+    """Cinzal ao crepúsculo eterno: serras escuras contra o céu cor de
+    brasa, o grande Farol de Ignara apagado ao longe, a floresta morta."""
+    p = st["pal"]
+    fog = rgb(st["fog"])
+    out = []
+    # l0: serras e o farol
+    L = Layer()
+    fc = rgb(p["far"])
+    t = ridge(L, 190, 40, 3, st["seed"], fc, octaves=4)
+    fx = int(rng.integers(300, 500))
+    gy = int(t[fx]) + 4
+    L.poly([(fx - 12, gy), (fx - 7, gy - 100), (fx + 7, gy - 100), (fx + 12, gy)], fc)
+    L.rect(fx - 10, gy - 108, 20, 8, fc)
+    L.poly([(fx - 8, gy - 108), (fx - 6, gy - 124), (fx + 1, gy - 121), (fx + 4, gy - 128), (fx + 8, gy - 108)], fc)
+    L.rect(fx - 1, gy - 116, 3, 3, rgb(p["ember"]), glow=True)
+    for x in range(0, W, 70):
+        tx = x + int(rng.integers(0, 40))
+        tower(L, tx, int(t[tx % W]) + 6, int(rng.integers(8, 14)), int(rng.integers(20, 50)), fc, None, cone=rng.random() < 0.5)
+    light_pass(L, fc, rgb(p["far_rim"]), sun_dir=-1, tex=0.03, seed=1)
+    haze(L, fog, 0.25, 0.5, 100, 270)
+    out.append(finish(L))
+    # l1: floresta morta e casas em ruína
+    L = Layer()
+    mc = rgb(p["mid"])
+    t = ridge(L, 224, 12, 4, st["seed"] + 1, mc, octaves=2)
+    x = 0
+    while x < W:
+        gy = int(t[x % W]) + 2
+        r = rng.random()
+        if r < 0.45:
+            dead_tree(L, x, gy, int(rng.integers(50, 100)), mc, rng, 4)
+            x += int(rng.integers(26, 50))
+        elif r < 0.6:
+            house(L, x, gy, int(rng.integers(18, 28)), int(rng.integers(14, 22)), mc, rgb(p["window"]) if rng.random() < 0.3 else None, rng)
+            x += 40
+        else:
+            x += int(rng.integers(10, 30))
+    light_pass(L, mc, rgb(p["far_rim"]), sun_dir=-1, tex=0.04, seed=2)
+    haze(L, fog, 0.08, 0.3, 150, 270)
+    out.append(finish(L))
+    # l2: colinas escuras com capim seco
+    L = Layer()
+    nc = rgb(p["near"])
+    t = ridge(L, 250, 8, 4, st["seed"] + 2, nc, octaves=2)
+    for x in range(0, W, 2):
+        if rng.random() < 0.5:
+            hh = int(rng.integers(4, 16))
+            L.line([(x, int(t[x])), (x + int(rng.integers(-3, 4)), int(t[x]) - hh)], nc, width=1)
+    for x in range(60, W, 220):
+        dead_tree(L, x, int(t[x % W]) + 3, int(rng.integers(110, 160)), nc, rng, 6)
+    light_pass(L, nc, mix(nc, rgb(p["far_rim"]), 0.4), sun_dir=-1, rim_w=1, tex=0.04, seed=3)
+    out.append(finish(L))
+    return out
+
+
 PAINTERS = {
     "forest": paint_forest, "castle": paint_castle, "gothic": paint_gothic, "ruins": paint_ruins,
     "desert": paint_desert, "sky": paint_sky, "cave": paint_cave, "war": paint_war,
     "graveyard": paint_graveyard, "swamp": paint_swamp,
+    "galerias": paint_galerias, "bosque": paint_bosque, "cinzal": paint_cinzal,
 }
 
 # Cada estilo: céu, paleta das camadas, névoa, parallax e o evento animado
@@ -966,6 +1160,28 @@ PAINTERS = {
 # faixas de nuvem estão em coordenadas da tela antiga (256x144) e são
 # convertidas (x1.875).
 STYLES = {
+    "galerias": {
+        "seed": 131, "painter": "galerias",
+        "sky": {"colors": ["#05060b", "#0b0f1a", "#121a2a", "#0c111c"]},
+        "pal": {"far": "#1a2336", "far_rim": "#3a4c6e", "mid": "#101626", "mid_rim": "#2e3a58", "near": "#06080e", "lamp": "#ffc070"},
+        "fog": "#2a3858", "fog_alpha": 0.12, "event": "eyes", "underground": True,
+        "parallax": [0.08, 0.22, 0.45],
+    },
+    "bosque": {
+        "seed": 137, "painter": "bosque",
+        "sky": {"colors": ["#030604", "#08120c", "#0e1e14", "#08100a"]},
+        "pal": {"far": "#132218", "far_rim": "#2e4c38", "mid": "#0b1610", "mid_rim": "#24402c", "near": "#040906", "glow": "#7af0d0"},
+        "fog": "#1e3a2c", "fog_alpha": 0.14, "event": "wisps", "underground": True,
+        "parallax": [0.08, 0.22, 0.45],
+    },
+    "cinzal": {
+        "seed": 139, "painter": "cinzal",
+        "sky": {"colors": ["#120e1c", "#2a1a2e", "#5a2a34", "#a8502e", "#3a1e22"], "sun": {"pos": [150, 92], "r": 13, "color": "#ffc080", "halo": "#ff7040", "glow": 0.5},
+                "stars": 40, "bands": [[80, "#7a3a38", 0.35], [96, "#c0603a", 0.3]]},
+        "pal": {"far": "#3a2432", "far_rim": "#e0784a", "mid": "#1e141c", "near": "#0c080c", "window": "#ffb050", "ember": "#ff9040"},
+        "fog": "#7a3e44", "fog_alpha": 0.16, "event": "bats", "cloud": "#5a3440",
+        "parallax": [0.05, 0.18, 0.4],
+    },
     "forest": {
         "seed": 11, "painter": "forest",
         "sky": {"colors": ["#5f9fd8", "#9fd0ee", "#dff0e2", "#fff0c4"], "sun": {"pos": [196, 34], "r": 7, "color": "#fff8dc", "halo": "#fff2b0", "glow": 0.45},

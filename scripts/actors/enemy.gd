@@ -168,12 +168,41 @@ func _anim(key: String) -> void:
 	play_anim(name)
 
 
+## Comportamento de lugar (mapas feitos à mão): "sleep" = dorme até o Lume
+## chegar perto ou golpeá-lo.
+var _asleep: int = -1
+var _snore_t: float = 0.0
+
+
 func _actor_physics(d: float, raw: float) -> void:
 	caster.tick(d)
 	attack.tick(d)
 	ai_t -= d
 	if target == null or not is_instance_valid(target):
 		target = get_tree().get_first_node_in_group("player")
+	# cenas da história: ninguém ataca enquanto a câmera conta a história
+	var still: bool = level != null and is_instance_valid(level) and level.cutscene != null and level.cutscene.playing
+	if _asleep < 0:
+		_asleep = 1 if str(get_meta("behavior", "")) == "sleep" else 0
+	if _asleep == 1:
+		if hp < max_hp() or (target and global_position.distance_to(target.global_position) < 44.0):
+			_asleep = 0
+			emote("!", 0.8)
+		else:
+			still = true
+			_snore_t -= d
+			if _snore_t <= 0.0:
+				_snore_t = 2.4
+				emote("z", 1.6)
+	if still:
+		attack.cancel()
+		velocity.x = move_toward(velocity.x, 0.0, 400.0 * d)
+		if flying:
+			velocity.y = move_toward(velocity.y, 0.0, 400.0 * d)
+		_gravity(d)
+		_move(d, raw)
+		_anim("idle")
+		return
 	for wp in _weak_points:
 		wp[0].position = Vector2(wp[1].x * facing, wp[1].y + (12.0 if lowered else 0.0))
 	if status.disabled() or stagger_time > 0.0:

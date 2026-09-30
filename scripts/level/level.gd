@@ -137,7 +137,7 @@ func _resolve_params() -> void:
 	region = Game.world["regions"].get(region_id, {})
 	var npc_ids: Array = []
 	for npc in Game.social.get("npcs", {}).values():
-		if npc["region"] == region_id and npc["alive"]:
+		if npc["region"] == region_id and npc["alive"] and not npc.get("story", false):
 			npc_ids.append(npc["id"])
 	npc_ids.sort()
 	var rift := ""
@@ -589,6 +589,12 @@ func _spawn_player() -> void:
 	var amb := AmbientParticles.new()
 	amb.setup(biome.get("particles", "dust"), camera)
 	world.add_child(amb)
+	if str(biome.get("foreground", "")) != "":
+		var fg := ForegroundLayer.new()
+		fg.camera = camera
+		var fc: Array = biome.get("fg_color", [0.02, 0.02, 0.03])
+		fg.build(layout["rows"], str(biome["foreground"]), int(params.get("seed", 1)) + 31, Color(float(fc[0]), float(fc[1]), float(fc[2])))
+		world.add_child(fg)
 	if layout.has("decor"):
 		var dl := DecorLayer.new()
 		dl.camera = camera
@@ -612,7 +618,7 @@ func _build_layers() -> void:
 	postfx = PostFX.new()
 	postfx.camera = camera
 	postfx.player = player
-	postfx.build(world, dimension, biome.get("tags", []).has("outdoor"))
+	postfx.build(world, dimension, biome.get("tags", []).has("outdoor"), biome.get("grade", {}))
 	world.add_child(postfx)
 	hud = load("res://scripts/ui/hud.gd").new()
 	hud.level = self

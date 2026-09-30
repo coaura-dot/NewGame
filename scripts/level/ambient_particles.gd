@@ -12,6 +12,9 @@ const STYLES := {
 	"sand": {"count": 90, "color": Color(1.3, 1.1, 0.7, 0.5), "size": 1.0, "vel": Vector2(160, 10), "wander": 20.0},
 	"clouds": {"count": 30, "color": Color(1.2, 1.3, 1.5, 0.35), "size": 2.0, "vel": Vector2(12, 0), "wander": 4.0},
 	"arcane": {"count": 30, "color": Color(1.6, 0.8, 2.6), "size": 1.3, "vel": Vector2(0, -10), "wander": 16.0, "blink": true},
+	# cinza caindo como neve (Cinzal) e poeira luminosa das galerias
+	"ash": {"count": 70, "color": Color(0.62, 0.6, 0.6, 0.42), "size": 1.0, "vel": Vector2(-5, 9), "wander": 7.0, "ash": true},
+	"motes": {"count": 36, "color": Color(1.2, 1.1, 0.8, 0.5), "size": 1.0, "vel": Vector2(1, -2), "wander": 5.0, "blink": true},
 }
 
 var style: Dictionary = {}
@@ -58,5 +61,9 @@ func _draw() -> void:
 			a *= 0.4 + 0.6 * (0.5 + 0.5 * sin(_t * 3.0 + p[1] * 5.0))
 		if style.get("streak", false):
 			draw_line(pos, pos + Vector2(-2, 8), Color(c.r, c.g, c.b, a), 1.0)
+		elif style.get("ash", false):
+			var big := fmod(p[1] * 7.0, 1.0) > 0.7
+			var sz := Vector2(1.0 + (0.34 if big else 0.0) * absf(sin(_t * 2.0 + p[1])), 0.67) if big else Vector2(0.67, 0.67)
+			draw_rect(Rect2(pos, sz), Color(c.r, c.g, c.b, a))
 		else:
 			draw_rect(Rect2(pos, Vector2(s, s)), Color(c.r, c.g, c.b, a))

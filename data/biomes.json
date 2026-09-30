@@ -667,7 +667,7 @@
  "cinzal": {
   "music": "vila",
   "name": "Cinzal",
-  "tileset": "ruins",
+  "tileset": "cinzal",
   "background": "town",
   "tint": [
    1,
@@ -699,22 +699,48 @@
    "outdoor",
    "dark"
   ],
-  "scenery": "graveyard",
+  "scenery": "cinzal",
   "ambience": "vento",
   "space": "open",
   "water": false,
-  "props": "ruins",
+  "props": "graveyard",
   "water_color": [
    0.2,
    0.24,
    0.32,
    0.8
-  ]
+  ],
+  "backwall": [
+   0.5,
+   0.46,
+   0.5
+  ],
+  "deep": [
+   0.03,
+   0.025,
+   0.03
+  ],
+  "foreground": "village",
+  "fg_color": [
+   0.03,
+   0.026,
+   0.03
+  ],
+  "grade": {
+   "tint": [
+    1.04,
+    0.97,
+    0.94
+   ],
+   "saturation": 0.9,
+   "contrast": 1.05,
+   "vignette": 0.32
+  }
  },
  "galerias": {
   "music": "catacumbas",
   "name": "Galerias Apagadas",
-  "tileset": "catacomb",
+  "tileset": "galeria",
   "background": "temple",
   "tint": [
    1,
@@ -731,7 +757,7 @@
    1.1,
    0.55
   ],
-  "particles": "dust",
+  "particles": "motes",
   "hub": "",
   "enemies": {
    "skeleton": 4,
@@ -745,7 +771,7 @@
    "underground",
    "dark"
   ],
-  "scenery": "cave",
+  "scenery": "galerias",
   "ambience": "caverna",
   "space": "cave",
   "water": false,
@@ -755,12 +781,38 @@
    0.2,
    0.3,
    0.82
-  ]
+  ],
+  "backwall": [
+   0.42,
+   0.46,
+   0.58
+  ],
+  "deep": [
+   0.02,
+   0.025,
+   0.04
+  ],
+  "foreground": "cave",
+  "fg_color": [
+   0.012,
+   0.016,
+   0.028
+  ],
+  "grade": {
+   "tint": [
+    0.94,
+    0.98,
+    1.08
+   ],
+   "saturation": 0.88,
+   "contrast": 1.08,
+   "vignette": 0.4
+  }
  },
  "bosque": {
   "music": "floresta",
   "name": "Bosque Sussurrante",
-  "tileset": "forest",
+  "tileset": "bosque",
   "background": "cemetery",
   "tint": [
    1,
@@ -791,7 +843,7 @@
    "nature",
    "dark"
   ],
-  "scenery": "cave",
+  "scenery": "bosque",
   "ambience": "floresta",
   "space": "cave",
   "water": true,
@@ -801,6 +853,32 @@
    0.3,
    0.3,
    0.8
-  ]
+  ],
+  "backwall": [
+   0.4,
+   0.5,
+   0.42
+  ],
+  "deep": [
+   0.015,
+   0.025,
+   0.018
+  ],
+  "foreground": "forest",
+  "fg_color": [
+   0.008,
+   0.02,
+   0.012
+  ],
+  "grade": {
+   "tint": [
+    0.95,
+    1.04,
+    0.97
+   ],
+   "saturation": 0.95,
+   "contrast": 1.06,
+   "vignette": 0.4
+  }
  }
 }

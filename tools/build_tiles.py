@@ -464,6 +464,10 @@ FILLS = {
     "graveyard": lambda P, r: fill_earth(P, r, stones=0.5, bones=0.6),
     "swamp": lambda P, r: fill_earth(P, r, stones=0.25, strata=0.6),
     "war": lambda P, r: fill_logs(P, r),
+    # regiões feitas à mão (estilo Hollow Knight: massas escuras, borda viva)
+    "galeria": lambda P, r: fill_voronoi(P, r, n=26, round_=True, gap=1.8, pebbles=True),
+    "bosque": lambda P, r: fill_earth(P, r, roots=True, stones=0.35, strata=0.2),
+    "cinzal": lambda P, r: fill_earth(P, r, roots=False, stones=0.8, strata=0.4, bones=0.2),
 }
 
 # fundo (parede atrás): mais simples, escura e fria
@@ -471,6 +475,7 @@ BGS = {
     "castle": "blocks", "ruins": "blocks", "arcane": "blocks", "catacomb": "blocks", "sky": "blocks",
     "temple": "blocks", "desert": "strata", "town": "planks", "cave": "rock", "forest": "rock",
     "graveyard": "rock", "swamp": "rock", "war": "planks",
+    "galeria": "blocks", "bosque": "rock", "cinzal": "blocks",
 }
 
 
@@ -519,6 +524,7 @@ def surface_style(name):
         "castle": "moss", "ruins": "grass", "forest": "grass", "graveyard": "deadgrass", "swamp": "mud",
         "town": "cap", "arcane": "cap", "catacomb": "cap", "temple": "carved", "sky": "goldtrim",
         "desert": "sand", "cave": "moss", "war": "deadgrass",
+        "galeria": "cap", "bosque": "moss", "cinzal": "deadgrass",
     }[name]
 
 
@@ -872,7 +878,7 @@ def hang_tile(name, P, var):
     t = Tile()
     kind = {"forest": "vines", "swamp": "vines", "ruins": "vines", "castle": "chains", "graveyard": "roots",
             "cave": "stalactite", "catacomb": "web", "arcane": "chains", "town": "roots", "temple": "banner",
-            "sky": "none", "desert": "roots", "war": "roots"}[name]
+            "sky": "none", "desert": "roots", "war": "roots", "galeria": "stalactite", "bosque": "vines", "cinzal": "roots"}[name]
     r = np.random.default_rng(var * 57 + len(name))
     top, top_d = hexc(P["top"]), hexc(P["top_d"])
     line = hexc(P["line"])
@@ -960,7 +966,10 @@ def deco_tile(name, P, var):
              "swamp": ["reed", "mushroom", "reed", "rock", "reed", "fern", "mushroom", "rock"],
              "sky": ["urn", "crystal", "rock", "lamp", "urn", "crystal", "rock", "tuft"],
              "arcane": ["crystal", "candle", "urn", "crystal", "rock", "idol", "candle", "rock"],
-             "war": ["stake", "crate", "skull", "rock", "barrel", "tuft", "stake", "bones"]}[name]
+             "war": ["stake", "crate", "skull", "rock", "barrel", "tuft", "stake", "bones"],
+             "galeria": ["rock", "bones", "candle", "skull", "rock", "urn", "rock", "candle"],
+             "bosque": ["fern", "mushroom", "tuft", "rock", "fern", "mushroom", "tuft", "stump"],
+             "cinzal": ["tuft", "rock", "grave", "tuft", "rock", "candle", "tuft", "bones"]}[name]
     kind = theme[var % len(theme)]
     B = T - 1  # linha do chão (embaixo)
 
@@ -1156,6 +1165,9 @@ SETS = {
     "arcane": {"base": "#52446e", "dark": "#382e50", "light": "#7a66a0", "line": "#120c20", "top": "#8474b4", "top_d": "#64548e", "acc": "#c890ff", "bg": "#221c36"},
     "catacomb": {"base": "#564c42", "dark": "#3a322c", "light": "#7a6e5e", "line": "#14100c", "top": "#86796a", "top_d": "#665c4e", "acc": "#e8e0c8", "bg": "#241e1a"},
     "ruins": {"base": "#7e706e", "dark": "#5a4e4e", "light": "#a8988e", "line": "#1e1618", "top": "#72a656", "top_d": "#4e7e3e", "acc": "#e0b0a0", "bg": "#3a3032"},
+    "galeria": {"base": "#343c50", "dark": "#222838", "light": "#56627a", "line": "#07090e", "top": "#7e8ca6", "top_d": "#4c586e", "acc": "#e8c880", "bg": "#151924"},
+    "bosque": {"base": "#2a3426", "dark": "#1a2016", "light": "#44543a", "line": "#050805", "top": "#4a8a3a", "top_d": "#2a5424", "acc": "#a0f0d0", "bg": "#0e150f"},
+    "cinzal": {"base": "#3a3430", "dark": "#26211d", "light": "#58504a", "line": "#0a0807", "top": "#8e887c", "top_d": "#5c564c", "acc": "#d8b070", "bg": "#1b1716"},
 }
 
 

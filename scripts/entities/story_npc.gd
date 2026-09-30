@@ -31,6 +31,16 @@ func _ready() -> void:
 	add_child(_spr)
 	if info.has("anim"):
 		_spr.play(str(info["anim"]))
+	# preso numa gaiola (ex.: Tordo, na gaiola de raízes da Rainha)
+	if str(info.get("cage", "")) != "" and Story.check(str(info.get("cage_if", ""))):
+		var cage := Node2D.new()
+		cage.z_index = 2
+		var cid := str(info["cage"])
+		cage.draw.connect(func(): DecorSprite.draw(cage, cid, Vector2.ZERO, false))
+		add_child(cage)
+		Events.story_event.connect(func(_f):
+			if is_instance_valid(cage) and not Story.check(str(info.get("cage_if", ""))):
+				cage.queue_free())
 
 
 func _on_player_near(_player: Node) -> void:

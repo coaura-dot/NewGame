@@ -72,6 +72,10 @@ func build(layout: Dictionary, biome_id: String, biome: Dictionary) -> void:
 		var g: Texture2D = tex(id + "_glow") if bool(info.get("glow", false)) else null
 		var tile: Array = d["tile"]
 		var pos := Vector2(int(tile[0]) * T + T * 0.5, (int(tile[1]) + 1) * T)
+		if bool(info.get("hang", false)):
+			pos.y = int(tile[1]) * T # pendurado no teto (topo do tile)
+		var dd: Dictionary = d.get("data", {})
+		pos += Vector2(float(dd.get("ox", 0)), float(dd.get("oy", 0)))
 		var o: Array = info.get("origin", [t.get_width() / 2, t.get_height()])
 		var flip := (absi(hash([tile[0], tile[1]])) % 2 == 0) and bool(info.get("flip", true))
 		var data: Dictionary = d.get("data", {})
