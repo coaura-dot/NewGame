@@ -692,8 +692,8 @@
   ],
   "hub": "vila",
   "enemies": {
-   "skeleton": 3,
-   "diver": 1
+   "husk": 3,
+   "ashmoth": 1
   },
   "tags": [
    "outdoor",
@@ -760,11 +760,11 @@
   "particles": "motes",
   "hub": "",
   "enemies": {
-   "skeleton": 4,
-   "wraith": 2,
-   "diver": 2,
-   "shieldbearer": 1,
-   "leaper": 1
+   "husk": 4,
+   "crawler": 3,
+   "ashmoth": 2,
+   "wraith": 1,
+   "shieldbearer": 1
   },
   "tags": [
    "indoor",
@@ -832,11 +832,10 @@
   "particles": "fireflies",
   "hub": "",
   "enemies": {
-   "leaper": 3,
-   "hellcat": 2,
-   "wraith": 2,
-   "diver": 2,
-   "hound": 1
+   "mossling": 3,
+   "leaper": 2,
+   "stingfly": 3,
+   "hellcat": 1
   },
   "tags": [
    "underground",

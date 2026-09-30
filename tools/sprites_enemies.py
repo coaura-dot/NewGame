@@ -804,6 +804,167 @@ def colossus_pose(anim, t, i, n):
     return p
 
 
+
+# ===========================================================================
+# CRIATURAS DAS ÁREAS FEITAS À MÃO (capítulo 1)
+# ===========================================================================
+
+# OCO — um aldeão de cinza que a Maré esvaziou: cabeça redonda rachada,
+# órbitas vazias com um pontinho azul-frio, corcunda, trapos cinzentos e um
+# pedaço de poste de lampião como arma.
+M_HUSK_ASH = Mat(["#3a3840", "#55525a", "#737078", "#918e94", "#aeaab0"], rim=0.55, rim_color="#c8d0e0", outline="#141218", wrap=0.5, ambient=0.3)
+M_HUSK_RAG = Mat(["#141418", "#1e1e24", "#2a2a32", "#383844", "#4a4a58"], rim=0.6, rim_color="#6a7090", outline="#07070a")
+M_HUSK_LEG = Mat("#1a1a20", n=4, spread=0.5, rim=0.5, rim_color="#50546a", outline="#08080a")
+
+
+def draw_husk(c, p, t):
+    bob, lean = p["bob"], p["lean"] + 1.5  # curvado para a frente
+    hip = -8.0 + bob * 0.5
+    legs(c, p, hip, M_HUSK_LEG, None, r=1.2, lean=lean)
+    top = -16.0 + bob
+    sh = lean * 0.8
+    # braço de trás caído
+    c.limb([(-3.0 + sh, top + 2), (-3.4 + sh - p["arm"], top + 7), (-2.6 + sh - p["arm"] * 1.2, top + 11)], [1.1, 0.95, 0.9], M_HUSK_ASH, z=0.0)
+    # trapos (manto rasgado em tiras)
+    hem = hip + 2.0
+    rag = [(-4.4 + sh, top), (4.2 + sh, top), (5.2 + sh * 0.5, hem - 1), (3.6, hem + 1.5), (2.0, hem - 0.5), (0.4, hem + 2.0),
+           (-1.4, hem - 0.2), (-3.2, hem + 1.8), (-5.2 + sh * 0.4, hem - 0.5)]
+    c.poly(rag, M_HUSK_RAG, z=2.0, bevel=2.2, folds=(1.0, 1.3, t * 2, 0.22))
+    # cabeça: redonda, à frente do corpo (corcunda), rachada
+    hx, hy = 2.2 + lean * 1.2, top - 4.2
+    c.ellipse(hx, hy, 5.6, 5.0, M_HUSK_ASH, z=4.0)
+    c.line(hx - 3.6, hy - 3.2, hx - 1.4, hy - 0.6, hexc("#1a181e"))
+    c.line(hx - 1.4, hy - 0.6, hx - 2.2, hy + 1.8, hexc("#1a181e"))
+    # órbitas vazias com a luz fria da Maré
+    for dx, rw in ((3.0, 1.2), (0.0, 1.0)):
+        c.ellipse(hx + dx, hy + 0.6, rw, 1.8, SOCK, z=4.5, no_outline=True)
+        if not p["blink"] and not p["hurt"]:
+            c.dot(hx + dx + 0.2, hy + 0.4, hexc("#7ab8ff"), glow=True)
+    # braço da frente (segura o pedaço de poste)
+    hdx, hdy = p["hand"]
+    c.limb([(3.4 + sh, top + 2), ((3.4 + hdx) * 0.5 + sh, (top + 2 + hdy + bob) * 0.5 + 1), (hdx + lean * 0.5, hdy + bob * 0.5)], [1.1, 0.95, 1.0], M_HUSK_ASH, z=5.0)
+    return {"hand": [p["hand"][0] + lean * 0.5, p["hand"][1] + bob * 0.5], "head": [hx, hy - 6]}
+
+
+# RASTEJANTE — bicho de casca de pedra das galerias (anda devagar, casca
+# dura por cima). Olhinhos âmbar embaixo da casca.
+M_SHELL = Mat(["#1c2230", "#2c3448", "#404a64", "#5a6682", "#7a88a4"], spec=0.3, rim=0.6, rim_color="#a0b0d0", outline="#080a10", wrap=0.4)
+M_CRAWL_BODY = Mat(["#141014", "#221a20", "#30242c"], rim=0.4, outline="#060406")
+
+
+def draw_crawler(c, p, t):
+    bob = p["bob"]
+    cr = p.get("crouch", 0.0)
+    gait = p.get("gait", 0.0)
+    by = -6.5 + bob * 0.5 + cr * 0.4
+    # perninhas
+    for k in range(4):
+        px = -6.0 + k * 4.0
+        ph = k * 0.25
+        s = math.sin((t + ph) * math.tau) * gait
+        z = -1.0 if k % 2 == 0 else 1.2
+        c.limb([(px, by + 2.0), (px + 1.0 + s * 1.5, by + 4.5), (px + 1.5 + s * 2.2, -0.6)], [0.9, 0.8, 0.7], M_CRAWL_BODY, z=z)
+    # corpo embaixo e casca em placas
+    c.ellipse(0.5, by + 2.5, 8.0, 2.6, M_CRAWL_BODY, z=0.5)
+    c.ellipse(0.0, by, 9.0, 5.2, M_SHELL, z=1.0)
+    for k in range(3):
+        x = -4.5 + k * 4.5
+        c.line(x, by - 4.6, x + 1.0, by + 3.0, hexc("#141a28"))
+    # cabecinha na frente
+    hx = 8.2 + p.get("stretch", 0.0) * 2.0
+    c.ellipse(hx, by + 2.0, 2.6, 2.2, M_CRAWL_BODY, z=1.5)
+    if not p["blink"]:
+        c.dot(hx + 0.8, by + 1.4, hexc("#ffb040"), glow=True)
+        c.dot(hx - 0.8, by + 1.4, hexc("#c87020"), glow=True)
+    # antenas
+    c.line(hx + 1.0, by + 0.2, hx + 3.5, by - 2.5 + p.get("head", 0.0), hexc("#2a2028"))
+    return {"hand": [hx + 2, by + 2], "head": [0, by - 8]}
+
+
+# TRAÇA-CINZA — mariposa grande atraída pela luz do Lume: asas de pó com
+# manchas de "olho" cor de brasa, antenas de pena.
+M_MOTH = Mat(["#241e1c", "#3a302a", "#54463c", "#706050", "#8e7c68"], rim=0.6, rim_color="#d0b898", outline="#0c0806", wrap=0.45)
+M_MOTH_B = Mat(["#2e2620", "#4a3c30", "#665442", "#846e56"], rim=0.4, outline="#0c0806")
+
+
+def draw_ashmoth(c, p, t):
+    bob = p["bob"]
+    cy = bob
+    f = p["flap"]
+    for k, s in enumerate([-1, 1]):
+        z = 0.5 if s < 0 else 3.0
+        up = f * 5.0
+        # asa de cima (grande) e de baixo (menor)
+        c.poly([(s * 1.2, cy - 2.0), (s * 6.0, cy - 8.0 - up), (s * 12.0, cy - 7.0 - up * 1.1), (s * 12.5, cy - 1.5 - up * 0.6), (s * 5.0, cy + 0.5)], M_MOTH, z=z, bevel=1.6)
+        c.poly([(s * 1.2, cy + 0.5), (s * 8.0, cy + 1.5 - up * 0.3), (s * 8.5, cy + 6.0 - up * 0.2), (s * 3.0, cy + 5.0)], M_MOTH_B, z=z - 0.1, bevel=1.2)
+        # mancha de olho que brilha
+        ex, ey = s * 7.8, cy - 4.6 - up * 0.85
+        c.dot(ex, ey, hexc("#ffb050"), glow=True)
+        c.dot(ex + s * 0.8, ey, hexc("#c85a1e"), glow=True)
+    c.capsule(0.0, cy - 3.0, 0.0, cy + 5.0, 2.0, 1.4, M_MOTH_B, z=2.0)
+    c.ellipse(0.0, cy - 4.2, 2.2, 2.0, M_MOTH_B, z=2.2)
+    # antenas de pena
+    for s in (-1, 1):
+        c.line(s * 0.8, cy - 5.6, s * 3.5, cy - 9.5, hexc("#8e7c68"))
+        c.line(s * 2.0, cy - 7.2, s * 3.2, cy - 7.4, hexc("#8e7c68"))
+    if not p["blink"]:
+        c.dot(0.8, cy - 4.4, hexc("#ffd070"), glow=True)
+    return {"hand": [0, cy + 4], "head": [0, cy - 11]}
+
+
+# MUSGOSO — monte de musgo com orelhas de folha que finge ser um tufo e
+# pula em quem passa (Bosque).
+M_MOSS2 = Mat(["#0e1c0e", "#1a3218", "#2a4c24", "#3c6a30", "#588c42"], rim=0.6, rim_color="#a8e070", outline="#050a05", wrap=0.45)
+M_MOSS_B = Mat(["#20301a", "#34462a", "#4c603c"], rim=0.3, outline="#050a05")
+
+
+def draw_mossling(c, p, t):
+    bob = p["bob"]
+    cr = p.get("crouch", 0.0)
+    st = p.get("stretch", 0.0)
+    by = -6.0 + bob + cr * 0.6 - st * 2.0
+    for k, px in enumerate((-3.5, 3.5)):
+        c.ellipse(px, -1.2, 2.2, 1.4, M_MOSS_B, z=-0.5 if k == 0 else 1.5)
+    c.ellipse(0.0, by, 8.5 - st, 6.2 + st * 1.5, M_MOSS2, z=1.0, bulge=1.0)
+    # tufos e folhas por cima
+    for k, (x, a) in enumerate([(-5.0, -0.6), (-1.5, -0.1), (2.5, 0.2), (5.5, 0.7)]):
+        tip = (x + math.sin(a) * 6.0, by - 5.0 - math.cos(a) * 4.0 + wave(t, 1, k * 0.3) * 0.6)
+        c.ribbon([(x * 0.8, by - 4.0), ((x * 0.8 + tip[0]) / 2, (by - 4.0 + tip[1]) / 2 - 0.8), tip], [2.2, 1.6, 0.6], M_MOSS2, z=1.3 + k * 0.01)
+    # olhos só quando acorda (no "idle" fica de olhos quase fechados)
+    open_ = p["anim"] in ("move", "attack", "jump", "hurt")
+    ex, ey = 3.0, by + 0.5
+    if open_ and not p["blink"]:
+        c.dot(ex, ey, hexc("#e8ff80"), glow=True)
+        c.dot(ex + 2.2, ey, hexc("#e8ff80"), glow=True)
+    else:
+        c.line(ex - 0.5, ey + 0.5, ex + 2.7, ey + 0.5, hexc("#0a1408"))
+    if p.get("jaw", 0.0) > 0.3:
+        c.ellipse(4.0, by + 3.0, 2.2, 1.2, SOCK, z=1.6, no_outline=True)
+    return {"hand": [7, by + 2], "head": [0, by - 10]}
+
+
+# VAGA-LUME FERRÃO — inseto do Bosque com a cauda acesa e um ferrão.
+M_STING = Mat(["#141a10", "#222e1a", "#344424", "#4a5e32"], rim=0.6, rim_color="#c0e080", outline="#060804")
+M_WINGLASS = Mat(["#6a8a8a", "#8ab0b0", "#b0d8d0", "#d8f4ec"], rim=0.2, outline="#2a4040", wrap=0.6)
+
+
+def draw_stingfly(c, p, t):
+    bob = p["bob"]
+    cy = bob
+    f = p["flap"]
+    for s in (-1, 1):
+        up = f * 4.0
+        c.ellipse(s * 3.5, cy - 4.0 - up * 0.5, 4.0, 1.8, M_WINGLASS, z=0.5 if s < 0 else 3.0, ang=s * (0.5 + f * 0.3))
+    c.ellipse(1.5, cy - 1.0, 2.4, 2.0, M_STING, z=2.0)
+    c.ellipse(-2.5, cy + 0.5, 3.4, 2.4, M_STING, z=1.9)
+    # cauda acesa
+    c.ellipse(-5.0, cy + 1.2, 2.2, 2.0, Mat(["#6a8a10", "#b0d020", "#e8ff60", "#fbffc8"], rim=0.0, glow=(90, 120, 20, 255), outline="#1a2004"), z=2.1)
+    c.poly([(-6.8, cy + 2.0), (-9.5, cy + 3.6), (-6.8, cy + 3.0)], Mat("#e0d8b0", n=3, rim=0.3, outline="#2a2410"), z=2.2, bevel=0.5)
+    if not p["blink"]:
+        c.dot(2.8, cy - 1.6, hexc("#ff6040"), glow=True)
+    return {"hand": [-8, cy + 3], "head": [1, cy - 6]}
+
+
 # ---------------------------------------------------------------------------
 # registro: id -> (tamanho (w, h, ox, oy), animações, pose, desenho)
 # animações: nome -> (quadros, fps, loop)
@@ -830,4 +991,9 @@ ENEMIES = {
     "brood_mother": ((80, 60, 40, 56), BEAST_ANIMS, base_pose, draw_brood_mother),
     "colossus": ((100, 96, 50, 92), dict(HUMANOID_ANIMS, crouch=(2, 4, True)), colossus_pose, draw_colossus),
     "archdemon": ((100, 100, 50, 60), FLYER_ANIMS, float_pose, draw_archdemon),
+    "husk": ((48, 40, 24, 37), HUMANOID_ANIMS, base_pose, draw_husk),
+    "crawler": ((44, 26, 22, 23), BEAST_ANIMS, quad_pose, draw_crawler),
+    "ashmoth": ((44, 36, 22, 20), FLYER_ANIMS, bat_pose, draw_ashmoth),
+    "mossling": ((40, 30, 20, 27), dict(BEAST_ANIMS, fall=(1, 8, False)), quad_pose, draw_mossling),
+    "stingfly": ((36, 28, 18, 16), FLYER_ANIMS, bat_pose, draw_stingfly),
 }

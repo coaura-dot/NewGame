@@ -59,7 +59,7 @@
 ########....######################################
 @end
 
-@room galeria_vitrais "Galeria dos Vitrais" kind=galeria at=20,22 enemies=skeleton,skeleton flyers=wraith npcs=mira
+@room galeria_vitrais "Galeria dos Vitrais" kind=galeria at=20,22 enemies=husk,crawler flyers=ashmoth npcs=mira
 ##########################################
 ###.......c.....................o......###
 #........................................#
@@ -79,7 +79,7 @@
 1 = inscription "Cada vitral mostra uma lâmpada acesa. Os Lampadeiros diziam: enquanto houver uma, o caminho existe." title="Vitral dos Lampadeiros"
 @end
 
-@room tunel_raizes "Túnel das Raízes" kind=passagem port=L at=0,24 enemies=leaper
+@room tunel_raizes "Túnel das Raízes" kind=passagem port=L at=0,24 enemies=crawler
 ####################
 ####################
 ####..r....r.....###
@@ -96,7 +96,7 @@
 ######....##########
 @end
 
-@room ninho "Ninho dos Rastejantes" kind=ninho at=0,38 enemies=skeleton,leaper,hound flyers=diver gate=combat loot=pocao_vida
+@room ninho "Ninho dos Rastejantes" kind=ninho at=0,38 enemies=husk,crawler,husk flyers=ashmoth gate=combat loot=pocao_vida
 ######....################
 #####......###############
 ###............###########
@@ -119,7 +119,7 @@
 ##########################
 @end
 
-@room salao_estatuas "Salão das Estátuas" kind=salao at=26,48 enemies=shieldbearer,skeleton,skeleton snipers=gunner bg=open
+@room salao_estatuas "Salão das Estátuas" kind=salao at=26,48 enemies=shieldbearer,husk,crawler snipers=gunner bg=open
 ######################################
 ####........o...........o.........####
 ..................................####
@@ -147,7 +147,7 @@
 1 = inscription "Os grandes Lampadeiros não morriam: eram postos em pedra, erguendo a lâmpada, para que os aprendizes soubessem para onde olhar." title="Salão das Estátuas"
 @end
 
-@room poco_ecos "Poço dos Ecos" kind=poco at=64,38 flyers=diver,wraith bg=open
+@room poco_ecos "Poço dos Ecos" kind=poco at=64,38 flyers=ashmoth,wraith bg=open
 #..............#
 #.....--.......#
 #..............#
@@ -185,7 +185,7 @@
 1 = inscription "Desça devagar: o eco aqui embaixo às vezes responde. E às vezes responde antes de você falar." title="Poço dos Ecos"
 @end
 
-@room cofre "Cofre do Lampadeiro" kind=cofre at=80,42 relic=olho_de_brasa
+@room cofre "Cofre do Lampadeiro" kind=cofre at=80,42 relic=brasa_rastro
 ################
 ################
 #............###
@@ -246,7 +246,7 @@ G.....##################################################
 ....
 @end
 
-@room ponte_partida "Ponte Partida" kind=abismo at=112,18 flyers=diver bg=open
+@room ponte_partida "Ponte Partida" kind=abismo at=112,18 flyers=ashmoth bg=open
 ####################################################################
 ####################..........########............##################
 ########........................................................####
