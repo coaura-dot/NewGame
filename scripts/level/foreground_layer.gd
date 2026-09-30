@@ -36,11 +36,11 @@ func build(rows: PackedStringArray, style_id: String, seed_v: int, color: Color)
 				continue
 			# chão (sólido com 3 de ar em cima): capim / pedras / samambaias
 			if rows[y - 1].unicode_at(x) != 35 and rows[y - 2].unicode_at(x) != 35 and rows[y - 3].unicode_at(x) != 35:
-				if x - last_floor > 5 and rng.randf() < 0.14:
+				if x - last_floor > 7 and rng.randf() < 0.1:
 					last_floor = x
 					var kinds := _floor_kinds()
 					var kind: String = kinds[rng.randi() % kinds.size()]
-					_items.append([kind, Vector2(x * T + rng.randf_range(0, T), y * T + 2.0), rng.randf_range(1.22, 1.5), rng.randf_range(0.8, 1.4), rng.randi()])
+					_items.append([kind, Vector2(x * T + rng.randf_range(0, T), y * T + 2.0), rng.randf_range(1.18, 1.36), rng.randf_range(0.6, 0.95), rng.randi()])
 			# teto (sólido com 4 de ar embaixo): pendurados
 			if y + 4 < h and rows[y + 1].unicode_at(x) != 35 and rows[y + 2].unicode_at(x) != 35 and rows[y + 3].unicode_at(x) != 35 and rows[y + 4].unicode_at(x) != 35:
 				if x - last_ceil > 7 and rng.randf() < 0.1:
@@ -48,7 +48,7 @@ func build(rows: PackedStringArray, style_id: String, seed_v: int, color: Color)
 					var hk := _hang_kinds()
 					if not hk.is_empty():
 						var kind2: String = hk[rng.randi() % hk.size()]
-						_items.append([kind2, Vector2(x * T + rng.randf_range(0, T), (y + 1) * T - 2.0), rng.randf_range(1.18, 1.4), rng.randf_range(0.8, 1.5), rng.randi()])
+						_items.append([kind2, Vector2(x * T + rng.randf_range(0, T), (y + 1) * T - 2.0), rng.randf_range(1.15, 1.32), rng.randf_range(0.7, 1.15), rng.randi()])
 
 
 func _floor_kinds() -> Array:
@@ -107,7 +107,7 @@ func _draw_item(kind: String, p: Vector2, s: float, sd: int) -> void:
 			for side in [-1.0, 1.0]:
 				for i in 3:
 					var ang: float = -PI * 0.5 + side * (0.45 + i * 0.32) + sin(_t * 1.1 + sd) * 0.04
-					var ln := (22.0 - i * 4.0) * s
+					var ln := (16.0 - i * 3.0) * s
 					var tip := p + Vector2(cos(ang), sin(ang)) * ln
 					draw_line(p, tip, c, 1.4 * s)
 					for j in 5:

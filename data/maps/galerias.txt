@@ -269,7 +269,7 @@ G.....##################################################
 ##################################......############################
 @end
 
-@room portao_vesper "Portão de Vésper" kind=passagem port=R requires=double_jump rect=160,18,20,20
+@room portao_vesper "Portão de Vésper" kind=passagem port=R requires=double_jump rect=160,18,20,20 bg=open
 @end
 
 @room beiral "Beiral de Gaspar" kind=mirante at=136,38 bg=open

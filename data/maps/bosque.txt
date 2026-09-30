@@ -144,7 +144,7 @@
 ################################################################
 @end
 
-@room passagem_oeste "Toca Funda" kind=passagem port=L rect=0,60,6,8
+@room passagem_oeste "Toca Funda" kind=passagem port=L rect=0,60,6,8 bg=open
 @end
 
 @room ninho_rainha "Ninho da Rainha" kind=covil at=64,58 gate=combat bg=open

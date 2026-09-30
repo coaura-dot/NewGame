@@ -53,6 +53,8 @@ func _ready() -> void:
 			Game.pending = {"region": rid}
 			await _shot_overview("fase_" + biome)
 			SaveSystem.delete_save(9)
+	if scenario in ["historia"]:
+		await _shot_story()
 	if scenario in ["modos"]:
 		await _shot_modes()
 	if scenario in ["biomes", "all"]:
@@ -75,6 +77,52 @@ func _save(name: String) -> void:
 func _frames(n: int) -> void:
 	for i in n:
 		await get_tree().process_frame
+
+
+## História: o despertar do Lume (cena + diálogo) e a conversa com a
+## Vovó Borralha na praça de Cinzal.
+func _shot_story() -> void:
+	Game.new_game(1234, 9)
+	Game.pending = {"region": "cinzal"}
+	var level: Node = load("res://scenes/level.tscn").instantiate()
+	add_child(level)
+	await _frames(60)
+	await _save("historia_00_escuro")
+	# espera a primeira fala do eco aparecer inteira
+	var guard := 0
+	while guard < 400 and not (level.dialogue.active and level.dialogue._i >= 1):
+		await _frames(1)
+		guard += 1
+	await _frames(40)
+	await _save("historia_01_eco")
+	while guard < 900 and not level.dialogue.active:
+		await _frames(1)
+		guard += 1
+	# avança as falas até a segunda parte (depois da chama acender)
+	DialogueBox.auto_advance = true
+	while guard < 1400 and not Story.has_flag("despertou"):
+		await _frames(1)
+		guard += 1
+	DialogueBox.auto_advance = false
+	await _frames(20)
+	await _save("historia_02_cinzal")
+	# conversa com a Vovó Borralha
+	var p: Player = level.player
+	p.global_position = Vector2(80 * 8, 30 * 8 + 7)
+	p.reset_physics_interpolation()
+	level._focus_camera_on_player()
+	await _frames(20)
+	for n in get_tree().get_nodes_in_group("story_npcs"):
+		if n.npc_id == "borralha":
+			n.interact(p)
+	await _frames(90)
+	await _save("historia_03_borralha")
+	DialogueBox.auto_advance = true
+	await _frames(30)
+	DialogueBox.auto_advance = false
+	level.queue_free()
+	await _frames(2)
+	SaveSystem.delete_save(9)
 
 
 func _shot_scene(path: String, name: String, wait: int) -> void:

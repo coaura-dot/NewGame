@@ -1,0 +1,195 @@
+===============================================================================
+ CONTEXTO PARA A SESSÃO 9 — projeto "NewGame" (subtítulo: "Cindária — a
+ última brasa"). ARQUIVO DE CONTEXTO ATUAL (substitui CONTEXTO_SESSAO_8.txt;
+ o 8, o 7 e o 6 seguem úteis como referência técnica e histórico).
+ Leia INTEIRO antes de mexer em qualquer coisa.
+===============================================================================
+
+Repositório: coaura-dot/NewGame · Branch: claude/arcade-stages-procedural-939gyg
+(desenvolver e dar push SEMPRE nela; não abrir PR sem pedido).
+Engine: Godot 4.7 (GDScript). Idioma: português (código comentado, textos e
+docs em PT-BR). O usuário tem POUCOS créditos: seja eficiente, commits e push
+cedo, e mantenha este arquivo atualizado.
+Download (ZIP da branch):
+https://github.com/coaura-dot/NewGame/archive/refs/heads/claude/arcade-stages-procedural-939gyg.zip
+O usuário abre no Godot 4.7 (C:\Users\igo\Downloads\godot): Import ->
+project.godot -> F5. Menu: "Novo jogo" (abertura + despertar em Cinzal) ou
+"Explorar mundo (debug)" (libera tudo e abre o mapa).
+
+-------------------------------------------------------------------------------
+1. PEDIDO DO USUÁRIO NA SESSÃO 8 (íntegra, resumida só na formatação)
+-------------------------------------------------------------------------------
+"Leia o CONTEXTO_SESSAO_8.txt e continue fazendo o jogo. Coisas a melhorar,
+fora o que foi citado:
+ 1 - eu quero uma ambientação nível hollow knight, com inimigos e mapas,
+     artes e cenários perfeitos como em hollow knight.
+ 2 - Refaça o personagem principal pra ser cativante igual o knight, mas sem
+     ser parecido com o knight, invente algo bom.
+ 3 - Invalid call. Nonexistent function 'body_center' in base 'Node2D
+     (ImpetoOrb)'. deu esse erro aqui e o jogo fechou
+ 4 - continue as implementações de mapa, lore, história, personagens, falas,
+     cutscenes, etc.
+ 5 - Os mapas não precisam ser 100% aleatórios. Talvez fazer áreas aleatórias
+     esteja deixando as salas genéricas. Faça a ambientação e tudo. Faça um
+     bom trabalho"
+
+-------------------------------------------------------------------------------
+2. O QUE A SESSÃO 8 FEZ
+-------------------------------------------------------------------------------
+ [x] CRASH body_center: a Lanterna de Ímpeto (impeto_orb.gd) ganhou a
+     interface de "ator" (body_center, team, dead, facing); relíquias
+     (buff_system.gd) só aplicam efeitos em alvos Actor.
+ [x] PROTAGONISTA NOVO — LUME, O LAMPADEIRO (tools/build_sprites.py,
+     draw_lume): a cabeça é uma LANTERNA de ferro e vidro; dentro vive a
+     última brasa, um espírito de chama com dois olhos escuros (o rosto do
+     Lume, com expressões: normal, determinado, arregalado, apertado de dor,
+     fechado). Argola no topo com duas fitas carmim, poncho azul-petróleo com
+     barra ocre, botinhas. Vidro racha quando apanha; a chama encolhe e
+     apaga na morte. Animação nova "off" (lanterna apagada, usada no
+     despertar). A luz do jogador sai do vidro (ponto "core") e enfraquece
+     com a vida baixa (player.gd, fim de _animate). O Duelista virou UMBRAL,
+     o reflexo do Lume (vidro negro, chama azul-fria). Os aldeões mantêm o
+     desenho antigo do povo de cinza (draw_ashfolk).
+ [x] MUNDO FIXO (data/world.json + WorldGenerator.fixed): 13 regiões com
+     vizinhos, chefes, habilidades e subtítulos desenhados à mão (Game.
+     new_game usa o mundo fixo; generate(seed) continua para testes/treino).
+     Progressão: Bosque (Rainha da Ninhada) -> pulo duplo -> Vésper/Esgotos;
+     Galerias (Colosso Apagado) -> Queda Esmagadora -> Catacumbas; Vésper
+     (Umbral) -> dash duplo -> Castelo; Catacumbas (Corcel) -> escalar ->
+     Cidadela (Passo Etéreo) -> Coração da Maré (final, Arquidemônio).
+     O mapa do mundo ganhou a faixa PROFUNDEZAS (grid y = 2).
+ [x] MAPAS FEITOS À MÃO (o jeito principal de fazer regiões agora):
+     data/maps/<id>.txt, lido por scripts/level/map_loader.gd (MapLoader) e
+     conferido por tools/map_preview.py (PNG + alcance) e tools/map_check.py
+     (largura das linhas). Formato no topo do map_loader.gd: salas nomeadas
+     desenhadas em ASCII (@room ... @end, "at=x,y", espaço = transparente),
+     salas só-retângulo (nomeiam lugares; fill=/bg=), @fill, @ground (relevo
+     de superfície), @ent x,y tipo args (entidades/cenografia em coordenadas
+     absolutas), @abilities (pulo duplo no teste de alcance), dígitos 1-9 =
+     entidades próprias da sala. Minúsculas = cenografia (DECOR). Saídas:
+     sala com port=L|R|U|D + "P"/arrival (arrival port=D vale fora da sala).
+     Regiões feitas: CINZAL (vila da superfície: capela do despertar, campo
+     das cinzas, praça do braseiro, poço, torre do sino, adega secreta,
+     estrada leste só com pulo duplo), MATA DO ASSOBIO (clareira do
+     Assobiador, acampamento/santuário, casa na árvore, poço das raízes,
+     toca secreta), GALERIAS APAGADAS (14 lugares: fundo do poço,
+     encruzilhada dos lampiões, galeria dos vitrais com Mira, túnel das
+     raízes, ninho dos rastejantes (arena), poço dos ecos, salão das
+     estátuas, cofre atrás de parede rachada, antecâmara, covil do Colosso
+     com piso rachado para as Catacumbas, ponte partida (Umbral aparece),
+     beiral de Gaspar), BOSQUE SUSSURRANTE (subida da mata, raízes altas com
+     a Árvore-Mãe, lagoa dos vaga-lumes, trilha do musgo, clareira dos
+     fungos/santuário, ninho da Rainha com Tordo preso). As outras 9
+     regiões ainda saem do RegionDesigner (semente fixa por região).
+ [x] AMBIENTAÇÃO ESTILO HOLLOW KNIGHT:
+     - terrenos novos (tools/build_tiles.py): galeria (pedra azulada dos
+       Lampadeiros), bosque (terra musgosa com raízes), cinzal (terra com
+       cinza) — massas escuras (biome "deep"), borda viva; parede de fundo
+       mais escura por bioma ("backwall").
+     - fundos pintados novos (tools/build_scenery.py): galerias (arcadas na
+       névoa azul com lâmpadas distantes), bosque (troncos gigantes,
+       cogumelos luminosos), cinzal (crepúsculo cor de brasa, farol de
+       Ignara apagado, floresta morta), mata (floresta ao crepúsculo).
+       Salões grandes com bg=open mostram o fundo (profundidade).
+     - PRIMEIRO PLANO (scripts/level/foreground_layer.gd): silhuetas escuras
+       com parallax > 1 (capim, samambaias, pedras, raízes, correntes,
+       estalactites) por estilo (biome "foreground").
+     - CENOGRAFIA (tools/build_decor.py -> assets/art/decor + data/decor.json,
+       scripts/level/decor_layer.gd, scripts/fx/decor_sprite.gd): casas,
+       casa da cartógrafa, poço, árvore morta, cerca, lápide, altar, velas,
+       estátua quebrada e estátua gigante de Lampadeiro, estandarte, sino,
+       banco, caixotes, entulho, postes, lampião apagado/aceso, braseiro
+       frio/aceso, pilar, arco, corrente, lâmpada suspensa, ossos (com
+       lanterna vazia), gaiola, vitral aceso, raízes, cipós, fungos,
+       cogumelo gigante, capim, árvore gigante, cristais, gaiola de raízes.
+       Itens com luz própria e brilho (bloom); "hang" = pendurado no teto.
+     - partículas "ash" (cinza caindo) e "motes"; cor/vinheta por área
+       (biome "grade" -> PostFX.build).
+ [x] SANTUÁRIO = BRASEIRO (checkpoint.gd): frio até o Lume tocar, aceso para
+     sempre depois (Game.profile["braziers"]). LAMPIÕES acendíveis
+     (scripts/entities/lamp_post.gd, "Acender": luz, +3 brasas, salvo em
+     profile["lamps"], sinal Events.lamp_lit) — o ofício do Lampadeiro.
+ [x] HISTÓRIA (data/story.json + scripts/story/story.gd):
+     - personagens com falas que mudam com o progresso: Vovó Borralha,
+       Fuligem, Mira (vende mapas completos das regiões), Sir Gaspar (o Pavio
+       Apagado), Tordo (preso no Bosque; depois abre loja na praça), Umbral,
+       o Assobiador. Condições: flag, !flag, lamps>=N, boss:id, ability:id,
+       region:id, here:id (unidas por &). Efeitos: set, give, money,
+       ability, scene, after (serviço: map/shop).
+     - caixa de diálogo estilo HK (scripts/ui/dialogue_box.gd, no topo; a
+       HUD some durante falas e cenas).
+     - CENAS (scripts/story/cutscene_player.gd): barras de cinema, câmera
+       para ponto/NPC, falas, andar, emoções, acender a lanterna, títulos,
+       fades, tremor, som. Cenas: despertar (automática ao entrar em
+       Cinzal), umbral_vislumbre (ponte partida), colosso_desperta,
+       rainha_desperta. Gatilhos no mapa: @ent x,y trigger <cena> w= h=.
+     - objetivo da história na HUD (story.json -> objectives).
+     - inimigos param durante as cenas; behavior=sleep (ronca até o Lume
+       chegar) e behavior=ambush (Musgoso de tocaia).
+     - abertura (lore.json intro) e Códice reescritos para o Lume; chefes
+       renomeados: Colosso Apagado, Rainha da Ninhada, Umbral.
+     - inscrições com texto próprio nos mapas (vão para o Códice).
+ [x] INIMIGOS NATIVOS (tools/sprites_enemies.py + data/enemies.json): Oco
+     (aldeão esvaziado), Rastejante (casca de pedra), Traça-Cinza (mariposa
+     atraída pela luz) nas Galerias; Musgoso (tocaia) e Vaga-lume Ferrão no
+     Bosque. Biomas novos: cinzal, galerias, bosque, mata (data/biomes.json).
+ [x] Testes: suíte verde (≈9100 verificações). Novo tests/test_maps.gd:
+     mundo fixo completável, todo mapa feito à mão carrega sem erro, tem uma
+     saída por vizinho, lugares nomeados e TUDO o que importa alcançável nos
+     dois sentidos (ReachMap, com pulo duplo se o mapa pedir), e o despertar
+     roda até o fim (DialogueBox.auto_advance). Screenshots:
+     tests/shots.tscn -- <pasta> region <id_da_região> e -- <pasta> historia.
+
+-------------------------------------------------------------------------------
+3. O QUE FALTA (ordem sugerida)
+-------------------------------------------------------------------------------
+Pergunte primeiro o que o usuário achou do Lume, das áreas feitas à mão, da
+ambientação e da história. Ajuste antes de seguir.
+
+A) MAIS REGIÕES FEITAS À MÃO (na ordem da história): Cidade de Vésper
+   (chuva, sinos, telhados, o Sineiro, a Catedral Afogada com o duelo
+   contra Umbral; entradas pelo penhasco leste de Cinzal e pelos Esgotos),
+   Esgotos de Vésper, Catacumbas do Ossário, Brejo das Lamparinas, Toca de
+   Fuligem, Castelo, Cidadela, Templo, Coração da Maré. Cada uma com bioma,
+   terreno, fundo, cenografia, inimigos nativos e personagens próprios.
+   Receita: escrever data/maps/<id>.txt, python3 tools/map_check.py <id>,
+   python3 tools/map_preview.py <id> <png> (corrigir os X vermelhos), pôr
+   "map" em data/world.json, TEST_ONLY=test_maps, screenshots.
+B) ESTADO DO MUNDO SALVO: paredes quebradas, baús abertos, relíquias
+   pegas, portões de alavanca (hoje só lampiões, braseiros, explorados e
+   santuários ficam salvos). Chefes derrotados não voltam (já é assim pelo
+   "cleared" da região).
+C) Arte ainda antiga: baú, portões/portas, alavanca, mola, serra, cristal de
+   dash, Lanterna de Ímpeto, plataforma que cai, pickups/brasas, relíquia,
+   fenda, piso rachado (hachura feia), partículas e arco do golpe; HUD
+   (máscaras estilo HK?). Chefes antigos mereciam arte nova (Colosso ok).
+D) História: epílogo do capítulo 1 (Gaspar entrega a última faísca), o
+   Sineiro em Vésper, Mira em outros lugares, missões da história
+   (Fuligem já é uma), cena de chefe derrotado, música por área.
+E) Limpeza: scenes/world_map.tscn, scripts/ui/world_map.gd, LevelGenerator
+   só para treino/arena, assets/art/characters antigos; export Windows.
+
+-------------------------------------------------------------------------------
+4. COMO TRABALHAR NO CONTAINER
+-------------------------------------------------------------------------------
+ - Godot: /usr/local/bin/godot (headless) e /opt/godot-gfx (com janela).
+ - Arte (Python com numpy, pillow, scipy):
+     python3 tools/build_sprites.py [id ...]   (SPRITE_PREVIEW=<pasta>)
+     python3 tools/build_decor.py [id ...]     (DECOR_PREVIEW=<pasta>)
+     python3 tools/build_tiles.py [material ...] (TILE_PREVIEW=<pasta>)
+     python3 tools/build_scenery.py [estilo ...]
+   Depois: godot --headless --path . --import
+ - Mapas: python3 tools/map_check.py <id>; python3 tools/map_preview.py <id>
+   <saida.png> [--abilities=double_jump]
+ - Testes: godot --headless --path . res://tests/test_runner.tscn (~7 min;
+   use ulimit -v 8000000 e timeout). TEST_ONLY=test_maps etc.
+ - Screenshots: xvfb-run -a -s "-screen 0 1280x720x24" /opt/godot-gfx --path .
+   --rendering-driver vulkan res://tests/shots.tscn -- <pasta> <cenário>
+   (region [id], historia, modos, map, e os antigos rooms menu pause combat
+   shop bosses juice overview biomes intro)
+ - Armadilhas do GDScript 4.7: `var x := <Variant>` falha em tempo de
+   carga (ex.: valor vindo de Array/Dictionary sem tipo, ou de acesso em
+   Node sem tipo) — tipe explícito (`var x: float = ...`). O teste de
+   compilação do runner nem sempre pega isso; rode uma cena de verdade.
+   A fonte kenney não tem setas/losango/✓ (desenhe formas).
+===============================================================================

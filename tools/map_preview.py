@@ -216,10 +216,16 @@ def parse(path):
             decor.append(("d", x, y, owner(x, y)))
         else:
             ents.append((ty, x, y, owner(x, y)))
+    room_bg = {}
+    for r in rooms:
+        if "directive" not in r and "hidden" not in r.get("flags", ()):
+            room_bg[r["id"]] = r["bg"] in ("open", "sky")
     for y in range(H):
         for x in range(W):
-            if grid[y][x] not in "#" and owner(x, y) < 0:
-                bg[y][x] = 0
+            if grid[y][x] == "#":
+                continue
+            o = owner(x, y)
+            bg[y][x] = 0 if o < 0 or room_bg.get(out_rooms[o]["id"], False) else 1
     return {"W": W, "H": H, "grid": grid, "bg": bg, "rooms": out_rooms, "ents": ents, "decor": decor, "errors": errors, "abilities": abil}
 
 

@@ -1,5 +1,5 @@
 ===============================================================================
  ESTE ARQUIVO FOI SUBSTITUÍDO.
- Leia CONTEXTO_SESSAO_8.txt (contexto completo e atualizado para a próxima
- sessão, com o que a sessão 7 fez e o que falta).
+ Leia CONTEXTO_SESSAO_9.txt (contexto completo e atualizado para a próxima
+ sessão, com o que a sessão 8 fez e o que falta).
 ===============================================================================

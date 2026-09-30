@@ -180,12 +180,23 @@ func _parse(text: String) -> void:
 		var x := int(xy[0])
 		var y := int(xy[1])
 		_custom(toks.slice(2), x, y, _owner_room(x, y), {"id": "@ent", "custom": {}})
-	# ar fora das salas (céu aberto do mapa) mostra o cenário
+	# fundo de cada célula de ar = o da sala dona (a menor que a contém):
+	# wall = parede de fundo; open/sky = o cenário pintado aparece. Fora
+	# das salas (céu aberto do mapa) também mostra o cenário.
+	var bg_open := {}
+	for r in pending_rooms:
+		if not r.has("directive") and not r.get("hidden", false):
+			bg_open[str(r["id"])] = str(r["bg"]) in ["open", "sky"]
 	for y in h:
 		for x in w:
 			var gc := grid[y * w + x]
-			if gc != 35 and _owner_room(x, y) < 0:
+			if gc == 35:
+				continue
+			var o := _owner_room(x, y)
+			if o < 0:
 				bgm[y * w + x] = 0
+			else:
+				bgm[y * w + x] = 0 if bg_open.get(str(rooms[o]["id"]), false) else 1
 
 
 ## @fill x0,y0,x1,y1 <c>   retângulo (inclusivo) com o caractere

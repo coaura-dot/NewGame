@@ -105,6 +105,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if player == null and level:
 		player = level.player
+	# falas e cenas da história: a HUD sai de cena (como no Hollow Knight)
+	var story_on: bool = level != null and ((level.dialogue != null and level.dialogue.active) or (level.cutscene != null and level.cutscene.playing))
+	_root.modulate.a = move_toward(_root.modulate.a, 0.0 if story_on else 1.0, delta * 5.0)
 	_combo_pop = maxf(_combo_pop - delta * 4.0, 0.0)
 	_announce_t = maxf(_announce_t - delta, 0.0)
 	_bonus_t = maxf(_bonus_t - delta, 0.0)

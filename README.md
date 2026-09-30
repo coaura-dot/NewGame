@@ -23,6 +23,19 @@ estilo Dead Cells montadas com uma biblioteca de estruturas feitas à mão, hist
 
 Técnicas: **atacar durante o dash = Corte-Relâmpago** (atravessa cortando, em qualquer direção); **todo acerto recarrega o dash e o pulo** (dash → corte → dash...); golpear **Lanternas de Ímpeto** também recarrega; baixo+ataque no ar = **pogo**; pulo durante dash no chão = **super/hyper**; aparo perfeito = câmera lenta + crítico (e rebate o tiro do Atirador de volta, fatal); baixo+pesado no ar = **Queda Esmagadora**.
 
+## Sessão 8 — Lume, o capítulo 1 feito à mão e a ambientação estilo Hollow Knight
+![personagens](docs/lume.png)
+- **Novo protagonista: Lume, o Lampadeiro.** A cabeça é uma lanterna de ferro e vidro; dentro dela vive a última brasa de Cindária, um espírito de chama com dois olhos — é o rosto do Lume (expressões de determinação, susto, dor, sono). Argola no topo com fitas carmim, poncho azul-petróleo. O vidro racha quando ele apanha, a luz da lanterna enfraquece com a vida baixa e apaga na morte. **Umbral**, o chefe-duelista, é o reflexo dele: vidro negro e chama azul-fria.
+- **Mundo fixo de Cindária** (`data/world.json`): 13 regiões com vizinhos, chefes e habilidades pensados à mão (como no Hollow Knight), com um caminho de história: Cinzal → Galerias Apagadas → Bosque Sussurrante (pulo duplo) → Vésper...
+- **Capítulo 1 feito à mão** (`data/maps/*.txt`, editáveis): **Cinzal** (capela do despertar, praça do braseiro, poço, torre do sino, adega secreta), **Mata do Assobio**, **Galerias Apagadas** (encruzilhada dos lampiões, galeria dos vitrais, poço dos ecos, salão das estátuas, cofre secreto, covil do Colosso, ponte partida...) e **Bosque Sussurrante** (Árvore-Mãe, lagoa dos vaga-lumes, clareira dos fungos, ninho da Rainha). Cada lugar tem nome, forma e propósito; tudo é testado para ser alcançável nos dois sentidos.
+![capítulo 1](docs/capitulo1.jpg)
+- **Ambientação estilo Hollow Knight**: terrenos escuros por área com borda viva, fundos pintados novos (arcadas dos Lampadeiros na névoa azul, troncos e cogumelos luminosos, crepúsculo cor de brasa com o farol de Ignara apagado), **silhuetas em primeiro plano** com parallax, cinza caindo, vinheta e cor por área, e **cenografia** (casas, poço, estátuas, vitrais acesos, velas, sino, raízes, fungos, gaiolas...).
+- **Lampiões e braseiros**: o Lume é um Lampadeiro — ele **acende os lampiões apagados** (luz para sempre, brasas, o povo nota) e os **braseiros** que viram santuários.
+- **História com personagens e cenas**: Vovó Borralha, Fuligem (e o pai dele, Tordo, preso na gaiola da Rainha), Mira a cartógrafa (vende o mapa completo das regiões), Sir Gaspar, o Pavio Apagado, o misterioso Assobiador e Umbral. Falas que mudam com o progresso, caixa de diálogo, **cenas** com barras de cinema e câmera (o despertar do Lume, Umbral do outro lado do abismo, o despertar do Colosso e da Rainha) e objetivo da história na HUD.
+![história](docs/historia.jpg)
+- **Inimigos nativos**: Oco (aldeão esvaziado pela Maré), Rastejante (casca de pedra), Traça-Cinza (atraída pela luz do Lume), Musgoso (fica de tocaia) e Vaga-lume Ferrão. Inimigos podem dormir ou esperar de tocaia e param durante as cenas.
+- Correção: o jogo fechava com "Nonexistent function 'body_center' in base ImpetoOrb" (magias/relíquias acertando a Lanterna de Ímpeto).
+
 ## Sessão 7 — escala 50% maior e regiões estilo Hollow Knight
 ![regiões](docs/regioes.jpg)
 - **Tudo 50% maior** na tela: arte agora em densidade 3x (tiles de 24 px, personagens com ~45 px), mesma física.
@@ -95,4 +108,4 @@ Técnicas: **atacar durante o dash = Corte-Relâmpago** (atravessa cortando, em 
 Screenshots de vários cenários: `godot --path . res://tests/shots.tscn -- <pasta> [all|rooms|region|menu|pause|map|combat|shop|bosses|juice|overview|biomes|intro]`.
 
 ## Pendências conhecidas (próxima sessão)
-Veja `CONTEXTO_SESSAO_8.txt`: arte nova para baús/portas/tochas/serras e partículas (ainda com pixels grandes), mais variações de forma por lugar, estado do mundo salvo por região (alavancas, paredes, baús) e comportamento de inimigos ligado ao lugar.
+Veja `CONTEXTO_SESSAO_9.txt`: próximas regiões feitas à mão (Vésper com o duelo contra Umbral, Esgotos, Catacumbas...), estado do mundo salvo (paredes, baús, alavancas), arte nova para baús/portões/alavancas/pickups e o epílogo do capítulo 1.

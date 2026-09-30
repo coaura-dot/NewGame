@@ -9,7 +9,7 @@ extends CanvasLayer
 signal finished
 
 const FONT := preload("res://assets/fonts/kenney_pixel.ttf")
-const BOX := Rect2(56, 192, 368, 66)
+const BOX := Rect2(64, 34, 352, 60)
 const CPS := 42.0 ## letras por segundo
 const GOLD := Color(0.95, 0.8, 0.5)
 const INK := Color(0.95, 0.93, 0.88)
