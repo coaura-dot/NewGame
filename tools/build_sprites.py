@@ -24,6 +24,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
 from spritekit import Canvas, Mat, hexc, preview, save, strip  # noqa: E402
+import sprites_enemies as EN  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 OUT = os.path.join(ROOT, "assets", "art", "sprites")
@@ -240,7 +241,27 @@ def hero_pose(anim, t, i, n):
     return p
 
 
-def draw_hero(c, p, frame_t):
+HERO_PAL = {"ash": None, "cloak": None, "cloak_in": None, "scarf": None, "leg": None, "boot": None, "gold": None,
+            "eye": None, "eye_core": None, "eye_edge": None, "crack": None, "crack_dim": None, "flame": None}
+
+
+def draw_hero(c, p, frame_t, pal=None):
+    """Desenha a Faísca; `pal` troca materiais/cores (o Duelista Sombrio é
+    o reflexo dela)."""
+    pal = pal or {}
+    M_ASH_ = pal.get("ash", M_ASH)
+    M_CLOAK_ = pal.get("cloak", M_CLOAK)
+    M_CLOAK_IN_ = pal.get("cloak_in", M_CLOAK_IN)
+    M_SCARF_ = pal.get("scarf", M_SCARF)
+    M_LEG_ = pal.get("leg", M_LEG)
+    M_BOOT_ = pal.get("boot", M_BOOT)
+    M_GOLD_ = pal.get("gold", M_GOLD)
+    EYE_ = pal.get("eye", EYE)
+    EYE_CORE_ = pal.get("eye_core", EYE_CORE)
+    EYE_EDGE_ = pal.get("eye_edge", EYE_EDGE)
+    CRACK_ = pal.get("crack", CRACK)
+    CRACK_DIM_ = pal.get("crack_dim", CRACK_DIM)
+    FLAME_ = pal.get("flame", None)
     bob = p["bob"]
     lean = p["lean"]
     cr = p["crouch"]
@@ -250,10 +271,10 @@ def draw_hero(c, p, frame_t):
         hx = (-1.6 if k == 0 else 1.6) + lean * 0.3
         knee = ((hx + fx) * 0.5 + bend * 1.5, (hip_y + fy) * 0.5 - bend * 0.8)
         z = -1.0 if k == 0 else 1.0
-        mat = M_LEG
+        mat = M_LEG_
         c.limb([(hx, hip_y), knee, (fx, fy - 1.2)], [1.7, 1.4, 1.3], mat, z=z)
         # bota
-        c.ellipse(fx + 0.7, fy - 1.0, 2.2, 1.3, M_BOOT, z=z + 0.2)
+        c.ellipse(fx + 0.7, fy - 1.0, 2.2, 1.3, M_BOOT_, z=z + 0.2)
     # --- corpo / manto ---
     top_y = -15.0 + bob + cr
     hem_y = -5.2 + bob * 0.3 + cr * 0.4 - p["cloak_up"]
@@ -266,11 +287,11 @@ def draw_hero(c, p, frame_t):
     drop = [2.2, 0.2, 1.6, -0.2, 1.2, -0.4, 0.8, -0.6]
     hem_pts = [(x, hem_y + drop[j]) for j, x in enumerate(xs)]
     cloak = [(-3.4 + sh, top_y - 0.5), (3.4 + sh, top_y - 0.5), (5.0 + sh * 0.7, top_y + 3.5)] + hem_pts[::-1] + [(-6.2 + sh * 0.6, top_y + 3.2)]
-    c.poly(cloak, M_CLOAK, z=2.0, bevel=3.2, folds=(1.0, 0.95, frame_t * 2.0, 0.16))
+    c.poly(cloak, M_CLOAK_, z=2.0, bevel=3.2, folds=(1.0, 0.95, frame_t * 2.0, 0.16))
     # forro vermelho aparecendo quando o manto abre (golpe/magia)
     if p["open"] > 0.2:
         o = p["open"]
-        c.poly([(1.0 + sh, top_y + 4), (4.5 + sh * 0.6 + o, top_y + 5), (6.0 + fl + hem * 0.2, hem_y + 1.0), (1.5 + hem * 0.7, hem_y + 1.2)], M_CLOAK_IN, z=2.2, bevel=1.5)
+        c.poly([(1.0 + sh, top_y + 4), (4.5 + sh * 0.6 + o, top_y + 5), (6.0 + fl + hem * 0.2, hem_y + 1.0), (1.5 + hem * 0.7, hem_y + 1.2)], M_CLOAK_IN_, z=2.2, bevel=1.5)
     # --- cachecol: a cauda sai da nuca e esvoaça ---
     neck = (-2.5 + lean, top_y - 0.5)
     ang = math.radians(p["scarf_ang"])
@@ -284,20 +305,20 @@ def draw_hero(c, p, frame_t):
         w = math.sin((p["scarf_ph"] - k * 0.9) * math.tau) * p["scarf_amp"] * k * 1.6
         pts.append((neck[0] + ox + px * w, neck[1] + oy + py * w))
     widths = [4.8, 4.5, 4.1, 3.7, 3.3, 2.9, 2.4, 1.8]
-    c.ribbon(pts, widths, M_SCARF, z=1.5, twist=p["scarf_ph"] * math.tau)
+    c.ribbon(pts, widths, M_SCARF_, z=1.5, twist=p["scarf_ph"] * math.tau)
     # ponta rasgada do cachecol
     ex, ey = pts[-1]
-    c.ellipse(ex, ey, 1.4, 1.0, M_SCARF, z=1.5)
+    c.ellipse(ex, ey, 1.4, 1.0, M_SCARF_, z=1.5)
     # volta do cachecol no pescoço (na frente do manto)
-    c.ellipse(0.6 + lean, top_y + 0.4, 5.6, 2.3, M_SCARF, z=3.0, bulge=0.8)
+    c.ellipse(0.6 + lean, top_y + 0.4, 5.6, 2.3, M_SCARF_, z=3.0, bulge=0.8)
     # broche dourado prendendo o cachecol
-    c.circle(3.4 + lean, top_y + 1.2, 1.1, M_GOLD, z=3.2)
+    c.circle(3.4 + lean, top_y + 1.2, 1.1, M_GOLD_, z=3.2)
     # --- cabeça de cinza ---
     hx = 0.8 + lean + p["head_dx"]
     hy = top_y - 6.2 + p["head_dy"]
     if p["stretch"]:
         hy -= 0.5
-    c.ellipse(hx, hy, 7.0, 6.4, M_ASH, z=4.0, ang=p["tilt"])
+    c.ellipse(hx, hy, 7.0, 6.4, M_ASH_, z=4.0, ang=p["tilt"])
     # rachaduras de brasa (atrás/topo)
     tl = p["tilt"]
 
@@ -308,9 +329,9 @@ def draw_hero(c, p, frame_t):
     for (a, b) in [((-5.2, -2.6), (-4.0, -1.2)), ((-4.0, -1.2), (-4.6, 0.6))]:
         x0, y0 = rot(*a)
         x1, y1 = rot(*b)
-        c.line(x0, y0, x1, y1, CRACK_DIM, glow=True)
+        c.line(x0, y0, x1, y1, CRACK_DIM_, glow=True)
     x0, y0 = rot(-4.0, -1.2)
-    c.dot(x0, y0, CRACK, glow=True)
+    c.dot(x0, y0, CRACK_, glow=True)
     # olhos: órbitas escuras com uma pupila de brasa (lê bem de longe)
     look = p["look"]
     eyes = p["eyes"]
@@ -331,14 +352,14 @@ def draw_hero(c, p, frame_t):
         # pupila de brasa (brilha no escuro)
         px = x + 0.3 + look * 0.4
         py = yy - ry * 0.35
-        c.dot(px, py, EYE_CORE if k == 0 else EYE, glow=True)
-        c.dot(px, py + 1.0, EYE if k == 0 else EYE_EDGE, glow=True)
+        c.dot(px, py, EYE_CORE_ if k == 0 else EYE_, glow=True)
+        c.dot(px, py + 1.0, EYE_ if k == 0 else EYE_EDGE_, glow=True)
         if k == 0 and eyes == "wide":
-            c.dot(px - 1.0, py, EYE, glow=True)
+            c.dot(px - 1.0, py, EYE_, glow=True)
     # --- chama no topo da cabeça ---
     if p["flame_h"] > 0.5:
         fx, fy = rot(-1.4, -5.4)
-        c.flame(fx, fy + 0.4, 4.6, p["flame_h"] * 0.78, lean=p["flame_lean"] - 0.8, t=p["flame_ph"])
+        c.flame(fx, fy + 0.4, 4.6, p["flame_h"] * 0.78, lean=p["flame_lean"] - 0.8, t=p["flame_ph"], palette=FLAME_)
         # faísca solta de vez em quando
         if int(p["flame_ph"] * 8) % 5 == 2:
             c.dot(fx - 1 + p["flame_lean"], fy - p["flame_h"] - 2.5, hexc("#ffd070"), glow=True)
@@ -504,10 +525,43 @@ def render_character(cid, size, anims, pose_fn, draw_fn, meta):
     print(f"{cid}: {len(anims)} animações")
 
 
+# O Duelista Sombrio: "um reflexo seu que aprendeu a lutar sozinho" — a
+# Faísca em negativo (cabeça de cinza escura, chama azul, olhos vermelhos).
+DUELIST_PAL = {
+    "ash": Mat(["#141019", "#221b2a", "#322838", "#443650", "#584a66"], rim=0.8, rim_color="#8ab8ff", outline="#050308", wrap=0.5, ambient=0.3),
+    "cloak": Mat(["#060408", "#0c0910", "#140f1a", "#1e1726", "#2a2034"], rim=0.8, rim_color="#5a7ab8", outline="#020103"),
+    "cloak_in": Mat("#1a2a5a", n=4, spread=0.6, rim=0.0, outline="#04060e"),
+    "scarf": Mat(["#12030a", "#260612", "#3e0c1c", "#5a1426", "#781c30"], rim=0.8, rim_color="#ff4a6a", outline="#080104"),
+    "leg": Mat(["#08060a", "#110d14", "#1a1520", "#241d2c"], rim=0.6, rim_color="#4a5a8a", outline="#030204"),
+    "boot": Mat(["#060408", "#0e0a10", "#16111a", "#201824"], rim=0.5, outline="#020103"),
+    "gold": Mat(["#1a2a4a", "#3a5a8a", "#6a9ad0", "#b0d8ff"], rim=0.0, spec=1.0, outline="#060a14"),
+    "eye": hexc("#ff4a5a"), "eye_core": hexc("#ffd0d8"), "eye_edge": hexc("#a0101e"),
+    "crack": hexc("#6ab8ff"), "crack_dim": hexc("#2a5aa8"),
+    "flame": [hexc("#1a2a8a"), hexc("#2a6ae0"), hexc("#7ac8ff"), hexc("#eaf6ff")],
+}
+
+
+def draw_duelist(c, p, t):
+    return draw_hero(c, p, t, DUELIST_PAL)
+
+
+DUELIST_ANIMS = {"idle": (8, 7, True), "move": (8, 14, True), "attack": (3, 12, False), "cast": (3, 10, False),
+                 "hurt": (2, 10, False), "jump": (2, 10, False), "fall": (4, 10, True), "dash": (3, 18, False), "crouch": (2, 8, False)}
+
+
+def duelist_pose(anim, t, i, n):
+    return hero_pose("run" if anim == "move" else anim, t, i, n)
+
+
 CHARACTERS = {
     "weapons": build_weapons,
+    "duelist": lambda meta: render_character("duelist", (HERO_W, HERO_H, HERO_OX, HERO_OY), DUELIST_ANIMS, duelist_pose, draw_duelist, meta),
     "hero": lambda meta: render_character("hero", (HERO_W, HERO_H, HERO_OX, HERO_OY), HERO_ANIMS, hero_pose, draw_hero, meta),
 }
+
+
+for _eid, (_size, _anims, _pose, _draw) in EN.ENEMIES.items():
+    CHARACTERS[_eid] = (lambda eid, size, anims, pose, draw: (lambda meta: render_character(eid, size, anims, pose, draw, meta)))(_eid, _size, _anims, _pose, _draw)
 
 
 def main():

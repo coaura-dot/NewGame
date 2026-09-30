@@ -1,0 +1,151 @@
+===============================================================================
+ CONTEXTO PARA A SESSÃO 7 — projeto "NewGame" (subtítulo: "Cindária — a
+ última brasa"). ARQUIVO DE CONTEXTO ATUAL (substitui CONTEXTO_SESSAO_6.txt;
+ o 6 e o 5 seguem úteis como referência técnica e histórico).
+ Leia INTEIRO antes de mexer em qualquer coisa.
+===============================================================================
+
+Repositório: coaura-dot/NewGame · Branch: claude/arcade-stages-procedural-939gyg
+(desenvolver e dar push SEMPRE nela; não abrir PR sem pedido).
+Engine: Godot 4.7 (GDScript). Idioma: português (código comentado, textos e
+docs em PT-BR). O usuário tem POUCOS créditos: seja eficiente, commits e push
+cedo, e mantenha este arquivo atualizado.
+Download (ZIP da branch):
+https://github.com/coaura-dot/NewGame/archive/refs/heads/claude/arcade-stages-procedural-939gyg.zip
+O usuário abre no Godot 4.7 (C:\Users\igo\Downloads\godot): Import ->
+project.godot -> F5. (O blur da tela ele resolveu nas Opções.)
+
+-------------------------------------------------------------------------------
+1. O QUE A SESSÃO 6 FEZ — "o jogo não é mais 8 bit"
+-------------------------------------------------------------------------------
+Pedido principal do usuário (ver CONTEXTO_SESSAO_6.txt §1): personagem
+minúsculo (~14 px), arte simples demais, quer pixel art MODERNA (Kingdom Two
+Crowns / Hollow Knight), com identidade, luz e cenários bonitos.
+
+ [x] RESOLUÇÃO 480x270 com arte em DENSIDADE 2x:
+     - project.godot: tela base 480x270 (4x exato em 1920x1080).
+     - O mundo renderiza num SubViewport 480x270 com a câmera em zoom 2:
+       1 UNIDADE do mundo = 2 PIXELS de arte. A física, as salas (tiles de 8
+       unidades), a IA e o RoomReach continuam nas MESMAS unidades de antes
+       (nada de física foi mexido, exceto o corpo do jogador: 6x12).
+     - LevelConst: TILE=8 (unidades), ART=2, ART_SCALE=0.5, TILE_PX=16,
+       VIEW_PX=480x270 (tela em px), VIEW=240x135 (área visível em unidades),
+       VIEW_SCALE=1.0 (a UI agora é 480x270 sem a escala 2/3 antiga).
+     - Toda arte nova é desenhada no dobro da densidade e exibida com escala
+       0.5 (sprites, TileMapLayers). Coisas desenhadas em código com
+       draw_rect de 1 unidade aparecem com pixels de 2x2 (entidades antigas
+       ainda estão assim — ver pendências).
+ [x] PERSONAGENS com identidade (tools/spritekit.py + tools/build_sprites.py +
+     tools/sprites_enemies.py -> assets/art/sprites/<id>/<anim>.png, com
+     camada <anim>_glow.png e data/sprites.json):
+     - spritekit: mini renderizador de pixel art — formas com volume
+       (elipse, cápsula, polígono chanfrado, fita), luz consistente em
+       faixas com desvio de matiz, rim light, especular, sombra de contato,
+       contorno seletivo, camada de BRILHO separada (olhos/chamas/runas).
+     - A FAÍSCA (herói, ~30 px): cabeça redonda de cinza clara com
+       rachaduras de brasa, olhos escuros com pupila de brasa, CHAMA viva na
+       cabeça (é uma PointLight2D que ilumina o caminho), cachecol cor de
+       brasa que esvoaça, manto esfarrapado, broche dourado. 13 animações
+       (idle run jump fall dash crouch wall climb attack cast hurt death
+       sleep). O herói fica na camada de luz 2 (a luz da própria chama não o
+       pinta de laranja; LightUtil.LIT_WORLD/LIT_ACTORS).
+     - 13 ARMAS em sprite (giradas no ponto "hand" de cada quadro, com
+       rastro): longsword fine_sword greatsword katana heavy_katana
+       dual_katana daggers knife staff bleed_blade sword_shield gauntlets
+       shield.
+     - 16 INIMIGOS/CHEFES: Oco Errante (skeleton), Cão Infernal, Gato do
+       Abismo, Saltador Espinhoso, Espectro, Lampadário (lanterna), Crânio
+       Flamejante, Morcego-Brasa, Besta do Inferno, Corcel do Pesadelo,
+       Atirador (besta + olho-lanterna), Lâmina Sombria, Escudeiro de Ferro,
+       Mãe da Ninhada, Colosso de Pedra (núcleo brilhante; "crouch" =
+       ajoelhado com o núcleo 12 unidades mais baixo, igual ao ponto fraco),
+       Arquidemônio; e o DUELISTA SOMBRIO = a Faísca em negativo (paleta
+       DUELIST_PAL, chama azul). Bodies em data/enemies.json aumentados
+       para bater com a arte; pontos fracos da Mãe e do Colosso alinhados;
+       "hide_weapon" nas feras (atacam com o corpo).
+     - CreatureSprite (scripts/fx/creature_sprite.gd) ganhou o MODO FOLHA:
+       spec "sprite": <id> -> anima pelas folhas (aliases de animação,
+       quadros do golpe seguem a fase da arma), GlowLayer (ADD, sem luz,
+       HDR -> bloom), shader sprite_fx (flash, contorno de status,
+       dissolução), SheetGhost (rastro), point("hand"/"head"). O modo
+       antigo (criaturinha em código) continua como reserva (NPCs ainda o
+       usam). Enemy usa a folha se existir (enemy_id); Player usa "hero".
+ [x] TERRENO 16 px (tools/build_tiles.py reescrito):
+     - atlas 8x11 por material: autotile BLOB de 47 formatos (+ variações
+       dos 4 formatos comuns), bloco rachado, parede de fundo, plataformas
+       E/M/D/única, espinhos, 4 franjas de grama, 4 pendentes de teto
+       (cipós, raízes, estalactites, correntes, teias, estandartes), 8
+       decorações temáticas por material.
+     - Pixels MAGENTA = miolo: shaders/terrain.gdshader troca pela textura
+       grande do material (<nome>_fill.png 128x128) amostrada na posição do
+       mundo (sem repetição por tile); o verde do magenta = brilho do
+       chanfro. Rocha escurece com a profundidade (LevelBuilder gera uma
+       textura de 1 px por célula com a distância até o ar; filtro linear).
+       Normais (<nome>_fill_n.png, <nome>_n.png) + altura nas luzes
+       (LightUtil: height 26) => a luz reflete no relevo das pedras.
+     - scripts/level/blob_table.gd é GERADO pelo build_tiles.py.
+     - TileSetBuilder: tiles 16 px, camadas com escala 0.5.
+     - TILE_PREVIEW=<pasta> python3 tools/build_tiles.py <mat> compõe uma
+       prévia de fase sem abrir o Godot.
+ [x] CENÁRIOS 480x270 (tools/build_scenery.py reescrito): 10 estilos, 3-5
+     camadas de 960x270 cada (l0..lN.png), céu 480x270, 4 nuvens pintadas.
+     Passo de VOLUME nas silhuetas (distância até a borda -> normal -> luz em
+     faixas + rim light), névoa atmosférica, janelas/cristais emissivos.
+     BackgroundLayer lê "layers" de data/scenery.json; a "vida" (pássaros,
+     névoa, eventos) é desenhada numa tela virtual 240x135 com escala 2.
+ [x] LUZ estilo Hollow Knight: ambiente mais escuro conforme o bioma
+     (Level._build_world: lift 0.42 aberto, 0.34 fechado, 0.24 subterrâneo,
+     0.55 céu), chama do herói + tochas + brilho dos olhos das criaturas.
+ [x] Abertura (intro) ampliada para 480x270 e herói novo nela.
+ Testes: suíte completa verde (ver o fim do log da sessão).
+
+-------------------------------------------------------------------------------
+2. O QUE FALTA (ordem sugerida para a sessão 7)
+-------------------------------------------------------------------------------
+Pergunte primeiro o que o usuário achou da arte nova (herói, inimigos,
+terreno, fundos, escuridão). Ajuste antes de seguir.
+
+A) ARTE que ainda está no estilo antigo (pixels 2x2 desenhados em código):
+   - Entidades: baú, tocha, santuário/checkpoint, portões/portas, alavanca,
+     mola, serra, cristal de dash, Lanterna de Ímpeto, plataforma que cai,
+     pickups/brasas, inscrição, altar, fenda, quadro de missões, relíquia.
+     Caminho: gerar sprites com o spritekit (novo "props" no
+     build_sprites.py) e desenhar com escala 0.5 (como o CreatureSprite).
+   - NPCs das vilas: ainda usam a criaturinha antiga (npc.gd, ROLE_LOOK).
+     Fazer um aldeão base no spritekit com paletas por papel.
+   - Projéteis, pedras do colosso, faíscas/partículas (FX.burst tamanhos),
+     arco de corte (slash_arc.gd) mais fino e elegante.
+   - HUD: continua bom, mas pode ganhar moldura/ícones em 480x270.
+   - Luz da lanterna do Lampadário deveria seguir o ponto "lantern".
+B) MAPAS COM NEXO E DIREÇÃO (itens 1 e 4 do feedback — NÃO FEITO ainda):
+   objetivo por região na HUD e no mapa; estrutura entrada -> santuário ->
+   ramos -> covil do chefe; menos arenas trancadas e mais exploração
+   (LevelGenerator.PATH_WEIGHTS, tools/build_rooms.py, room_synth.gd);
+   inimigos posicionados com propósito; marcos visuais por região.
+C) MAPA INTERATIVO (map_screen.gd): zoom, ícones de objetivo/NPC/loja/chefe,
+   legenda, gamepad; manter viagem rápida.
+D) Depois: vilas com casas/NPCs andando, missões reais, música por bioma,
+   limpeza do legado (scenes/world_map.tscn, scripts/ui/world_map.gd,
+   assets/art/characters antigos), export Windows.
+
+-------------------------------------------------------------------------------
+3. COMO TRABALHAR NO CONTAINER
+-------------------------------------------------------------------------------
+ - Godot: /usr/local/bin/godot (headless) e /opt/godot-gfx (com janela).
+ - Arte (Python com numpy, pillow, scipy):
+     python3 tools/build_sprites.py [id ...]   (SPRITE_PREVIEW=<pasta> gera pranchas)
+     python3 tools/build_tiles.py [material ...]
+     python3 tools/build_scenery.py [estilo ...]
+   Depois: godot --headless --path . --import
+ - Testes: godot --headless --path . res://tests/test_runner.tscn (~5 min;
+   use ulimit -v 8000000 e timeout). TEST_ONLY=test_x roda um arquivo.
+   tools/check_scripts.sh acusa "Failed to compile depended scripts" em
+   vários arquivos por causa dos autoloads no modo --check-only (já era
+   assim antes; não é erro real).
+ - Screenshots: xvfb-run -a -s "-screen 0 1280x720x24" /opt/godot-gfx --path .
+   --rendering-driver vulkan res://tests/shots.tscn -- <pasta> <cenário>
+   (rooms region menu pause map combat shop bosses juice overview biomes intro)
+ - Armadilhas do GDScript 4.7: `var x := <Variant>` falha (tipe explícito);
+   no fragment de canvas_item o COLOR já vem multiplicado pela textura (use
+   uma varying com o COLOR do vertex se for trocar a cor).
+===============================================================================

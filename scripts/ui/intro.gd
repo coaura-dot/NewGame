@@ -30,10 +30,13 @@ func _ready() -> void:
 		return
 	Music.play("menu", 2.0)
 	Music.play_ambience("vento")
+	# as ilustrações são desenhadas em 320x180 e ampliadas para a tela 480x270
+	scale = Vector2(1.5, 1.5)
 	_hero = CreatureSprite.new()
-	_hero.spec = {"body": [5, 4], "head": [6, 5], "color": [0.24, 0.22, 0.38], "shell": [0.93, 0.9, 0.84], "eyes": "hollow", "legs": 2, "horns": true, "weapon": true}
+	_hero.spec = {"sprite": "hero", "body": [5, 4], "head": [6, 5], "color": [0.24, 0.22, 0.38], "shell": [0.93, 0.9, 0.84], "eyes": "hollow", "legs": 2}
 	_hero.visible = false
-	_hero.scale = Vector2(2, 2)
+	# 1 pixel de arte = 1 pixel da tela (0,5 x 1,5 x 4/3)
+	_hero.scale = Vector2(4.0 / 3.0, 4.0 / 3.0)
 	add_child(_hero)
 	_ui = CanvasLayer.new()
 	add_child(_ui)

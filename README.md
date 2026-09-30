@@ -23,6 +23,16 @@ estilo Dead Cells montadas com uma biblioteca de estruturas feitas à mão, hist
 
 Técnicas: **atacar durante o dash = Corte-Relâmpago** (atravessa cortando, em qualquer direção); **todo acerto recarrega o dash e o pulo** (dash → corte → dash...); golpear **Lanternas de Ímpeto** também recarrega; baixo+ataque no ar = **pogo**; pulo durante dash no chão = **super/hyper**; aparo perfeito = câmera lenta + crítico (e rebate o tiro do Atirador de volta, fatal); baixo+pesado no ar = **Queda Esmagadora**.
 
+## Sessão 6 — fim do visual "8 bit": pixel art moderna em 480x270
+![biomas](docs/biomas.jpg)
+- **Resolução nova**: o mundo agora é desenhado em **480x270** (4x exato em 1080p) com toda a arte no **dobro da densidade** — tiles de 16 px e personagens com ~30 px de altura (antes 12-14 px). A física e as salas não mudaram.
+- **A Faísca redesenhada**: pequena criatura de cinza clara com rachaduras de brasa, olhos escuros com pupila acesa, **uma chama viva na cabeça que ilumina o caminho**, cachecol cor de brasa que esvoaça e manto esfarrapado. 13 animações (correr, pular, cair, dash, parede, escalar, golpe, magia, dano, morte, dormir...).
+- **Inimigos com identidade** (16, todos animados, com olhos que brilham no escuro): Oco Errante de elmo rachado, Cão Infernal de costelas à mostra e cauda em brasa, Gato do Abismo, Saltador Espinhoso, Espectro encapuzado, Lampadário com sua lanterna, Crânio Flamejante, Morcego-Brasa, Besta do Inferno, Corcel do Pesadelo de crina azul, Atirador com olho-lanterna, Lâmina Sombria, Escudeiro de Ferro, Mãe da Ninhada, Colosso com núcleo brilhante, Arquidemônio alado — e o **Duelista Sombrio, reflexo negro da Faísca**. 13 armas desenhadas girando no golpe.
+- **Terreno novo**: autotile completo (47 formatos de borda) por material, grama sobre as bordas, cipós e estalactites no teto, decorações temáticas, texturas grandes sem repetição (blocos, terra com raízes, mármore, runas, ossos...) e **rocha que escurece com a profundidade** como no Hollow Knight. As pedras têm relevo: **a luz da chama e das tochas reflete nelas**.
+- **Cenários de fundo refeitos** em 480x270: 3-5 camadas com volume, borda iluminada pelo sol/lua, névoa atmosférica, janelas acesas e nuvens pintadas.
+- **Clima escuro** nos lugares fechados e subterrâneos (a luz vem das chamas); bloom só no que brilha de verdade.
+- Ferramentas: `tools/spritekit.py` (mini renderizador de pixel art), `tools/build_sprites.py`, `tools/sprites_enemies.py`, `tools/build_tiles.py`, `tools/build_scenery.py` — tudo gera PNGs simples, fáceis de editar à mão.
+
 ## Sessão 4 — gameplay frenética, fases grandes, mundo contínuo, arte e história
 ![biomas](docs/biomas.jpg)
 - **Escala maior**: o mundo renderiza em 256x144 (tudo 25% maior) com um filtro de pixel nítido para qualquer resolução. **Câmera livre estilo Dead Cells** (olha à frente, zona morta vertical) que só trava em arenas e chefes.
@@ -74,4 +84,4 @@ Técnicas: **atacar durante o dash = Corte-Relâmpago** (atravessa cortando, em 
 Screenshots de vários cenários: `godot --path . res://tests/shots.tscn -- <pasta> [all|rooms|region|menu|pause|map|combat|shop|bosses|juice|overview|biomes|intro]`.
 
 ## Pendências conhecidas (próxima sessão)
-Veja `CONTEXTO_SESSAO_6.txt` (feedback do usuário, estado atual e plano: escala/resolução maior com arte detalhada, mapas com objetivo e mais exploração).
+Veja `CONTEXTO_SESSAO_7.txt`: arte nova para baús/portas/tochas/NPCs, **mapas com objetivo e direção** (menos arenas, mais exploração), mapa interativo com ícones e zoom.

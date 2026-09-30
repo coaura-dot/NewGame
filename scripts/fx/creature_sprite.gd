@@ -483,7 +483,7 @@ func _draw_sheet() -> void:
 	if tex == null:
 		return
 	# arma atrás do corpo na preparação de golpes para trás; na frente no resto
-	var blade: Dictionary = BLADES.get(weapon_class, {})
+	var blade: Dictionary = BLADES.get(weapon_class, {}) if not spec.get("hide_weapon", false) else {}
 	var armed := swing >= 0.0 and not blade.is_empty()
 	var behind := armed and swing < 0.3 and swing_kind in ["side", "spin"]
 	if armed and behind:

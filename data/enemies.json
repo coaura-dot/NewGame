@@ -7,8 +7,8 @@
   "speed": 62,
   "ai": "melee",
   "body": [
-   6,
-   8
+   7,
+   12
   ],
   "contact_damage": 0,
   "aggro": 150,
@@ -79,8 +79,8 @@
   "speed": 115,
   "ai": "lunger",
   "body": [
-   10,
-   6
+   11,
+   8
   ],
   "contact_damage": 0,
   "aggro": 170,
@@ -137,7 +137,8 @@
    ],
    "legs": 4,
    "ears": true,
-   "tail": true
+   "tail": true,
+   "hide_weapon": true
   }
  },
  "hellcat": {
@@ -147,8 +148,8 @@
   "speed": 125,
   "ai": "lunger",
   "body": [
-   9,
-   5
+   10,
+   7
   ],
   "contact_damage": 0,
   "aggro": 170,
@@ -207,7 +208,8 @@
    ],
    "legs": 4,
    "ears": true,
-   "tail": true
+   "tail": true,
+   "hide_weapon": true
   }
  },
  "ghost": {
@@ -218,8 +220,8 @@
   "ai": "caster",
   "flying": true,
   "body": [
-   8,
-   10
+   9,
+   11
   ],
   "contact_damage": 0,
   "aggro": 160,
@@ -300,8 +302,8 @@
   "ai": "caster",
   "flying": true,
   "body": [
-   7,
-   10
+   8,
+   12
   ],
   "contact_damage": 0,
   "aggro": 160,
@@ -372,7 +374,8 @@
    ],
    "float": true,
    "legs": 0,
-   "lantern": true
+   "lantern": true,
+   "hide_weapon": true
   }
  },
  "fire_skull": {
@@ -384,7 +387,7 @@
   "flying": true,
   "body": [
    8,
-   8
+   9
   ],
   "contact_damage": 6,
   "aggro": 160,
@@ -450,7 +453,8 @@
    "eyes": "hollow",
    "float": true,
    "legs": 0,
-   "flame": true
+   "flame": true,
+   "hide_weapon": true
   }
  },
  "hell_beast": {
@@ -460,8 +464,8 @@
   "speed": 0,
   "ai": "turret",
   "body": [
-   8,
-   12
+   10,
+   16
   ],
   "contact_damage": 0,
   "aggro": 170,
@@ -532,7 +536,8 @@
    ],
    "legs": 2,
    "horns": true,
-   "tail": true
+   "tail": true,
+   "hide_weapon": true
   },
   "vertical_sight": 80
  },
@@ -545,8 +550,8 @@
   "ai": "charger",
   "elite": true,
   "body": [
-   16,
-   12
+   20,
+   16
   ],
   "contact_damage": 8,
   "aggro": 170,
@@ -619,7 +624,8 @@
    ],
    "legs": 4,
    "ears": true,
-   "tail": true
+   "tail": true,
+   "hide_weapon": true
   }
  },
  "archdemon": {
@@ -632,8 +638,8 @@
   "flying": true,
   "boss": true,
   "body": [
-   18,
-   20
+   20,
+   22
   ],
   "contact_damage": 10,
   "aggro": 260,
@@ -745,7 +751,7 @@
   "boss": true,
   "body": [
    6,
-   10
+   12
   ],
   "contact_damage": 0,
   "aggro": 400,
@@ -827,8 +833,8 @@
   "ai": "boss_horde",
   "boss": true,
   "body": [
-   16,
-   12
+   24,
+   16
   ],
   "contact_damage": 8,
   "aggro": 400,
@@ -855,8 +861,8 @@
    {
     "name": "Olho",
     "box": [
-     -3,
-     -18,
+     5,
+     -13,
      6,
      5
     ],
@@ -894,7 +900,8 @@
    ],
    "legs": 4,
    "horns": true,
-   "tail": true
+   "tail": true,
+   "hide_weapon": true
   },
   "drops": [
    {
@@ -924,8 +931,8 @@
   "ai": "boss_colossus",
   "boss": true,
   "body": [
-   22,
-   26
+   24,
+   30
   ],
   "contact_damage": 10,
   "aggro": 400,
@@ -951,7 +958,7 @@
     "name": "Núcleo",
     "box": [
      -4,
-     -26,
+     -21,
      8,
      6
     ],
@@ -1017,8 +1024,8 @@
   "speed": 0,
   "ai": "gunner",
   "body": [
-   6,
-   8
+   7,
+   11
   ],
   "contact_damage": 0,
   "aggro": 180,
@@ -1082,7 +1089,8 @@
    ],
    "legs": 2,
    "ears": true,
-   "lantern": true
+   "lantern": true,
+   "hide_weapon": true
   },
   "_doc": "Katana Zero: mira laser e tiro rápido. Rebata o tiro (golpe ou aparo) e ele volta fatal."
  },
@@ -1093,8 +1101,8 @@
   "speed": 85,
   "ai": "leaper",
   "body": [
-   7,
-   6
+   8,
+   7
   ],
   "contact_damage": 0,
   "aggro": 160,
@@ -1148,7 +1156,8 @@
    "eyes": "dot",
    "legs": 4,
    "tail": true,
-   "horns": true
+   "horns": true,
+   "hide_weapon": true
   }
  },
  "assassin": {
@@ -1159,7 +1168,7 @@
   "ai": "assassin",
   "body": [
    6,
-   9
+   12
   ],
   "contact_damage": 0,
   "aggro": 170,
@@ -1233,8 +1242,8 @@
   "speed": 45,
   "ai": "shield",
   "body": [
-   8,
-   10
+   9,
+   14
   ],
   "poise": 6.0,
   "contact_damage": 0,
@@ -1304,8 +1313,8 @@
   "ai": "diver",
   "flying": true,
   "body": [
-   6,
-   5
+   8,
+   6
   ],
   "contact_damage": 8,
   "aggro": 160,
@@ -1357,7 +1366,8 @@
    ],
    "legs": 0,
    "wings": true,
-   "float": true
+   "float": true,
+   "hide_weapon": true
   },
   "_doc": "Paira e mergulha. Frágil: ótimo para pogo e para recarregar o dash."
  }

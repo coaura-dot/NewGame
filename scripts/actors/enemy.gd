@@ -107,7 +107,10 @@ func _ready() -> void:
 	add_child(cs)
 	if flying:
 		collision_mask = Layers.WORLD
-	setup_creature(data.get("look", {}))
+	var look: Dictionary = data.get("look", {}).duplicate()
+	if not CreatureSprite.load_sheet(enemy_id).is_empty():
+		look["sprite"] = enemy_id # arte detalhada (tools/build_sprites.py)
+	setup_creature(look)
 	var hb := Hurtbox.make(self, Vector2(body[0], body[1]) * 1.1, cs.position)
 	add_child(hb)
 	for wp in data.get("weak_points", []):

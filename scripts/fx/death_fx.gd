@@ -118,7 +118,7 @@ class Half extends Node2D:
 		var c := Vector2(0, -6)
 		var u := Vector2.from_angle(cut_angle)
 		var n := Vector2(-u.y, u.x) * side
-		draw_colored_polygon(PackedVector2Array([c - u * 40.0, c + u * 40.0, c + u * 40.0 + n * 40.0, c - u * 40.0 + n * 40.0]), Color.WHITE)
+		draw_colored_polygon(PackedVector2Array([c - u * 90.0, c + u * 90.0, c + u * 90.0 + n * 90.0, c - u * 90.0 + n * 90.0]), Color.WHITE)
 
 
 ## Pedacinhos quadrados que espirram na direção do golpe e quicam.

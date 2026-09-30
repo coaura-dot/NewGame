@@ -183,9 +183,9 @@ func _build_world() -> void:
 	var tags: Array = biome.get("tags", [])
 	var lift := 0.42
 	if tags.has("indoor"):
-		lift = 0.26
+		lift = 0.34
 	if tags.has("underground") or tags.has("dark"):
-		lift = 0.16
+		lift = 0.24
 	if tags.has("sky"):
 		lift = 0.55
 	var ambient := Color(ambient_a[0], ambient_a[1], ambient_a[2]).lerp(Color.WHITE, lift)
