@@ -138,6 +138,8 @@ class Canvas:
         self.over_glow = np.zeros((self.h, self.w, 4), dtype=np.float64)
         self.glow = np.zeros((self.h, self.w, 4), dtype=np.float64)
         self.no_outline = np.zeros((self.h, self.w), dtype=bool)
+        # pixels que NÃO brilham (olhos escuros sobre a chama)
+        self.kill_glow = np.zeros((self.h, self.w), dtype=bool)
 
     # -- utilitários -------------------------------------------------------
     def _commit(self, mask, z, normal, mat, bias=None, no_outline=False):
@@ -293,6 +295,11 @@ class Canvas:
             self.over[r, c] = col
             if glow:
                 self.over_glow[r, c] = col
+                self.kill_glow[r, c] = False
+            elif self.over_glow[r, c, 3] > 0:
+                # detalhe escuro por cima de algo que brilha: apaga o brilho
+                self.over_glow[r, c] = 0.0
+                self.kill_glow[r, c] = True
 
     def dot(self, x, y, color, glow=False):
         """Pinta o "pixel de desenho" que contém (x, y): na grade fina isso
@@ -346,6 +353,32 @@ class Canvas:
             self.over[m] = col
             self.over_glow[m] = col
         return masks[0]
+
+    def fill_ellipse(self, cx, cy, rx, ry, color, glow=False, unglow=True):
+        """Elipse chapada por cima de tudo (olhos sobre a chama, pupilas).
+        unglow apaga o brilho embaixo (o escuro continua escuro no bloom)."""
+        col = np.array(color if len(color) == 4 else tuple(color) + (255,), dtype=np.float64)
+        m = ((self.X - cx) / max(rx, 1e-3)) ** 2 + ((self.Y - cy) / max(ry, 1e-3)) ** 2 <= 1.0
+        self.over[m] = col
+        if glow:
+            self.over_glow[m] = col
+        elif unglow:
+            self.over_glow[m] = 0.0
+            self.over_glow[m, 3] = 0.0
+            self.kill_glow |= m
+        return m
+
+    def fill_poly(self, pts, color, glow=False, unglow=True):
+        """Polígono chapado por cima de tudo."""
+        col = np.array(color if len(color) == 4 else tuple(color) + (255,), dtype=np.float64)
+        m = self._inside_poly(pts)
+        self.over[m] = col
+        if glow:
+            self.over_glow[m] = col
+        elif unglow:
+            self.over_glow[m] = 0.0
+            self.kill_glow |= m
+        return m
 
     # -- render ---------------------------------------------------------------
     def render(self, outline=True, contact=True, despeckle=True):
@@ -408,6 +441,7 @@ class Canvas:
         img[om] = self.over[om]
         gm = self.over_glow[..., 3] > 0
         self.glow[gm] = self.over_glow[gm]
+        self.glow[self.kill_glow] = 0.0
         if outline:
             img = self._outline(img)
         return np.clip(img, 0, 255).astype(np.uint8), np.clip(self.glow, 0, 255).astype(np.uint8)

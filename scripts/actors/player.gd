@@ -1546,9 +1546,15 @@ func _animate() -> void:
 				play_anim("wall")
 			else:
 				play_anim("jump" if _vy() < 0.0 else "fall")
-	# a luz acompanha a chama da cabeça
+	# a luz sai do vidro da lanterna (a brasa do Lume): tremula e enfraquece
+	# com a vida baixa
 	if light and sprite.has_sheet():
-		light.position = sprite.point("head") + Vector2(0, -2.5)
+		light.position = sprite.point("core")
+		var life := clampf(hp / maxf(max_hp(), 1.0), 0.0, 1.0)
+		var t := Time.get_ticks_msec() / 1000.0
+		var flick := 1.0 + 0.05 * sin(t * 13.0) + 0.03 * sin(t * 31.0 + 1.3)
+		light.energy = 0.68 * (0.62 + 0.38 * life) * flick
+		light.texture_scale = 0.44 * (0.82 + 0.18 * life)
 	if state == State.HURT or (invuln_time > 0.3 and state != State.DASH and state != State.DODGE):
 		sprite.visible = fmod(Time.get_ticks_msec() / 60.0, 2.0) > 0.6
 	else:

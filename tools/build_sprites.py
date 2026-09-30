@@ -119,7 +119,7 @@ def hero_pose(anim, t, i, n):
         p["hem"] = -0.5
         p["flare"] = 1.4
         p["cloak_up"] = 1.5
-        p["scarf_ang"] = 118 - wave(t) * 10
+        p["scarf_ang"] = 250 - wave(t) * 10
         p["scarf_amp"] = 2.2
         p["scarf_ph"] = t * 2
         p["scarf_len"] = 16
@@ -245,9 +245,9 @@ HERO_PAL = {"ash": None, "cloak": None, "cloak_in": None, "scarf": None, "leg": 
             "eye": None, "eye_core": None, "eye_edge": None, "crack": None, "crack_dim": None, "flame": None}
 
 
-def draw_hero(c, p, frame_t, pal=None):
-    """Desenha a Faísca; `pal` troca materiais/cores (o Duelista Sombrio é
-    o reflexo dela)."""
+def draw_ashfolk(c, p, frame_t, pal=None):
+    """O povo de cinza de Cindária (aldeões): cabeça redonda de cinza,
+    manto e cachecol. `pal` troca materiais/cores por ofício."""
     pal = pal or {}
     M_ASH_ = pal.get("ash", M_ASH)
     M_CLOAK_ = pal.get("cloak", M_CLOAK)
@@ -364,6 +364,215 @@ def draw_hero(c, p, frame_t, pal=None):
         if int(p["flame_ph"] * 8) % 5 == 2:
             c.dot(fx - 1 + p["flame_lean"], fy - p["flame_h"] - 2.5, hexc("#ffd070"), glow=True)
     return {"hand": [p["hand"][0] + lean * 0.5, p["hand"][1] + bob * 0.5], "head": [hx, hy - 7.0]}
+
+
+# ===========================================================================
+# LUME, O LAMPADEIRO (protagonista)
+# Uma criaturinha cuja cabeça é uma LANTERNA de ferro e vidro. Dentro dela
+# vive a última brasa intacta de Cindária — um espírito de chama com dois
+# olhos escuros: é o rosto do Lume. A argola no topo da lanterna carrega
+# duas fitas carmim que esvoaçam; o corpo é pequeno, num poncho azul-
+# petróleo com barra ocre, e perninhas escuras de botas de latão.
+# Quando apanha, a chama encolhe e o vidro racha; quando morre, apaga.
+# ===========================================================================
+
+M_IRON = Mat(["#1c1718", "#322a28", "#4e423c", "#746256", "#a08a72"], spec=0.9, rim=0.7, rim_color="#c89a6a", outline="#070506", wrap=0.4)
+M_GLASS = Mat(["#2e120c", "#4e1e10", "#763214", "#a24c1c", "#d27a30"], spec=1.0, rim=0.0, outline="#140604",
+              wrap=0.6, ambient=0.45, glow=(46, 16, 4, 255))
+M_PONCHO = Mat(["#0c161c", "#122229", "#193039", "#24434d", "#355c66"], rim=0.8, rim_color="#6fa0a4", outline="#05090c", wrap=0.35)
+M_TRIM = Mat("#b8863a", n=4, spread=0.55, rim=0.5, rim_color="#ffd98a", outline="#2a1a08", wrap=0.4)
+M_RIBBON = Mat(["#3e0a10", "#6a1418", "#9a2224", "#c8392c", "#ee6a44"], rim=0.8, rim_color="#ff9a6a", outline="#1c0406", wrap=0.35)
+M_LUME_LEG = Mat("#231d26", n=4, spread=0.55, rim=0.6, rim_color="#6a5a70", outline="#0a080c")
+M_LUME_BOOT = Mat(["#1e1410", "#33221a", "#4a3224", "#654632"], spec=0.3, rim=0.5, rim_color="#8a6a50", outline="#0a0604")
+M_POUCH = Mat("#5a3a24", n=4, spread=0.55, rim=0.4, outline="#180c06")
+
+LUME_FIRE = [hexc("#d8501a"), hexc("#ff9a30"), hexc("#ffd870"), hexc("#fff6da")]
+LUME_EYE = hexc("#1a0b0e")
+LUME_SHINE = hexc("#fff3dc")
+LUME_CRACK = hexc("#fff0c8")
+
+
+def _ring(c, cx, cy, r, th, mat, z):
+    """Argola de ferro (anel vazado) feita de segmentos."""
+    n = 10
+    pts = [(cx + math.cos(k / n * math.tau) * r, cy + math.sin(k / n * math.tau) * r) for k in range(n + 1)]
+    for k in range(n):
+        c.capsule(pts[k][0], pts[k][1], pts[k + 1][0], pts[k + 1][1], th, th, mat, z=z)
+
+
+def _ribbon_pts(start, ang_deg, length, amp, ph, n=7, droop=0.0):
+    ang = math.radians(ang_deg)
+    seg = length / n
+    pts = [start]
+    for j in range(1, n + 1):
+        k = j / n
+        ox = math.cos(ang) * seg * j
+        oy = math.sin(ang) * seg * j + droop * k * k * length * 0.25
+        px, py = -math.sin(ang), math.cos(ang)
+        w = math.sin((ph - k * 0.8) * math.tau) * amp * k * 1.0
+        pts.append((start[0] + ox + px * w, start[1] + oy + py * w))
+    return pts
+
+
+def draw_lume(c, p, frame_t, pal=None):
+    """Desenha o Lume. `pal` troca materiais/cores (o Duelista Sombrio é o
+    reflexo dele: vidro negro e chama azul-fria)."""
+    pal = pal or {}
+    IRON = pal.get("iron", M_IRON)
+    GLASS = pal.get("glass", M_GLASS)
+    PONCHO = pal.get("poncho", M_PONCHO)
+    TRIM = pal.get("trim", M_TRIM)
+    RIBBON = pal.get("ribbon", M_RIBBON)
+    LEG = pal.get("leg", M_LUME_LEG)
+    BOOT = pal.get("boot", M_LUME_BOOT)
+    FIRE = pal.get("fire", LUME_FIRE)
+    EYE_C = pal.get("eye", LUME_EYE)
+    SHINE = pal.get("shine", LUME_SHINE)
+    bob = p["bob"]
+    lean = p["lean"]
+    cr = p["crouch"]
+    hip_y = -6.5 + bob * 0.5 + cr * 0.5
+    # --- pernas (atrás do poncho) ---
+    for k, (fx, fy, bend) in enumerate(p["legs"]):
+        hx0 = (-1.5 if k == 0 else 1.5) + lean * 0.3
+        knee = ((hx0 + fx) * 0.5 + bend * 1.3, (hip_y + fy) * 0.5 - bend * 0.7)
+        z = -1.0 if k == 0 else 1.0
+        c.limb([(hx0, hip_y), knee, (fx, fy - 1.1)], [1.5, 1.25, 1.2], LEG, z=z)
+        c.ellipse(fx + 0.8, fy - 0.9, 2.1, 1.25, BOOT, z=z + 0.2)
+    # --- poncho em sino ---
+    top_y = -13.2 + bob + cr
+    hem_y = -4.4 + bob * 0.3 + cr * 0.4 - p["cloak_up"]
+    fl = p["flare"]
+    hem = p["hem"]
+    sh = lean * 0.8
+    # barra lisa em sino, sem farrapos: não é o manto de um cavaleiro, é a
+    # capa de chuva de um acendedor de lampiões
+    left_x = -7.4 - fl + hem
+    right_x = 6.4 + fl * 0.8 + hem * 0.3
+    mid_x = -0.4 + hem * 0.6
+    hem_line = [(left_x, hem_y - 0.4), (left_x + 1.6, hem_y + 0.9), (mid_x, hem_y + 1.5), (right_x - 1.6, hem_y + 1.0), (right_x, hem_y - 0.3)]
+    poncho = [(-3.0 + sh, top_y - 0.2), (3.2 + sh, top_y - 0.2), (right_x - 0.6, hem_y - 3.0)] + hem_line[::-1] + [(left_x + 0.7, hem_y - 3.2)]
+    c.poly(poncho, PONCHO, z=2.0, bevel=3.4, folds=(1.0, 1.0, frame_t * 2.0, 0.12))
+    # barra ocre seguindo a curva
+    trim = [(x, y - 0.55) for (x, y) in hem_line]
+    c.ribbon(trim, [1.1] * len(trim), TRIM, z=2.1)
+    # forro aparece quando o poncho abre (golpe/magia)
+    if p["open"] > 0.2:
+        o = p["open"]
+        c.poly([(1.0 + sh, top_y + 3.5), (4.2 + sh * 0.6 + o, top_y + 4.5), (right_x - 0.2, hem_y - 0.8), (1.5 + hem * 0.7, hem_y)],
+               TRIM, z=2.2, bevel=1.2)
+    # --- lanterna (cabeça) ---
+    lx = 0.9 + lean + p["head_dx"]
+    ly = top_y - 9.2 + p["head_dy"] - (0.5 if p["stretch"] else 0.0)
+    tl = p["tilt"]
+
+    def rot(x, y):
+        ca, sa = math.cos(tl), math.sin(tl)
+        return lx + x * ca - y * sa, ly + x * sa + y * ca
+
+    # gola do poncho (cobre o pescoço da lanterna)
+    c.ellipse(lx - 0.2 + sh * 0.2, top_y + 0.6, 5.0, 2.1, PONCHO, z=2.9, bulge=0.7)
+    # gola de ferro (pescoço da lanterna)
+    x0, y0 = rot(-3.0, 6.5)
+    x1, y1 = rot(3.0, 6.5)
+    c.capsule(x0, y0, x1, y1, 1.1, 1.1, IRON, z=3.0)
+    # vidro
+    gx, gy = rot(0.0, 0.2)
+    c.ellipse(gx, gy, 6.7, 6.0, GLASS, z=3.5, ang=tl, bulge=0.9)
+    # aros de cima e de baixo
+    for yy, rr, ww in [(-5.7, 0.95, 5.2), (5.9, 1.1, 5.6)]:
+        x0, y0 = rot(-ww, yy)
+        x1, y1 = rot(ww, yy)
+        c.capsule(x0, y0, x1, y1, rr, rr, IRON, z=4.2)
+    # grades laterais (a gaiola da lanterna)
+    for xx in (-6.5, 6.5):
+        x0, y0 = rot(xx * 0.86, -5.4)
+        x1, y1 = rot(xx * 1.02, 0.2)
+        x2, y2 = rot(xx * 0.9, 5.7)
+        c.limb([(x0, y0), (x1, y1), (x2, y2)], [0.75, 0.85, 0.75], IRON, z=4.3)
+    # tampa baixa + chaminé + argola
+    cx_, cy_ = rot(0.0, -6.9)
+    c.ellipse(cx_, cy_, 4.0, 1.6, IRON, z=4.4, ang=tl)
+    x0, y0 = rot(0.0, -7.8)
+    x1, y1 = rot(0.0, -9.0)
+    c.capsule(x0, y0, x1, y1, 1.1, 0.9, IRON, z=4.5)
+    rx_, ry_ = rot(0.0, -11.0)
+    _ring(c, rx_, ry_, 1.9, 0.55, IRON, 4.6)
+    # --- fitas carmim amarradas na argola ---
+    knot = rot(-1.2, -9.8)
+    ang = p["scarf_ang"]
+    L = p["scarf_len"]
+    amp = p["scarf_amp"]
+    ph = p["scarf_ph"]
+    for k, (dl, da, wd) in enumerate([(1.0, 0.0, 3.0), (0.7, 16.0, 2.4)]):
+        pts = _ribbon_pts(knot, ang + da, L * dl, amp * (1.0 + 0.25 * k), ph + k * 0.3, droop=0.6)
+        widths = [wd * (1.0 - 0.35 * j / (len(pts) - 1)) for j in range(len(pts))]
+        c.ribbon(pts, widths, RIBBON, z=1.4 - k * 0.1, twist=(ph + k * 0.3) * math.tau)
+        ex, ey = pts[-1]
+        # ponta em V (fita cortada)
+        c.poly([(ex, ey - wd * 0.5), (ex + math.cos(math.radians(ang)) * 1.6, ey), (ex, ey + wd * 0.5)], RIBBON, z=1.4, bevel=0.6)
+    c.ellipse(knot[0], knot[1], 1.3, 1.1, RIBBON, z=4.7)
+    # --- a brasa: espírito de chama dentro do vidro ---
+    power = max(0.0, min(1.0, p["flame_h"] / 9.0))
+    eyes = p["eyes"]
+    if power > 0.05:
+        fw = 6.4 + power * 1.8
+        fh = 5.0 + power * 4.4
+        bx, by = rot(0.2, 3.9)
+        c.flame(bx, by, fw, fh, lean=p["flame_lean"] * 0.6, t=p["flame_ph"], palette=FIRE)
+        # núcleo: o "rosto" mais claro onde ficam os olhos
+        fx, fy = rot(0.6, 1.4)
+        c.fill_ellipse(fx, fy, 2.6 + power * 0.6, 2.3 + power * 0.4, FIRE[2], glow=True)
+    # olhos
+    look = p["look"]
+    blink = p["blink"] > 0.5
+    for k, dx in enumerate((2.4, -1.3)):
+        ex, ey = rot(dx + look * 0.7 + 0.3, 0.9)
+        if eyes == "closed" or blink or power <= 0.05:
+            if power <= 0.05 and eyes != "closed":
+                continue
+            c.fill_poly([(ex - 1.1, ey + 0.2), (ex + 1.1, ey + 0.2), (ex + 0.8, ey + 0.9), (ex - 0.8, ey + 0.9)], EYE_C)
+            continue
+        if eyes == "hurt":
+            # > <  (espremidos)
+            s = 1 if k == 1 else -1
+            c.line(ex - 0.8 * s, ey - 1.0, ex + 0.6 * s, ey + 0.1, EYE_C)
+            c.line(ex + 0.6 * s, ey + 0.1, ex - 0.8 * s, ey + 1.2, EYE_C)
+            continue
+        if eyes == "narrow":
+            # determinação: olhos mais baixos e sobrancelha em diagonal
+            c.fill_ellipse(ex, ey + 0.6, 0.95, 1.15, EYE_C)
+            s_ = 1 if k == 0 else -1
+            c.line(ex - 1.2 * s_, ey - 1.1, ex + 0.9 * s_, ey - 0.3, EYE_C)
+            continue
+        ry = 2.0 if eyes == "wide" else 1.7
+        rx = 1.1 if eyes == "wide" else 0.95
+        c.fill_ellipse(ex, ey, rx, ry, EYE_C)
+        # brilho no olho
+        c.dot(ex + 0.35, ey - ry * 0.45, SHINE)
+    # reflexo no vidro (canto de cima, do lado da luz)
+    for (a, b) in [((-4.3, -3.2), (-3.2, -4.3))]:
+        x0, y0 = rot(*a)
+        x1, y1 = rot(*b)
+        c.line(x0, y0, x1, y1, pal.get("glint", hexc("#fff4d8")), glow=True)
+    x0, y0 = rot(-4.6, -1.6)
+    c.dot(x0, y0, pal.get("glint", hexc("#fff4d8")), glow=True)
+    # vidro rachado (apanhando / morrendo)
+    cracks = p.get("cracks", 0)
+    if eyes == "hurt" or cracks:
+        for (a, b) in [((3.8, -4.4), (2.6, -2.4)), ((2.6, -2.4), (3.6, -1.2)), ((3.6, -1.2), (2.8, 0.4))][: max(2, cracks)]:
+            x0, y0 = rot(*a)
+            x1, y1 = rot(*b)
+            c.line(x0, y0, x1, y1, pal.get("crack", LUME_CRACK), glow=True)
+    # faísca que escapa pela chaminé de vez em quando
+    if power > 0.5 and int(p["flame_ph"] * 8) % 5 == 2:
+        sx, sy = rot(0.4 + p["flame_lean"], -12.0 - power * 2)
+        c.dot(sx, sy, hexc("#ffd070"), glow=True)
+    return {"hand": [p["hand"][0] + lean * 0.5, p["hand"][1] + bob * 0.5 + 1.0], "head": [lx, ly - 15.0], "core": [lx, ly]}
+
+
+def draw_hero(c, p, frame_t, pal=None):
+    return draw_lume(c, p, frame_t, pal)
 
 
 HERO_ANIMS = {
@@ -529,16 +738,17 @@ def render_character(cid, size, anims, pose_fn, draw_fn, meta):
 # O Duelista Sombrio: "um reflexo seu que aprendeu a lutar sozinho" — a
 # Faísca em negativo (cabeça de cinza escura, chama azul, olhos vermelhos).
 DUELIST_PAL = {
-    "ash": Mat(["#141019", "#221b2a", "#322838", "#443650", "#584a66"], rim=0.8, rim_color="#8ab8ff", outline="#050308", wrap=0.5, ambient=0.3),
-    "cloak": Mat(["#060408", "#0c0910", "#140f1a", "#1e1726", "#2a2034"], rim=0.8, rim_color="#5a7ab8", outline="#020103"),
-    "cloak_in": Mat("#1a2a5a", n=4, spread=0.6, rim=0.0, outline="#04060e"),
-    "scarf": Mat(["#12030a", "#260612", "#3e0c1c", "#5a1426", "#781c30"], rim=0.8, rim_color="#ff4a6a", outline="#080104"),
-    "leg": Mat(["#08060a", "#110d14", "#1a1520", "#241d2c"], rim=0.6, rim_color="#4a5a8a", outline="#030204"),
+    # o reflexo do Lume: ferro negro, vidro fumê, chama azul-fria, fitas de
+    # um vinho quase preto
+    "iron": Mat(["#08070a", "#111016", "#1c1a24", "#2c2a3a", "#4a4a66"], spec=0.9, rim=0.8, rim_color="#8ab8ff", outline="#020203", wrap=0.4),
+    "glass": Mat(["#060a18", "#0c1428", "#142240", "#1e3460", "#2e4e88"], spec=1.0, rim=0.0, outline="#020308", wrap=0.6, ambient=0.45, glow=(6, 14, 40, 255)),
+    "poncho": Mat(["#040405", "#09090c", "#101016", "#181822", "#242434"], rim=0.8, rim_color="#5a7ab8", outline="#010102", wrap=0.35),
+    "trim": Mat("#3a4a7a", n=4, spread=0.55, rim=0.5, rim_color="#8aa8ff", outline="#060810", wrap=0.4),
+    "ribbon": Mat(["#0c0206", "#1a040c", "#2c0814", "#40101e", "#5a1a2c"], rim=0.8, rim_color="#ff4a6a", outline="#040002", wrap=0.35),
+    "leg": Mat(["#060508", "#0e0c12", "#16131c", "#201c28"], rim=0.6, rim_color="#4a5a8a", outline="#020103"),
     "boot": Mat(["#060408", "#0e0a10", "#16111a", "#201824"], rim=0.5, outline="#020103"),
-    "gold": Mat(["#1a2a4a", "#3a5a8a", "#6a9ad0", "#b0d8ff"], rim=0.0, spec=1.0, outline="#060a14"),
-    "eye": hexc("#ff4a5a"), "eye_core": hexc("#ffd0d8"), "eye_edge": hexc("#a0101e"),
-    "crack": hexc("#6ab8ff"), "crack_dim": hexc("#2a5aa8"),
-    "flame": [hexc("#1a2a8a"), hexc("#2a6ae0"), hexc("#7ac8ff"), hexc("#eaf6ff")],
+    "fire": [hexc("#1a3aa8"), hexc("#2a7ae8"), hexc("#8ad0ff"), hexc("#eef8ff")],
+    "eye": hexc("#12020a"), "shine": hexc("#ff6a7a"), "glint": hexc("#b8d8ff"), "crack": hexc("#b8d8ff"),
 }
 
 
@@ -595,7 +805,7 @@ def draw_villager(role):
     def draw(c, p, t):
         p = dict(p)
         p["flame_h"] = 0.0  # sem chama
-        info = draw_hero(c, p, t, pal)
+        info = draw_ashfolk(c, p, t, pal)
         hx, hy = info["head"]
         hy += 7.0  # centro da cabeça
         if acc == "hat":
