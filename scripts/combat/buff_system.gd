@@ -113,7 +113,7 @@ func _check(cond: Dictionary, ctx: Dictionary, counter_key: String) -> bool:
 
 func _apply(eff: Dictionary, ctx: Dictionary, buff_id: String) -> void:
 	var target: Node = ctx.get("target", null)
-	var valid_target: bool = target != null and is_instance_valid(target) and not target.dead
+	var valid_target: bool = target != null and is_instance_valid(target) and target is Actor and not target.dead
 	for k in eff.keys():
 		var v: Variant = eff[k]
 		match k:
@@ -150,7 +150,7 @@ func _apply(eff: Dictionary, ctx: Dictionary, buff_id: String) -> void:
 					actor.get_parent().add_child(ring)
 					FX.shake(0.25)
 			"spread_status":
-				if target != null and is_instance_valid(target):
+				if valid_target:
 					var st: String = v.get("status", "bleed")
 					var stacks: int = maxi(target.status.stacks(st), 1)
 					for a in actor.get_tree().get_nodes_in_group("actors"):

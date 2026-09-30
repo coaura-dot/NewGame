@@ -12,6 +12,11 @@ var _down: float = 0.0
 var _pop: float = 0.0
 var _light: PointLight2D
 var _hurt: Hurtbox
+## interface mínima de "ator" (magias, relíquias e correntes de raio tratam
+## qualquer dono de Hurtbox como ator: centro, time, morto, direção)
+var team: int = -99
+var dead: bool = false
+var facing: int = 1
 
 
 func _ready() -> void:
@@ -30,6 +35,10 @@ func _ready() -> void:
 	_light = LightUtil.make_light(Color(1.0, 0.8, 0.45), 0.8, 0.45)
 	if _light:
 		add_child(_light)
+
+
+func body_center() -> Vector2:
+	return global_position
 
 
 ## Chamado pelo Hurtbox quando um golpe acerta.
