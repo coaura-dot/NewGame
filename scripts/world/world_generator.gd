@@ -20,6 +20,48 @@ const LAYER_BIOMES := {
 	"sky": {"cidade_ceu": 5, "templo_dourado": 2, "ruinas": 2, "cidade_magos": 2, "castelo": 1},
 	"underground": {"catacumbas": 4, "cidade_subterranea": 4, "toca_goblin": 3, "castelo": 2, "pantano": 1},
 }
+## GEOGRAFIA (mundo com nexo): a superfície é uma faixa contínua de oeste a
+## leste em que cada bioma só faz fronteira com biomas que combinam com ele
+## (floresta -> pântano/ruínas/cemitério..., cidade -> castelo...). Debaixo de
+## cada região da superfície fica o subsolo que pertence a ela (sob a cidade,
+## os esgotos; sob o castelo e o cemitério, as catacumbas; sob a floresta, as
+## tocas entre as raízes); acima, a cidadela celeste (ou as torres dos magos
+## e o templo, que sobem até as nuvens).
+const SURFACE_LINKS := {
+	"floresta": {"floresta": 1.5, "pantano": 3.0, "ruinas": 3.0, "cemiterio": 2.0, "acampamento_barbaro": 2.0},
+	"pantano": {"pantano": 1.0, "floresta": 3.0, "cemiterio": 3.0, "ruinas": 1.0},
+	"ruinas": {"ruinas": 1.0, "floresta": 2.0, "templo_dourado": 3.0, "deserto": 2.0, "cidade_gotica": 3.0, "cemiterio": 2.0},
+	"cemiterio": {"floresta": 1.0, "pantano": 2.0, "cidade_gotica": 3.0, "castelo": 3.0, "ruinas": 1.0},
+	"cidade_gotica": {"cidade_gotica": 1.0, "castelo": 4.0, "cemiterio": 2.0, "cidade_magos": 3.0, "ruinas": 2.0},
+	"castelo": {"castelo": 1.0, "cidade_gotica": 3.0, "cemiterio": 2.0, "fortaleza_orc": 1.0},
+	"templo_dourado": {"ruinas": 2.0, "deserto": 3.0, "cidade_magos": 2.0},
+	"deserto": {"deserto": 1.5, "templo_dourado": 3.0, "acampamento_barbaro": 3.0, "fortaleza_orc": 2.0, "ruinas": 1.0},
+	"fortaleza_orc": {"acampamento_barbaro": 3.0, "deserto": 2.0, "castelo": 1.0},
+	"acampamento_barbaro": {"fortaleza_orc": 3.0, "floresta": 2.0, "deserto": 2.0},
+	"cidade_magos": {"templo_dourado": 2.0, "cidade_gotica": 3.0},
+}
+const UNDER_OF := {"floresta": "toca_goblin", "pantano": "pantano", "ruinas": "catacumbas", "cemiterio": "catacumbas",
+	"cidade_gotica": "cidade_subterranea", "castelo": "catacumbas", "templo_dourado": "catacumbas", "deserto": "toca_goblin",
+	"fortaleza_orc": "toca_goblin", "acampamento_barbaro": "toca_goblin", "cidade_magos": "cidade_subterranea"}
+const SKY_OF := {"cidade_magos": "cidade_magos", "templo_dourado": "templo_dourado"}
+## Nomes próprios por bioma (cada região do mundo ganha um diferente).
+const NAMES := {
+	"floresta": ["Bosque Sussurrante", "Mata das Raízes Velhas", "Clareira dos Vaga-lumes", "Bosque de Cinzaverde", "Mata do Assobio"],
+	"pantano": ["Brejo das Lamparinas", "Charco de Morn", "Lodaçal Pútrido", "Alagado dos Juncos"],
+	"ruinas": ["Ruínas de Aldramar", "Pátios Caídos", "Velha Cindária", "Arcos Partidos"],
+	"cemiterio": ["Campo dos Túmulos", "Colina das Lápides", "Cemitério dos Sem-Nome", "Jardim dos Ossos"],
+	"cidade_gotica": ["Cidade de Vésper", "Burgo das Gárgulas", "Ruas de Ferro", "Bairro dos Sinos"],
+	"castelo": ["Castelo Sombrio", "Bastião de Umbral", "Fortaleza Real", "Salões do Rei Cinza"],
+	"templo_dourado": ["Templo do Sol Dourado", "Santuário de Âmbar", "Escadarias de Ouro"],
+	"deserto": ["Dunas de Âmbar", "Ermo Escaldante", "Vale das Areias Rubras"],
+	"fortaleza_orc": ["Paliçada de Grumm", "Fortaleza Rubra", "Muralha dos Chifres"],
+	"acampamento_barbaro": ["Acampamento dos Lobos", "Terras Bárbaras", "Fogueiras do Norte"],
+	"cidade_magos": ["Torres de Arcanum", "Cidade dos Magos", "Bibliotecas Suspensas"],
+	"cidade_ceu": ["Cidadela Celeste", "Jardins das Nuvens", "Pináculo de Aeris", "Pontes do Vento"],
+	"catacumbas": ["Catacumbas do Ossário", "Masmorras Esquecidas", "Criptas Profundas", "Galerias dos Mortos"],
+	"cidade_subterranea": ["Esgotos de Vésper", "Cidade Afundada", "Cisternas Antigas"],
+	"toca_goblin": ["Toca dos Goblins", "Túneis das Raízes", "Covis de Fuligem", "Formigueiro Rubro"],
+}
 const SYLLABLES := ["val", "mor", "ar", "eth", "dun", "kar", "lis", "ora", "thal", "vex", "bri", "sol", "nar", "gal", "ith", "rum", "ce", "zan", "lo", "mir"]
 
 
@@ -96,18 +138,20 @@ static func generate(seed_value: int, db: Node = null) -> Dictionary:
 	world["abilities_order"] = gate_abilities
 	var band_size := maxf(1.0, float(max_dist + 1) / band_count)
 
-	# 5) regiões
+	# 5) regiões (biomas pela geografia: vizinhos que combinam)
+	var biome_of := _geography(rng, grid, surf_n, start_idx)
+	var used_names := {}
 	var ids: Array[String] = []
 	for i in n:
 		var band := mini(int(dist[i] / band_size), band_count - 1)
 		var layer := "surface" if grid[i].y == 0 else ("sky" if grid[i].y < 0 else "underground")
-		var biome_id: String = RngUtil.weighted_key(rng, LAYER_BIOMES[layer])
+		var biome_id: String = biome_of.get(grid[i], RngUtil.weighted_key(rng, LAYER_BIOMES[layer]))
 		var biome: Dictionary = db.biome(biome_id) if db else {}
 		var id := "r%02d" % i
 		ids.append(id)
 		var region := {
 			"id": id,
-			"name": _region_name(rng, biome.get("name", biome_id)),
+			"name": _proper_name(rng, biome_id, biome.get("name", biome_id), used_names),
 			"biome": biome_id,
 			"layer": layer,
 			"pos": [points[i].x, LAYER_HEIGHT[layer] + rng.randf_range(-2.0, 2.0), points[i].y],
@@ -164,6 +208,13 @@ static func generate(seed_value: int, db: Node = null) -> Dictionary:
 		if dist[i] > dist[finale_idx]:
 			finale_idx = i
 	world["finale"] = ids[finale_idx]
+	# o covil do Arquidemônio: castelo na superfície, catacumbas no subsolo,
+	# cidadela no céu
+	var fin: Dictionary = world["regions"][ids[finale_idx]]
+	var fin_biome: String = {"surface": "castelo", "underground": "catacumbas", "sky": "cidade_ceu"}[fin["layer"]]
+	if fin["biome"] != fin_biome:
+		fin["biome"] = fin_biome
+		fin["name"] = _proper_name(rng, fin_biome, db.biome(fin_biome).get("name", fin_biome) if db else fin_biome, used_names)
 	world["regions"][ids[finale_idx]]["boss"] = "archdemon"
 	world["regions"][ids[finale_idx]]["tier"] = 3
 
@@ -300,6 +351,43 @@ static func _path(adj: Array, a: int, b: int) -> Array:
 		path.append(cur)
 		cur = prev[cur]
 	return path
+
+
+## Biomas de cada célula da grade: a superfície é sorteada a partir do início
+## (floresta com a vila) para os dois lados seguindo SURFACE_LINKS; subsolo e
+## céu herdam da superfície logo acima/abaixo.
+static func _geography(rng: RandomNumberGenerator, grid: Array[Vector2i], surf_n: int, start_x: int) -> Dictionary:
+	var out := {}
+	out[Vector2i(start_x, 0)] = "floresta"
+	for side in [1, -1]:
+		var prev := "floresta"
+		var run := 1
+		var x: int = start_x + side
+		while x >= 0 and x < surf_n:
+			var opts: Dictionary = SURFACE_LINKS[prev].duplicate()
+			if run >= 2:
+				opts.erase(prev)
+			var b: String = RngUtil.weighted_key(rng, opts)
+			run = run + 1 if b == prev else 1
+			prev = b
+			out[Vector2i(x, 0)] = b
+			x += side
+	for c in grid:
+		if c.y == 0:
+			continue
+		var above: String = out.get(Vector2i(c.x, 0), "floresta")
+		out[c] = UNDER_OF.get(above, "catacumbas") if c.y > 0 else SKY_OF.get(above, "cidade_ceu")
+	return out
+
+
+static func _proper_name(rng: RandomNumberGenerator, biome_id: String, biome_name: String, used: Dictionary) -> String:
+	var pool: Array = NAMES.get(biome_id, []).duplicate()
+	RngUtil.shuffle(rng, pool)
+	for nm in pool:
+		if not used.has(nm):
+			used[nm] = true
+			return nm
+	return _region_name(rng, biome_name)
 
 
 static func _region_name(rng: RandomNumberGenerator, biome_name: String) -> String:

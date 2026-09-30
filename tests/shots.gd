@@ -399,17 +399,36 @@ func _shot_rooms(prefix: String) -> void:
 	var rows: PackedStringArray = level.layout["rows"]
 	for room in level.layout["rooms"]:
 		var o: Array = room["origin"]
-		var spot := _stand_spot(rows, int(o[0]), int(o[1]))
+		var spot := _place_spot(rows, room["rect"]) if room.has("rect") else _stand_spot(rows, int(o[0]), int(o[1]))
 		p.global_position = spot
 		p.velocity = Vector2.ZERO
 		p.reset_physics_interpolation()
 		level._focus_camera_on_player()
 		await _frames(12)
-		await _save("%s_%02d_%s" % [prefix, int(room["index"]), room["type"]])
+		await _save("%s_%02d_%s" % [prefix, int(room["index"]), str(room.get("kind", room["type"]))])
 	level.queue_free()
 	await _frames(2)
 	if Game.training:
 		Game.end_training()
+
+
+## Ponto em pé mais perto do centro de um lugar (RegionDesigner).
+func _place_spot(rows: PackedStringArray, rect: Array) -> Vector2:
+	var T := LevelConst.TILE
+	var cx: int = int(rect[0]) + int(rect[2]) / 2
+	var cy: int = int(rect[1]) + int(rect[3]) / 2
+	var best := Vector2(cx * T, cy * T)
+	var bd := 1 << 30
+	for y in range(int(rect[1]) + 1, int(rect[1]) + int(rect[3]) - 1):
+		for x in range(int(rect[0]) + 1, int(rect[0]) + int(rect[2]) - 1):
+			if y + 1 >= rows.size():
+				continue
+			if rows[y][x] != "#" and rows[y - 1][x] != "#" and rows[y + 1][x] in ["#", "-"]:
+				var d: int = absi(x - cx) + absi(y - cy) * 2
+				if d < bd:
+					bd = d
+					best = Vector2(x * T + T * 0.5, (y + 1) * T)
+	return best
 
 
 func _stand_spot(rows: PackedStringArray, ox: int, oy: int) -> Vector2:

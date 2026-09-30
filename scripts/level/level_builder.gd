@@ -33,7 +33,10 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 	bg.material = TileSetBuilder.terrain_material(tsname, null, Vector2(w, h), true)
 	var grassy := _has_fringe(tsname)
 
-	var windows := _windows(layout, biome)
+	# regiões novas (RegionDesigner) trazem a parede de fundo pronta, tile a
+	# tile: '1' = parede, '2' = janela (o cenário aparece), '0' = céu/nada
+	var bg_rows: PackedStringArray = layout.get("bg", PackedStringArray())
+	var windows := _windows(layout, biome) if bg_rows.is_empty() else {}
 	var room_mask := _room_mask(layout)
 	# fora (céu aberto) só as salas mais altas; as de baixo são subterrâneas
 	# e ganham parede de rocha ao fundo
@@ -49,9 +52,13 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 			if c == "#":
 				_place_solid(solid, trim, ceil, deco, rows, x, y, w, h, grassy)
 			else:
-				var rc := Vector2i(x / LevelConst.ROOM_W, y / LevelConst.ROOM_H)
-				if room_mask.has(rc) and (indoor or not open_sky.has(rc)) and not windows.has(cell):
-					bg.set_cell(cell, TileSetBuilder.SOURCE, TileSetBuilder.BG_TILE)
+				if not bg_rows.is_empty():
+					if bg_rows[y].unicode_at(x) == 49: # '1'
+						bg.set_cell(cell, TileSetBuilder.SOURCE, TileSetBuilder.BG_TILE)
+				else:
+					var rc := Vector2i(x / LevelConst.ROOM_W, y / LevelConst.ROOM_H)
+					if room_mask.has(rc) and (indoor or not open_sky.has(rc)) and not windows.has(cell):
+						bg.set_cell(cell, TileSetBuilder.SOURCE, TileSetBuilder.BG_TILE)
 				if c == "-":
 					var l := _ch(rows, x - 1, y, w, h) == "-"
 					var r := _ch(rows, x + 1, y, w, h) == "-"
@@ -82,8 +89,10 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 		hazard.add_rect(r)
 	root.add_child(hazard)
 	var pools := 0
+	if layout.has("water"):
+		pools = _water_rects(root, layout["water"], biome)
 	if biome.get("water", false):
-		pools = _water(root, rows, w, h, biome)
+		pools += _water(root, rows, w, h, biome)
 	return {"terrain": solid, "background": bg, "hazard": hazard, "spikes": spikes, "pools": pools}
 
 
@@ -132,6 +141,18 @@ static func _depth_texture(rows: PackedStringArray, w: int, h: int) -> ImageText
 
 static func _has_fringe(tsname: String) -> bool:
 	return tsname in ["castle", "ruins", "forest", "graveyard", "swamp", "cave", "desert", "war"]
+
+
+## Lagos desenhados pelo RegionDesigner: [x0, x1, y_topo, y_fundo] em tiles.
+static func _water_rects(root: Node2D, list: Array, biome: Dictionary) -> int:
+	var wc: Array = biome.get("water_color", [0.22, 0.36, 0.46, 0.78])
+	for s in list:
+		var pool := WaterPool.new()
+		pool.position = Vector2(int(s[0]) * T, int(s[2]) * T + 3)
+		pool.size = Vector2((int(s[1]) - int(s[0]) + 1) * T, (int(s[3]) - int(s[2]) + 1) * T - 3)
+		pool.color = Color(wc[0], wc[1], wc[2], wc[3])
+		root.add_child(pool)
+	return list.size()
 
 
 ## Poças rasas (até 2 tiles) nos buracos do terreno cercados de chão dos

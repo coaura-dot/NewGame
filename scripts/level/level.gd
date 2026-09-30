@@ -38,6 +38,8 @@ var boss_node: Node = null
 var result: Dictionary = {"completed": false, "boss_killed": false, "puzzles": 0, "kills": 0}
 
 var _room_index_by_cell: Dictionary = {}
+## Tamanho (unidades) da célula usada por room_at (grade de salas ou macro).
+var _cell_px: Vector2 = Vector2(LevelConst.ROOM_W * LevelConst.TILE, LevelConst.ROOM_H * LevelConst.TILE)
 var _room_enemies: Dictionary = {} ## room -> Array[Enemy]
 var _room_gates: Dictionary = {} ## room -> Array[Gate]
 var _room_levers_pulled: Dictionary = {}
@@ -60,8 +62,12 @@ var world_display: SubViewportContainer
 
 func _ready() -> void:
 	_resolve_params()
-	var lib := ChunkLibrary.new()
-	layout = LevelGenerator.generate(params, lib, DB)
+	if world_mode:
+		# regiões do mundo: lugares com propósito (estilo Hollow Knight)
+		layout = RegionDesigner.generate(params, DB)
+	else:
+		var lib := ChunkLibrary.new()
+		layout = LevelGenerator.generate(params, lib, DB)
 	biome = DB.biome(params["biome"])
 	dimension = DB.dimension(params.get("dimension", "prima"))
 	rng.seed = int(params.get("seed", 1)) + 99
@@ -129,8 +135,15 @@ func _resolve_params() -> void:
 	_open_map_on_start = pending.get("open_map", false)
 	came_from = str(pending.get("from", ""))
 	arrive_at = str(pending.get("at", ""))
+	var ports := WorldGenerator.ports(Game.world, region_id)
+	var port_names := {}
+	for pt in ports:
+		port_names[pt["dir"]] = str(Game.world["regions"].get(pt["to"], {}).get("name", ""))
 	params = {
-		"ports": WorldGenerator.ports(Game.world, region_id),
+		"ports": ports,
+		"port_names": port_names,
+		"layer": str(region.get("layer", "")),
+		"region_name": str(region.get("name", "")),
 		"seed": int(region.get("level_seed", 1)),
 		"biome": region.get("biome", "castelo"),
 		"tier": int(region.get("tier", 1)) + (1 if siege else 0),
@@ -200,9 +213,17 @@ func _build_world() -> void:
 	entities.z_index = 5
 	world.add_child(entities)
 	FX.effects_root = entities
-	for r in layout["rooms"]:
-		var o: Array = r["origin"]
-		_room_index_by_cell[Vector2i(int(o[0]) / LevelConst.ROOM_W, int(o[1]) / LevelConst.ROOM_H)] = int(r["index"])
+	if layout.has("macro"):
+		var m: Dictionary = layout["macro"]
+		var owners: Array = m["owner"]
+		for i in owners.size():
+			if int(owners[i]) >= 0:
+				_room_index_by_cell[Vector2i(i % int(m["gw"]), i / int(m["gw"]))] = int(owners[i])
+		_cell_px = Vector2(int(m["cw"]) * T, int(m["ch"]) * T)
+	else:
+		for r in layout["rooms"]:
+			var o: Array = r["origin"]
+			_room_index_by_cell[Vector2i(int(o[0]) / LevelConst.ROOM_W, int(o[1]) / LevelConst.ROOM_H)] = int(r["index"])
 
 
 func _tile_feet(tile: Array) -> Vector2:
@@ -326,6 +347,11 @@ func _spawn_entities() -> void:
 				al.boss_id = params.get("boss", "") if params.get("boss", "") != "" else region.get("boss", "")
 				al.position = _tile_feet(e["tile"])
 				node = al
+			"sign":
+				var sg := Signpost.new()
+				sg.text = str(data.get("text", ""))
+				sg.position = _tile_feet(e["tile"])
+				node = sg
 			"inscription":
 				var ins := Inscription.new()
 				ins.biome_id = str(data.get("biome", params.get("biome", "")))
@@ -426,7 +452,7 @@ func _setup_ports() -> void:
 			"D": trig = Rect2(r.position.x, r.end.y + 2.0, r.size.x, 400.0)
 		_ports.append({"dir": pt["dir"], "to": pt["to"], "requires": pt.get("requires", ""), "rect": trig, "room_rect": r})
 		if came_from != "" and pt["to"] == came_from:
-			spawn_pos = _port_spawn(str(pt["dir"]), r)
+			spawn_pos = _port_spawn(str(pt["dir"]), r, pt)
 			_entry_boost = str(pt["dir"]) == "D"
 	if came_from == "" and arrive_at == "shrine":
 		# santuário preferido: entrada > vila > passagem > qualquer um
@@ -434,7 +460,7 @@ func _setup_ports() -> void:
 		var best_rank := 99
 		for e in layout["entities"]:
 			if e["type"] == "checkpoint":
-				var rank := ["entrance", "hub", "passage"].find(_room_type(int(e.get("room", 0))))
+				var rank := ["shrine", "entrance", "hub", "passage"].find(_room_type(int(e.get("room", 0))))
 				rank = 50 if rank < 0 else rank
 				if rank < best_rank:
 					best_rank = rank
@@ -448,7 +474,10 @@ func _setup_ports() -> void:
 				break
 
 
-func _port_spawn(dir: String, r: Rect2) -> Vector2:
+func _port_spawn(dir: String, r: Rect2, pt: Dictionary = {}) -> Vector2:
+	var sp: Array = pt.get("spawn", [])
+	if sp.size() == 2 and int(sp[0]) >= 0:
+		return _tile_feet(sp)
 	match dir:
 		"L": return Vector2(r.position.x + 3 * T, r.position.y + LevelConst.FLOOR_ROW * T)
 		"R": return Vector2(r.end.x - 3 * T, r.position.y + LevelConst.FLOOR_ROW * T)
@@ -625,14 +654,18 @@ func _lock_room(idx: int) -> void:
 			_encounter = {"room": idx, "t0": Time.get_ticks_msec(), "hp": player.hp, "count": total}
 
 
-## Retângulo (em pixels) da sala `idx`.
+## Retângulo (em unidades do mundo) da sala/lugar `idx`.
 func room_rect(idx: int) -> Rect2:
-	var o: Array = layout["rooms"][idx]["origin"]
+	var room: Dictionary = layout["rooms"][idx]
+	if room.has("rect"):
+		var r: Array = room["rect"]
+		return Rect2(int(r[0]) * T, int(r[1]) * T, int(r[2]) * T, int(r[3]) * T)
+	var o: Array = room["origin"]
 	return Rect2(int(o[0]) * T, int(o[1]) * T, LevelConst.ROOM_W * T, LevelConst.ROOM_H * T)
 
 
 func room_at(pos: Vector2) -> int:
-	var cell := Vector2i(int(pos.x) / (LevelConst.ROOM_W * T), int(pos.y - Player.TRANSITION_PROBE) / (LevelConst.ROOM_H * T))
+	var cell := Vector2i(floori(pos.x / _cell_px.x), floori((pos.y - Player.TRANSITION_PROBE) / _cell_px.y))
 	return _room_index_by_cell.get(cell, -1)
 
 

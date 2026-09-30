@@ -200,15 +200,22 @@ func record_map(region_id: String, layout: Dictionary) -> void:
 	if not profile.has("maps"):
 		profile["maps"] = {}
 	var rooms: Array = []
+	var cw: int = LevelConst.ROOM_W
+	var ch: int = LevelConst.ROOM_H
+	if layout.has("macro"):
+		cw = int(layout["macro"]["cw"])
+		ch = int(layout["macro"]["ch"])
 	for r in layout.get("rooms", []):
 		var o: Array = r["origin"]
-		rooms.append([int(o[0]) / LevelConst.ROOM_W, int(o[1]) / LevelConst.ROOM_H, str(r.get("type", ""))])
+		var sz: Array = r.get("cells", [1, 1])
+		# [x, y, tipo, largura, altura, nome, tipo do lugar] em células
+		rooms.append([int(o[0]) / cw, int(o[1]) / ch, str(r.get("type", "")), int(sz[0]), int(sz[1]), str(r.get("name", "")), str(r.get("kind", ""))])
 	var ports: Array = []
 	for p in layout.get("ports", []):
 		var o: Array = p["origin"]
-		ports.append([int(o[0]) / LevelConst.ROOM_W, int(o[1]) / LevelConst.ROOM_H, p["dir"], p["to"]])
-	profile["maps"][region_id] = {"w": int(layout["width"]) / LevelConst.ROOM_W, "h": int(layout["height"]) / LevelConst.ROOM_H,
-		"rooms": rooms, "ports": ports}
+		ports.append([int(o[0]) / cw, int(o[1]) / ch, p["dir"], p["to"]])
+	profile["maps"][region_id] = {"w": int(layout["width"]) / cw, "h": int(layout["height"]) / ch,
+		"rooms": rooms, "ports": ports, "objective": layout.get("objective", {})}
 
 
 func mark_explored(region_id: String, room_index: int) -> void:

@@ -390,7 +390,8 @@ func _draw_rooms(id: String, box: Rect2, bc: Color, here: bool) -> void:
 	for i in rooms.size():
 		var rr: Array = rooms[i]
 		var seen: bool = explored.has(i)
-		var rect := Rect2(off + Vector2(int(rr[0]), int(rr[1])) * cs, Vector2(cs, cs)).grow(-0.5)
+		var sz := Vector2(int(rr[3]), int(rr[4])) if rr.size() > 4 else Vector2.ONE
+		var rect := Rect2(off + Vector2(int(rr[0]), int(rr[1])) * cs, sz * cs).grow(-0.5)
 		if seen:
 			var col := Color(bc.r * 1.1, bc.g * 1.1, bc.b * 1.1)
 			match str(rr[2]):
@@ -402,7 +403,7 @@ func _draw_rooms(id: String, box: Rect2, bc: Color, here: bool) -> void:
 		else:
 			_draw.draw_rect(rect, Color(bc.r, bc.g, bc.b, 0.12))
 	if here and level and is_instance_valid(level) and level.player:
-		var p: Vector2 = level.player.global_position / Vector2(LevelConst.ROOM_W * LevelConst.TILE, LevelConst.ROOM_H * LevelConst.TILE)
+		var p: Vector2 = level.player.global_position / level._cell_px
 		var dot := off + p * cs
 		if fmod(_t, 0.6) < 0.4:
 			_draw.draw_rect(Rect2(dot - Vector2(1.5, 1.5), Vector2(3, 3)), Color(3, 3, 3))
