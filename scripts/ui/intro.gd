@@ -36,7 +36,6 @@ func _ready() -> void:
 	_hero.scale = Vector2(2, 2)
 	add_child(_hero)
 	_ui = CanvasLayer.new()
-	_ui.scale = Vector2(2.0 / 3.0, 2.0 / 3.0)
 	add_child(_ui)
 	var root := Control.new()
 	root.size = Vector2(480, 270)

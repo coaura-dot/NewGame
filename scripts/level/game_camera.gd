@@ -31,6 +31,7 @@ var _bounds: Rect2 = Rect2()
 
 func _ready() -> void:
 	position_smoothing_enabled = false
+	zoom = Vector2.ONE * LevelConst.ART
 	process_callback = Camera2D.CAMERA2D_PROCESS_PHYSICS
 	FX.camera = self
 	if target:

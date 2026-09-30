@@ -60,7 +60,7 @@ const HURT_IFRAMES := 0.9
 const POGO_SPEED := 150.0
 const POUND_SPEED := 300.0
 const CORNER_CORRECTION := 4
-const BODY := Vector2(6, 10)
+const BODY := Vector2(6, 12)
 const COMBO_TIMEOUT := 2.4 ## Frenesi: janela para manter a sequência de acertos
 ## Corte-Relâmpago (atacar durante o dash): dash mais longo que atravessa e
 ## corta tudo no caminho, em qualquer direção. Acertar recarrega o dash.
@@ -150,8 +150,8 @@ func _ready() -> void:
 	cs.shape = rect
 	cs.position = Vector2(0, -BODY.y * 0.5)
 	add_child(cs)
-	setup_creature({"body": [5, 4], "head": [6, 5], "color": [0.24, 0.22, 0.38], "shell": [0.93, 0.9, 0.84], "eyes": "hollow", "legs": 2, "horns": true, "weapon": true})
-	var hb := Hurtbox.make(self, Vector2(6, 9), Vector2(0, -5))
+	setup_creature({"sprite": "hero", "body": [5, 4], "head": [6, 5], "color": [0.24, 0.22, 0.38], "shell": [0.93, 0.9, 0.84], "eyes": "hollow", "legs": 2, "horns": true, "weapon": true})
+	var hb := Hurtbox.make(self, Vector2(6, 11), Vector2(0, -6))
 	add_child(hb)
 	interact_area = Area2D.new()
 	interact_area.collision_layer = 0
@@ -160,7 +160,7 @@ func _ready() -> void:
 	var circ := CircleShape2D.new()
 	circ.radius = 8.0
 	ic.shape = circ
-	ic.position = Vector2(0, -6)
+	ic.position = Vector2(0, -7)
 	interact_area.add_child(ic)
 	add_child(interact_area)
 	attack = AttackRunner.new(self)
@@ -176,10 +176,14 @@ func _ready() -> void:
 	caster = SpellCaster.new(self)
 	add_child(caster)
 	buffs = BuffSystem.new(self)
-	light = LightUtil.make_light(Color(1.0, 0.9, 0.8), 0.4, 0.8, true)
+	# a chama na cabeça da Faísca ilumina o caminho (e reflete nas pedras)
+	light = LightUtil.make_light(Color(1.0, 0.66, 0.36), 0.95, 1.05, true)
 	if light:
-		light.position = Vector2(0, -7)
+		light.position = Vector2(0, -16)
+		light.range_item_cull_mask = LightUtil.LIT_WORLD
 		add_child(light)
+	if sprite:
+		sprite.light_mask = LightUtil.LIT_ACTORS
 	apply_profile()
 	hp = max_hp()
 	focus = 30.0
@@ -1307,7 +1311,7 @@ func _st_sigil(d: float, _raw: float) -> void:
 	var p := get_viewport().get_mouse_position()
 	var stick := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
 	if stick.length() > 0.4:
-		var last := sigil_points[-1] if not sigil_points.is_empty() else LevelConst.VIEW * 0.5
+		var last := sigil_points[-1] if not sigil_points.is_empty() else LevelConst.VIEW_PX * 0.5
 		p = last + stick * 6.0
 	if sigil_points.is_empty() or sigil_points[-1].distance_to(p) > 2.0:
 		sigil_points.append(p)
@@ -1509,29 +1513,42 @@ func _animate() -> void:
 	_moods(get_physics_process_delta_time())
 	sprite.attack_pose = attack.progress() if attack.is_busy() else 0.0
 	match state:
-		State.DASH, State.DODGE, State.POUND:
+		State.DASH, State.DODGE:
+			play_anim("dash")
+		State.POUND:
 			play_anim("crouch")
 		State.ATTACK:
 			if heavy_charging:
 				play_anim("crouch")
-			elif not attack.is_busy():
+			elif attack.is_busy():
+				play_anim("attack")
+			else:
 				play_anim("idle")
-		State.HURT, State.DEAD:
+		State.HURT:
 			play_anim("hurt")
+		State.DEAD:
+			play_anim("death")
 		State.CLIMB:
-			play_anim("fall")
+			play_anim("climb" if absf(velocity.y) > 4.0 else "wall")
 		State.SIGIL:
-			play_anim("idle")
+			play_anim("cast")
 		_:
 			if is_on_floor():
 				if absf(velocity.x) > 25.0:
 					play_anim("run")
 				elif input_y > 0:
 					play_anim("crouch")
+				elif _idle_t > 4.0 or _idle_t < -2.0:
+					play_anim("sleep")
 				else:
 					play_anim("idle")
+			elif wall_dir != 0 and input_x == wall_dir and _vy() > 0.0:
+				play_anim("wall")
 			else:
 				play_anim("jump" if _vy() < 0.0 else "fall")
+	# a luz acompanha a chama da cabeça
+	if light and sprite.has_sheet():
+		light.position = sprite.point("head") + Vector2(0, -2.5)
 	if state == State.HURT or (invuln_time > 0.3 and state != State.DASH and state != State.DODGE):
 		sprite.visible = fmod(Time.get_ticks_msec() / 60.0, 2.0) > 0.6
 	else:

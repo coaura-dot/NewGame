@@ -9,7 +9,6 @@ var _content: Control = null
 
 func _ready() -> void:
 	layer = 20
-	scale = Vector2(2.0 / 3.0, 2.0 / 3.0)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_root = Control.new()
 	_root.size = Vector2(480, 270)

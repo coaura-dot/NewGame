@@ -40,7 +40,6 @@ var _rank_t: float = 0.0
 
 func _ready() -> void:
 	layer = 10
-	scale = Vector2(2.0 / 3.0, 2.0 / 3.0) ## layout em 480x270, tela base 320x180
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_root = Control.new()
 	_root.size = Vector2(480, 270)
@@ -188,7 +187,7 @@ func _slot(pos: Vector2, icon: Texture2D) -> void:
 func _cluster_alpha(rect: Rect2) -> float:
 	if player == null or not is_instance_valid(player):
 		return 1.0
-	var sp: Vector2 = player.get_global_transform_with_canvas().origin * LevelConst.VIEW_SCALE * 1.5
+	var sp: Vector2 = player.get_global_transform_with_canvas().origin * LevelConst.VIEW_SCALE
 	return 0.3 if rect.grow(10).has_point(sp) or rect.grow(10).has_point(sp - Vector2(0, 18)) else 1.0
 
 
@@ -360,7 +359,7 @@ func _draw_hud() -> void:
 		_text(Vector2(14, 38), "Desenhe um sigilo e solte", 10, UIKit.INK)
 		var sp := PackedVector2Array()
 		for q in player.sigil_points:
-			sp.append(q * LevelConst.VIEW_SCALE * 1.5)
+			sp.append(q * LevelConst.VIEW_SCALE)
 		if sp.size() > 1:
 			d.draw_polyline(sp, Color(1.0, 0.6, 2.6, 0.5), 5.0)
 			d.draw_polyline(sp, Color(2.6, 2.2, 3.6), 1.5)

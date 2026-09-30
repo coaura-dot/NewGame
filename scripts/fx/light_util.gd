@@ -3,6 +3,11 @@ extends RefCounted
 ## Texturas de luz compartilhadas e criação de PointLight2D respeitando as
 ## opções de vídeo (luzes dinâmicas / sombras).
 
+## Camadas de luz dos CanvasItems: o herói fica na 2 para que a luz da
+## própria chama não o pinte de laranja (ela só ilumina o mundo, camada 1).
+const LIT_WORLD := 1
+const LIT_ACTORS := 2
+
 static var _radial: GradientTexture2D
 static var _soft: GradientTexture2D
 
@@ -45,4 +50,6 @@ static func make_light(color: Color, energy: float = 1.0, scale: float = 1.0, sh
 	l.shadow_enabled = shadows and bool(Settings.video("shadows"))
 	l.shadow_filter = Light2D.SHADOW_FILTER_PCF5
 	l.shadow_filter_smooth = 2.0
+	# ilumina o cenário (camada 1) e os personagens (camada 2)
+	l.range_item_cull_mask = LIT_WORLD | LIT_ACTORS
 	return l

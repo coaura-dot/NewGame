@@ -15,8 +15,8 @@ static var _meta: Dictionary = {}
 
 var camera: Camera2D = null
 ## Tamanho da tela onde o cenário é desenhado (fase: 256x144; menu: 320x180)
-var W: float = LevelConst.VIEW.x
-var H: float = LevelConst.VIEW.y
+var W: float = LevelConst.VIEW_PX.x
+var H: float = LevelConst.VIEW_PX.y
 var style_id: String = "forest"
 var tint: Color = Color.WHITE
 ## Linha de referência (y do mundo) em que as camadas ficam na posição de

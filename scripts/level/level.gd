@@ -50,7 +50,7 @@ var _waves: Dictionary = {}
 var _wave_total: Dictionary = {}
 var _completed: bool = false
 var rng := RandomNumberGenerator.new()
-## O mundo é renderizado aqui dentro (256x144, pixel perfeito) e escalado
+## O mundo é renderizado aqui dentro (480x270, pixel perfeito) e escalado
 ## para a janela; HUD e menus ficam fora, nítidos.
 var world_vp: SubViewport
 var world: Node2D
@@ -151,9 +151,9 @@ func _make_viewport() -> void:
 	add_child(holder)
 	var svc := SubViewportContainer.new()
 	svc.stretch = false
-	svc.size = LevelConst.VIEW
-	svc.pivot_offset = LevelConst.VIEW * 0.5
-	svc.position = LevelConst.VIEW * (LevelConst.VIEW_SCALE - 1.0) * 0.5
+	svc.size = LevelConst.VIEW_PX
+	svc.pivot_offset = LevelConst.VIEW_PX * 0.5
+	svc.position = LevelConst.VIEW_PX * (LevelConst.VIEW_SCALE - 1.0) * 0.5
 	svc.scale = Vector2.ONE * LevelConst.VIEW_SCALE
 	world_display = svc
 	# filtro linear + shader "pixel nítido": pixels quadrados em qualquer escala
@@ -163,7 +163,7 @@ func _make_viewport() -> void:
 	svc.material = conv
 	holder.add_child(svc)
 	world_vp = SubViewport.new()
-	world_vp.size = Vector2i(LevelConst.VIEW)
+	world_vp.size = Vector2i(LevelConst.VIEW_PX)
 	world_vp.use_hdr_2d = true
 	world_vp.snap_2d_transforms_to_pixel = true
 	world_vp.snap_2d_vertices_to_pixel = true

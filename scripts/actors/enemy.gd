@@ -156,6 +156,11 @@ func body_center() -> Vector2:
 
 
 func _anim(key: String) -> void:
+	# com folha de sprite, as chaves (idle/move/attack/cast/hurt...) já são
+	# os nomes das animações; sem folha, usa o mapa antigo de data/enemies.json
+	if sprite and sprite.has_sheet():
+		play_anim(key)
+		return
 	var name: String = data.get("anim", {}).get(key, key)
 	play_anim(name)
 

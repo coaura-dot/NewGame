@@ -11,8 +11,8 @@ extends RefCounted
 
 const T := 8.0
 const DT := 1.0 / 60.0
-const HALF_W := 3.0 ## corpo 6x10 (Player.BODY)
-const BODY_H := 10.0
+const HALF_W := 3.0 ## corpo 6x12 (Player.BODY)
+const BODY_H := 12.0
 const SOLID := "#BZ"
 const ONE_WAY := "-O"
 

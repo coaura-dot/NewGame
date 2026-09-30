@@ -8,7 +8,6 @@ func _ready() -> void:
 	Music.play_ambience("guerra")
 	Audio.set_space("open")
 	size = Vector2(480, 270)
-	scale = Vector2(2.0 / 3.0, 2.0 / 3.0)
 	var bg := ColorRect.new()
 	bg.color = Color(0.02, 0.01, 0.04)
 	bg.size = Vector2(480, 270)

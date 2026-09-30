@@ -14,13 +14,13 @@ func _ready() -> void:
 	Music.play_ambience("floresta")
 	Audio.set_space("open")
 	_cam = Camera2D.new()
-	_cam.position = Vector2(160, 90)
+	_cam.position = Vector2(240, 135)
 	add_child(_cam)
 	_cam.make_current()
 	var bg := BackgroundLayer.new()
 	bg.camera = _cam
-	bg.W = 320.0
-	bg.H = 180.0
+	bg.W = 480.0
+	bg.H = 270.0
 	bg.build("ruins", Color(1.0, 1.0, 1.0))
 	add_child(bg)
 	var env := Environment.new()
@@ -35,7 +35,6 @@ func _ready() -> void:
 	add_child(amb)
 	var layer := CanvasLayer.new()
 	layer.layer = 10
-	layer.scale = Vector2(2.0 / 3.0, 2.0 / 3.0)
 	add_child(layer)
 	_ui = Control.new()
 	_ui.size = Vector2(480, 270)

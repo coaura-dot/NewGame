@@ -76,7 +76,7 @@ func _process(delta: float) -> void:
 	mat.set_shader_parameter("dash_blur", _dash_blur * strength)
 	if player and camera:
 		var screen: Vector2 = player.get_global_transform_with_canvas().origin
-		mat.set_shader_parameter("dash_center", screen / LevelConst.VIEW)
+		mat.set_shader_parameter("dash_center", screen / LevelConst.VIEW_PX)
 	var chroma := FX.flash_amount if Settings.video("chromatic_aberration") else 0.0
 	mat.set_shader_parameter("chroma", chroma)
 	mat.set_shader_parameter("fade", fade)
