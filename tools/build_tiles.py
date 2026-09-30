@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Terreno em pixel art de 16 px por MATERIAL (um por tipo de lugar).
+"""Terreno em pixel art de 24 px por MATERIAL (um por tipo de lugar).
 
 Três peças por material (assets/art/tilesets/):
-  <nome>.png         atlas 128x176 (8 colunas x 11 linhas de 16 px):
+  <nome>.png         atlas 192x264 (8 colunas x 11 linhas de 24 px):
       0..46   AUTOTILE "blob" de 47 formatos: bordas, quinas externas e
               internas, superfície (grama/musgo/areia/friso), teto, laterais;
       47..58  variações dos 4 formatos mais comuns (chão, teto, paredes);
@@ -15,7 +15,7 @@ Três peças por material (assets/art/tilesets/):
     (shaders/terrain.gdshader) troca pela textura grande do material,
     amostrada na posição do MUNDO (sem repetição a cada tile). g codifica o
     brilho: g=50 normal, menor = sombra, maior = luz (chanfro nas bordas).
-  <nome>_fill.png    textura grande (128x128, contínua nas bordas) do miolo
+  <nome>_fill.png    textura grande (192x192, contínua nas bordas) do miolo
   <nome>_fill_n.png  mapa de normais do miolo (a luz das tochas e da chama da
                      Faísca "reflete" no relevo das pedras)
   <nome>_n.png       normais do atlas (chanfro das bordas)
@@ -30,8 +30,13 @@ import zlib
 import numpy as np
 from PIL import Image
 
-T = 16
-FILL = 128
+# Tile de 24 px = 8 unidades do mundo na densidade 3 (LevelConst.ART = 3).
+# K = escala em relação ao desenho original de 16 px: tamanhos de formas
+# (tijolos, pedras, raízes, espinhos...) crescem K vezes; detalhes de 1 px
+# (contornos, juntas) continuam com 1 px => mais resolução, mesmo desenho.
+T = 24
+K = T / 16.0
+FILL = int(128 * K)
 OUT = os.path.join(os.path.dirname(__file__), "..", "assets", "art", "tilesets")
 MARK_G_NORMAL = 50  # g do magenta = brilho 1.0
 
@@ -176,6 +181,8 @@ def fill_blocks(P, rng, rows_h=(12, 14), widths=(18, 34), mortar=1, chip=0.25, c
     """Blocos de pedra em fiadas desencontradas, com chanfro, lascas,
     rachaduras e (opcional) musgo, ossos, runas ou veios de mármore."""
     S = FILL
+    rows_h = (int(round(rows_h[0] * K)), int(round(rows_h[1] * K)))
+    widths = (int(round(widths[0] * K)), int(round(widths[1] * K)))
     h = np.zeros((S, S))
     tone = np.zeros((S, S))
     edge = np.zeros((S, S))
@@ -205,7 +212,7 @@ def fill_blocks(P, rng, rows_h=(12, 14), widths=(18, 34), mortar=1, chip=0.25, c
                     d = min(dx, dy)
                     tone[yy, px] = t
                     edge[yy, px] = d
-                    b = 1.0 - max(0.0, 2.2 - d) / 2.2
+                    b = 1.0 - max(0.0, 2.2 * K - d) / (2.2 * K)
                     h[yy, px] = 0.55 + 0.45 * b
             x += w
             if x - start >= S:
@@ -214,7 +221,7 @@ def fill_blocks(P, rng, rows_h=(12, 14), widths=(18, 34), mortar=1, chip=0.25, c
     mort = edge < mortar
     h[mort] = 0.12
     # lascas nas bordas dos blocos
-    chips = (edge < 2.5) & (fine > 1.0 - chip * 0.55)
+    chips = (edge < 2.5 * K) & (fine > 1.0 - chip * 0.55)
     h[chips] -= 0.3
     # rachaduras (linhas finas escuras)
     if cracks > 0:
@@ -250,7 +257,7 @@ def _embed_bones(col, h, rng, amount, P):
         cx, cy = rng.integers(0, S, 2)
         if rng.random() < 0.4:
             # crânio: círculo + olhos
-            r = 4
+            r = int(round(4 * K))
             for yy in range(-r, r + 2):
                 for xx in range(-r, r + 1):
                     if xx * xx + yy * yy <= r * r or (yy > 1 and abs(xx) <= 2):
@@ -264,7 +271,7 @@ def _embed_bones(col, h, rng, amount, P):
                     col[(cy + yy) % S, (cx + ex + 1) % S] = bonec[3]
         else:
             ang = rng.random() * math.pi
-            ln = rng.integers(6, 11)
+            ln = int(rng.integers(6, 11) * K)
             for i in range(-ln // 2, ln // 2 + 1):
                 px = int(cx + math.cos(ang) * i) % S
                 py = int(cy + math.sin(ang) * i) % S
@@ -306,9 +313,9 @@ def fill_voronoi(P, rng, n=28, round_=True, gap=1.4, pebbles=False):
     fine = fbm(S, rng, ((16, 1.0), (32, 0.6), (64, 0.4)))
     tone = rng.random(n)[idx] * 0.4 - 0.2
     if round_:
-        h = np.clip(edge / 5.0, 0, 1) ** 0.6
+        h = np.clip(edge / (5.0 * K), 0, 1) ** 0.6
     else:
-        h = np.clip(edge / 2.5, 0, 1) * 0.6 + tone * 0.5 + 0.3
+        h = np.clip(edge / (2.5 * K), 0, 1) * 0.6 + tone * 0.5 + 0.3
     h += (fine - 0.5) * 0.2
     gapm = edge < gap
     h[gapm] = 0.05
@@ -338,7 +345,7 @@ def fill_earth(P, rng, roots=True, stones=0.5, strata=0.3, bones=0.0):
     stone_r = ramp_from(hexc(P["base"]) * 0.8 + hexc("#707080") * 0.4, hexc(P["dark"]), hexc(P["light"]) * 1.1, 4)
     for _ in range(k):
         cx, cy = rng.random(2) * S
-        rx, ry = rng.uniform(2, 5), rng.uniform(1.5, 3.5)
+        rx, ry = rng.uniform(2, 5) * K, rng.uniform(1.5, 3.5) * K
         Y, X = np.mgrid[0:S, 0:S] + 0.5
         dx = np.minimum(np.abs(X - cx), S - np.abs(X - cx)) / rx
         dy = np.minimum(np.abs(Y - cy), S - np.abs(Y - cy)) / ry
@@ -358,7 +365,7 @@ def fill_earth(P, rng, roots=True, stones=0.5, strata=0.3, bones=0.0):
             x = rng.random() * S
             y = rng.random() * S
             ang = rng.uniform(0.3, 1.2) * (1 if rng.random() < 0.5 else -1) + math.pi / 2
-            for i in range(int(rng.integers(18, 40))):
+            for i in range(int(rng.integers(18, 40) * K)):
                 ang += rng.normal(0, 0.25)
                 x += math.cos(ang) * 1.0
                 y += abs(math.sin(ang)) * 1.0
@@ -378,12 +385,12 @@ def fill_sandstone(P, rng, carved=False, strata=True):
         col, h = fill_blocks(P, rng, rows_h=(16, 16), widths=(28, 40), mortar=1, chip=0.1, cracks=0.1)
         # frisos entalhados: linha de losangos no meio de algumas fiadas
         acc = hexc(P["light"])
-        for y0 in range(0, S, 32):
-            yc = y0 + 8
-            for x in range(0, S, 8):
+        for y0 in range(0, S, int(32 * K)):
+            yc = y0 + int(8 * K)
+            for x in range(0, S, int(8 * K)):
                 for k in range(-2, 3):
                     for j in range(-(2 - abs(k)), 3 - abs(k)):
-                        px, py = (x + 4 + j) % S, (yc + k) % S
+                        px, py = (x + int(4 * K) + j) % S, (yc + k) % S
                         col[py, px] = hexc(P["dark"]) if abs(k) + abs(j) == 2 else acc
                         h[py, px] -= 0.15
         return col, h
@@ -413,7 +420,7 @@ def fill_logs(P, rng):
     fine = fbm(S, rng, ((8, 0.6), (32, 1.0), (64, 0.6)))
     y = 0
     while y < S:
-        r = 7
+        r = int(round(7 * K))
         cyl = np.zeros((S, S))
         for yy in range(y, min(y + 2 * r, S)):
             k = (yy - y - r + 0.5) / r
@@ -488,7 +495,7 @@ def bg_fill(name, P, rng):
     fine = fbm(S, rng, ((8, 0.5), (32, 1.0), (64, 0.5)))
     x = 0
     while x < S:
-        w = int(rng.integers(10, 15))
+        w = int(rng.integers(10, 15) * K)
         t = rng.random() * 0.3
         for xx in range(x, min(x + w, S)):
             k = (xx - x) / max(w - 1, 1)
@@ -498,7 +505,7 @@ def bg_fill(name, P, rng):
         if x + w - 1 < S:
             col[:, x + w - 1] = hexc(P["line"])
         x += w
-    for y in range(0, S, 32):
+    for y in range(0, S, int(32 * K)):
         col[y:y + 2, :] = hexc(P["line"]) * 1.4
     return col, h
 
@@ -573,7 +580,7 @@ def blob_tile(mask, name, P, var, rng):
         for i in range(1, T - 1):
             if b[i - 1] == b[i + 1] != b[i]:
                 b[i] = b[i - 1]
-    R = 4.0  # raio das quinas externas
+    R = 4.0 * K  # raio das quinas externas
     for y in range(T):
         for x in range(T):
             # dentro da forma?
@@ -610,30 +617,34 @@ def blob_tile(mask, name, P, var, rng):
             dmin = min(dt, db, dl, dr, dci)
             # normal do chanfro
             nx = ny = 0.0
-            if dl < 3:
-                nx -= (3 - dl) / 3
-            if dr < 3:
-                nx += (3 - dr) / 3
-            if dt < 3:
-                ny += (3 - dt) / 3
-            if db < 3:
-                ny -= (3 - db) / 3
+            bv = 3 * K
+            if dl < bv:
+                nx -= (bv - dl) / bv
+            if dr < bv:
+                nx += (bv - dr) / bv
+            if dt < bv:
+                ny += (bv - dt) / bv
+            if db < bv:
+                ny -= (bv - db) / bv
             nrm = np.array([nx, ny, 1.0])
             # --- cores ---
             if dmin < 1:
                 c = line  # contorno
-            elif dt < 99 and dt < 6 and style != "none":
-                c = _surface_px(style, x, y, dt, P, r, var)
+            elif dt < 99 and dt < 6 * K and style != "none":
+                # superfície desenhada na escala do desenho (16 px): cada
+                # "pixel de desenho" vira 1-2 px => faixa proporcional ao tile
+                dd = 1 + int((dt - 1) / K)
+                c = _surface_px(style, x, y, dd, P, r, var)
                 if c is None:
-                    c = marker(MARK_G_NORMAL + 22 if dt < 3 else MARK_G_NORMAL + 10)
-            elif db < 3:
+                    c = marker(MARK_G_NORMAL + 22 if dd < 3 else MARK_G_NORMAL + 10)
+            elif db < 3 * K:
                 # teto: sombra do lado de baixo
-                c = marker(MARK_G_NORMAL - 26 + db * 6)
-            elif dl < 3:
-                c = marker(MARK_G_NORMAL + 12 - dl * 4)  # lado esquerdo pega luz
-            elif dr < 3:
-                c = marker(MARK_G_NORMAL - 14 + dr * 4)  # direito na sombra
-            elif dci < 2.5:
+                c = marker(MARK_G_NORMAL - 26 + int(db / K) * 6)
+            elif dl < 3 * K:
+                c = marker(MARK_G_NORMAL + 12 - int(dl / K) * 4)  # lado esquerdo pega luz
+            elif dr < 3 * K:
+                c = marker(MARK_G_NORMAL - 14 + int(dr / K) * 4)  # direito na sombra
+            elif dci < 2.5 * K:
                 c = marker(MARK_G_NORMAL - 12)
             else:
                 c = marker(MARK_G_NORMAL)
@@ -725,7 +736,7 @@ def breakable_tile(name, P, fill_col):
                 c = dark
             t.set(x, y, c, np.array([0.0, 0.0, 1.0]))
     # rachaduras
-    for (x0, y0, x1, y1) in ((3, 2, 8, 8), (8, 8, 6, 13), (8, 8, 13, 10), (11, 3, 9, 6)):
+    for (x0, y0, x1, y1) in [tuple(int(round(v * K)) for v in seg) for seg in ((3, 2, 8, 8), (8, 8, 6, 13), (8, 8, 13, 10), (11, 3, 9, 6))]:
         n = max(abs(x1 - x0), abs(y1 - y0))
         for i in range(n + 1):
             x = round(x0 + (x1 - x0) * i / n)
@@ -768,22 +779,23 @@ def platform_tile(name, P, part):
         if x < x0 or x > x1:
             continue
         edge = (left and x == x0) or (right and x == x1)
-        for y in range(0, 7):
-            if y == 0 or y == 6 or edge:
+        th = int(round(6 * K))  # espessura (linha de baixo)
+        for y in range(0, th + 1):
+            if y == 0 or y == th or edge:
                 col = line
             elif y == 1:
                 col = a
-            elif y < 5:
+            elif y < th - 1:
                 col = b if kind != "wood" or (x + y * 3) % 9 else c
             else:
                 col = c
-            t.set(x, y, col, np.array([0.0, 0.6 if y < 2 else (-0.5 if y > 4 else 0.0), 1.0]))
-        if kind == "wood" and x in (4, 11) and 1 < 5:
-            t.set(x, 3, c)  # pregos/veios
+            t.set(x, y, col, np.array([0.0, 0.6 if y < 2 else (-0.5 if y > th - 2 else 0.0), 1.0]))
+        if kind == "wood" and x in (int(4 * K), int(11 * K)):
+            t.set(x, th // 2, c)  # pregos/veios
     # suportes (mão-francesa) nas pontas
     if left or right:
-        sx = 3 if left else T - 4
-        for y in range(7, 12):
+        sx = int(3 * K) if left else T - 1 - int(3 * K)
+        for y in range(int(7 * K), int(12 * K)):
             t.set(sx, y, line)
             t.set(sx + (1 if left else -1), y, c if kind == "wood" else hexc(P["dark"]))
     return t
@@ -799,10 +811,10 @@ def spikes_tile(name, P):
     a, b, c = hexc(pal[0]), hexc(pal[1]), hexc(pal[2])
     line = hexc(P["line"])
     for k in range(4):
-        cx = 2 + k * 4
-        hgt = 9 if k % 2 == 0 else 7
+        cx = (2 + k * 4) * K
+        hgt = int(round((9 if k % 2 == 0 else 7) * K))
         for y in range(T - hgt, T):
-            half = (y - (T - hgt)) * 1.8 / hgt + 0.2
+            half = ((y - (T - hgt)) * 1.8 / hgt + 0.2) * K
             for x in range(T):
                 dx = x + 0.5 - cx
                 if abs(dx) <= half + 0.5:
@@ -828,7 +840,7 @@ def fringe_tile(name, P, var):
     hl = np.minimum(top * 1.25 + 12, 255)
     r = np.random.default_rng(var * 101 + len(name) * 7)
     if style in ("grass", "moss", "deadgrass", "mud"):
-        maxh = {"grass": 6, "moss": 3, "deadgrass": 5, "mud": 2}[style]
+        maxh = int({"grass": 6, "moss": 3, "deadgrass": 5, "mud": 2}[style] * K)
         x = 0
         while x < T:
             hgt = int(r.integers(1, maxh + 1))
@@ -867,7 +879,7 @@ def hang_tile(name, P, var):
     if kind == "vines":
         for _ in range(2):
             x = int(r.integers(1, T - 1))
-            ln = int(r.integers(5, 14))
+            ln = int(r.integers(5, 14) * K)
             for y in range(ln):
                 xx = x + (1 if (y // 3) % 2 else 0)
                 t.set(xx, y, top_d if y % 3 else top)
@@ -876,7 +888,7 @@ def hang_tile(name, P, var):
     elif kind == "roots":
         rc = [hexc("#2e1e12"), hexc("#4e3420"), hexc("#6e4c30")]
         x = int(r.integers(2, T - 2))
-        for y in range(int(r.integers(4, 11))):
+        for y in range(int(r.integers(4, 11) * K)):
             x += int(r.integers(-1, 2)) if y > 1 else 0
             x = max(0, min(T - 2, x))
             t.set(x, y, rc[1])
@@ -884,10 +896,10 @@ def hang_tile(name, P, var):
     elif kind == "stalactite":
         acc = hexc(P["acc"])
         base, dark, light = hexc(P["base"]), hexc(P["dark"]), hexc(P["light"])
-        cx = int(r.integers(4, 12))
-        ln = int(r.integers(6, 13))
+        cx = int(r.integers(4, 12) * K)
+        ln = int(r.integers(6, 13) * K)
         for y in range(ln):
-            half = max(0.0, 3.0 * (1 - y / ln))
+            half = max(0.0, 3.0 * K * (1 - y / ln))
             for x in range(T):
                 dx = x + 0.5 - cx
                 if abs(dx) <= half:
@@ -897,8 +909,8 @@ def hang_tile(name, P, var):
             t.set(cx, ln + 1, acc)  # gota brilhando
     elif kind == "chains":
         steel = [hexc("#8a90a8"), hexc("#50566c")]
-        x = int(r.integers(3, 13))
-        for y in range(int(r.integers(6, 15))):
+        x = int(r.integers(3, 13) * K)
+        for y in range(int(r.integers(6, 15) * K)):
             if y % 3 == 0:
                 t.set(x - 1, y, steel[1])
                 t.set(x + 1, y, steel[1])
@@ -916,12 +928,14 @@ def hang_tile(name, P, var):
         if var % 2 == 0:
             red = [hexc("#a02828"), hexc("#701a1e")]
             gold = hexc(P["acc"])
-            for y in range(12):
-                for x in range(4, 12):
-                    if y > 9 and abs(x - 7.5) > 11 - y:
+            x0, x1, yl = int(4 * K), int(12 * K), int(12 * K)
+            mid = (x0 + x1 - 1) / 2.0
+            for y in range(yl):
+                for x in range(x0, x1):
+                    if y > yl - 3 and abs(x - mid) > (yl - 1 - y) * 2:
                         continue
-                    t.set(x, y, red[0] if 5 < x < 10 else red[1])
-            for x in range(4, 12):
+                    t.set(x, y, red[0] if abs(x - mid) < (x1 - x0) * 0.2 else red[1])
+            for x in range(x0, x1):
                 t.set(x, 1, gold)
     return t
 
@@ -950,8 +964,10 @@ def deco_tile(name, P, var):
     kind = theme[var % len(theme)]
     B = T - 1  # linha do chão (embaixo)
 
+    off = (T - 16) // 2  # decorações mantêm o desenho de 16 px, centradas
+
     def px(x, y, c):
-        t.set(x, y, c)
+        t.set(x + off, y, c)
 
     if kind == "tuft":
         for k in range(5):

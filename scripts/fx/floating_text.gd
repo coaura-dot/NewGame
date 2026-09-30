@@ -28,7 +28,8 @@ func _draw() -> void:
 	var size := 8
 	var a := 1.0 - smoothstep(0.45, 0.75, _t)
 	var s := 1.0 + (0.4 if big else 0.2) * (1.0 - minf(_t * 8.0, 1.0))
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(s, s))
+	# letras de 8 px ampliadas 2x na TELA (independe do zoom do mundo)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(s, s) * (2.0 / LevelConst.ART))
 	var w := FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 	var pos := Vector2(-w * 0.5, 0)
 	draw_string_outline(FONT, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, 2, Color(0.05, 0.02, 0.08, a))

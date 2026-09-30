@@ -63,5 +63,8 @@ func _draw() -> void:
 			label = "Requer: " + str(DB.abilities.get(requires_ability, {}).get("name", requires_ability))
 		else:
 			label = "Requer: " + DB.display_name(requires_item)
+		var k := float(LevelConst.ART)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE / k)
 		var w := FONT.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-		draw_string(FONT, Vector2(roundf(4 - w * 0.5), -4), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 0.9, 0.8, _near))
+		draw_string(FONT, Vector2(roundf(4 * k - w * 0.5), -4 * k), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 0.9, 0.8, _near))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

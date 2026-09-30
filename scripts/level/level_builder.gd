@@ -220,7 +220,7 @@ static func _layer(n: String, ts: TileSet, z: int, tint: Color) -> TileMapLayer:
 	l.tile_set = ts
 	l.z_index = z
 	l.modulate = tint
-	# tiles de 16 px de arte em células de 8 unidades
+	# tiles de 24 px de arte em células de 8 unidades
 	l.scale = Vector2.ONE * LevelConst.ART_SCALE
 	return l
 

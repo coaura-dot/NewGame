@@ -1,6 +1,6 @@
 class_name TileSetBuilder
 extends RefCounted
-## Monta o TileSet (tiles de 16 px de arte = 8 unidades do mundo; as camadas
+## Monta o TileSet (tiles de 24 px de arte = 8 unidades do mundo; as camadas
 ## usam escala 0.5) a partir do atlas gerado por tools/build_tiles.py:
 ##   0..46   autotile "blob" (índice por máscara de vizinhos: BlobTable)
 ##   47..58  variações dos formatos comuns (chão, teto, paredes)
@@ -13,8 +13,9 @@ extends RefCounted
 ## (shaders/terrain.gdshader).
 
 const DIR := "res://assets/art/tilesets/"
-const T := 16 ## tamanho do tile na arte (px)
+const T := LevelConst.TILE_PX ## tamanho do tile na arte (px)
 const SOURCE := 0
+const H := T * 0.5
 const COLS := 8
 const ROWS := 11
 
@@ -80,7 +81,7 @@ static func build(tileset_name_in: String) -> TileSet:
 	for c in [PLAT_L, PLAT_M, PLAT_R, PLAT_S]:
 		var td := src.get_tile_data(c, 0)
 		td.add_collision_polygon(1)
-		td.set_collision_polygon_points(1, 0, PackedVector2Array([Vector2(-8, -8), Vector2(8, -8), Vector2(8, -2), Vector2(-8, -2)]))
+		td.set_collision_polygon_points(1, 0, PackedVector2Array([Vector2(-H, -H), Vector2(H, -H), Vector2(H, -H * 0.25), Vector2(-H, -H * 0.25)]))
 		td.set_collision_polygon_one_way(1, 0, true)
 	# espinhos: 4 orientações via alternativas (sem colisão sólida — o dano vem do Hazard)
 	var down := src.create_alternative_tile(SPIKES, SPIKE_DOWN)
@@ -97,7 +98,7 @@ static func build(tileset_name_in: String) -> TileSet:
 
 
 static func _solid(td: TileData) -> void:
-	var square := PackedVector2Array([Vector2(-8, -8), Vector2(8, -8), Vector2(8, 8), Vector2(-8, 8)])
+	var square := PackedVector2Array([Vector2(-H, -H), Vector2(H, -H), Vector2(H, H), Vector2(-H, H)])
 	td.add_collision_polygon(0)
 	td.set_collision_polygon_points(0, 0, square)
 	var occ := OccluderPolygon2D.new()

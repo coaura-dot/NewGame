@@ -8,9 +8,9 @@ extends Camera2D
 ## (FX.kick_offset) — o zoom de impacto é aplicado na exibição (Level).
 
 const VIEW := LevelConst.VIEW
-const LOOK_AHEAD := 44.0 ## px à frente na direção do movimento
-const DEAD_UP := 26.0 ## zona morta vertical (acima/abaixo do ponto de apoio)
-const DEAD_DOWN := 14.0
+const LOOK_AHEAD := 30.0 ## unidades à frente na direção do movimento
+const DEAD_UP := 18.0 ## zona morta vertical (acima/abaixo do ponto de apoio)
+const DEAD_DOWN := 10.0
 const FOLLOW_X := 7.0
 const FOLLOW_Y := 5.5
 const TRANSITION_RATE := 9.0

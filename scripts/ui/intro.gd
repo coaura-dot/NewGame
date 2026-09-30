@@ -35,8 +35,8 @@ func _ready() -> void:
 	_hero = CreatureSprite.new()
 	_hero.spec = {"sprite": "hero", "body": [5, 4], "head": [6, 5], "color": [0.24, 0.22, 0.38], "shell": [0.93, 0.9, 0.84], "eyes": "hollow", "legs": 2}
 	_hero.visible = false
-	# 1 pixel de arte = 1 pixel da tela (0,5 x 1,5 x 4/3)
-	_hero.scale = Vector2(4.0 / 3.0, 4.0 / 3.0)
+	# 1 pixel de arte = 1 pixel da tela (ART_SCALE x 1,5 x escala)
+	_hero.scale = Vector2.ONE / (LevelConst.ART_SCALE * 1.5)
 	add_child(_hero)
 	_ui = CanvasLayer.new()
 	add_child(_ui)

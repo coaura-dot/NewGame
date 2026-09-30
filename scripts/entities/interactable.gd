@@ -66,10 +66,15 @@ func _draw() -> void:
 		return
 	var key := Settings.binding_label("interact")
 	var text := "[%s] %s" % [key, prompt]
+	# o texto é desenhado em PIXELS DE TELA (1/ART de unidade), do tamanho
+	# das letras da interface, qualquer que seja o zoom do mundo
+	var k := float(LevelConst.ART)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE / k)
 	var w := FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-	var pos := Vector2(roundf(-w * 0.5), roundf(-size.y - 6 - (1.0 - _prompt_a) * 3.0))
-	draw_rect(Rect2(pos + Vector2(-2, -7), Vector2(w + 4, 9)), Color(0.05, 0.03, 0.1, 0.7 * _prompt_a))
+	var pos := Vector2(roundf(-w * 0.5), roundf((-size.y - 4.0 - (1.0 - _prompt_a) * 3.0) * k))
+	draw_rect(Rect2(pos + Vector2(-3, -8), Vector2(w + 6, 11)), Color(0.05, 0.03, 0.1, 0.7 * _prompt_a))
 	draw_string(FONT, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1.0, 0.95, 0.8, _prompt_a))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_body() -> void:

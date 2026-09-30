@@ -23,7 +23,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
-from spritekit import Canvas, Mat, hexc, preview, save, strip  # noqa: E402
+from spritekit import RES, Canvas, Mat, hexc, preview, save, strip  # noqa: E402
 import sprites_enemies as EN  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
@@ -480,7 +480,7 @@ def build_weapons(meta):
         draw_weapon(c, cls)
         img, _ = c.render(contact=False)
         save(img, os.path.join(d, cls + ".png"))
-        info[cls] = {"size": [w, h], "pivot": [ox, oy]}
+        info[cls] = {"size": [c.w, c.h], "pivot": [c.ox, c.oy]}
         frames.append(img)
     meta["_weapons"] = info
     if PREVIEW:
@@ -496,7 +496,8 @@ def render_character(cid, size, anims, pose_fn, draw_fn, meta):
     w, h, ox, oy = size
     d = os.path.join(OUT, cid)
     os.makedirs(d, exist_ok=True)
-    entry = {"frame": [w, h], "origin": [ox, oy], "anims": {}}
+    probe = Canvas(w, h, ox, oy)
+    entry = {"frame": [probe.w, probe.h], "origin": [probe.ox, probe.oy], "anims": {}}
     sheets = []
     for anim, (n, fps, loop) in anims.items():
         frames, glows, points = [], [], []
@@ -508,7 +509,7 @@ def render_character(cid, size, anims, pose_fn, draw_fn, meta):
             img, glow = c.render()
             frames.append(img)
             glows.append(glow)
-            points.append({k: [round(v[0], 1), round(v[1], 1)] for k, v in info.items()})
+            points.append({k: [round(v[0] * RES, 1), round(v[1] * RES, 1)] for k, v in info.items()})
         save(strip(frames), os.path.join(d, anim + ".png"))
         has_glow = any(g[..., 3].any() for g in glows)
         gpath = os.path.join(d, anim + "_glow.png")

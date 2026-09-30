@@ -6,8 +6,8 @@ extends StaticBody2D
 var hits_left: int = 3
 var pound_only: bool = false
 var tile_tex: Texture2D
-## bloco rachado do atlas de 16 px (tools/build_tiles.py, índice 59)
-var region: Rect2 = Rect2(48, 112, 16, 16)
+## bloco rachado do atlas (tools/build_tiles.py, índice 59 = coluna 3, linha 7)
+var region: Rect2 = Rect2(3 * LevelConst.TILE_PX, 7 * LevelConst.TILE_PX, LevelConst.TILE_PX, LevelConst.TILE_PX)
 var tint: Color = Color.WHITE
 var team: int = Layers.Team.NEUTRAL
 var dead: bool = false

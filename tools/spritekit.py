@@ -108,24 +108,36 @@ class Mat:
 # Tela
 # ---------------------------------------------------------------------------
 
+# Densidade da arte em relação às coordenadas de DESENHO. Os personagens são
+# descritos em coordenadas de desenho (a escala de 2 px por unidade do mundo
+# em que foram criados); o jogo usa 3 px por unidade (LevelConst.ART = 3),
+# então cada forma é amostrada numa grade 1,5x mais fina: mesma pose, mesmas
+# proporções, 50% mais pixels (mais detalhe, contorno mais fino).
+RES = 1.5
+
+
 class Canvas:
     def __init__(self, w, h, ox, oy):
-        self.w, self.h = w, h
-        self.ox, self.oy = ox, oy
-        cols = np.arange(w) + 0.5 - ox
-        rows = np.arange(h) + 0.5 - oy
+        """w, h, ox, oy em coordenadas de DESENHO; a imagem sai com
+        round(w * RES) x round(h * RES) px e a origem cai num pixel inteiro
+        (px_origin)."""
+        self.dw, self.dh = w, h
+        self.w, self.h = int(round(w * RES)), int(round(h * RES))
+        self.ox, self.oy = int(round(ox * RES)), int(round(oy * RES))
+        cols = (np.arange(self.w) + 0.5 - self.ox) / RES
+        rows = (np.arange(self.h) + 0.5 - self.oy) / RES
         self.X, self.Y = np.meshgrid(cols, rows)
-        self.z = np.full((h, w), -1e9)
-        self.part = np.full((h, w), -1, dtype=np.int32)
-        self.N = np.zeros((h, w, 3))
+        self.z = np.full((self.h, self.w), -1e9)
+        self.part = np.full((self.h, self.w), -1, dtype=np.int32)
+        self.N = np.zeros((self.h, self.w, 3))
         self.N[..., 2] = 1.0
         self.mats = []  # índice de parte -> Mat
-        self.shade_bias = np.zeros((h, w))
+        self.shade_bias = np.zeros((self.h, self.w))
         # sobreposições planas (detalhes de 1 px): cor RGBA, sem luz
-        self.over = np.zeros((h, w, 4), dtype=np.float64)
-        self.over_glow = np.zeros((h, w, 4), dtype=np.float64)
-        self.glow = np.zeros((h, w, 4), dtype=np.float64)
-        self.no_outline = np.zeros((h, w), dtype=bool)
+        self.over = np.zeros((self.h, self.w, 4), dtype=np.float64)
+        self.over_glow = np.zeros((self.h, self.w, 4), dtype=np.float64)
+        self.glow = np.zeros((self.h, self.w, 4), dtype=np.float64)
+        self.no_outline = np.zeros((self.h, self.w), dtype=bool)
 
     # -- utilitários -------------------------------------------------------
     def _commit(self, mask, z, normal, mat, bias=None, no_outline=False):
@@ -276,20 +288,34 @@ class Canvas:
         return self.poly(poly, mat, z, bevel=1.6, tilt=(0.0, -0.1), folds=(1.0, 0.9, twist, 0.25), no_outline=no_outline)
 
     # -- detalhes planos (sem luz) ------------------------------------------
-    def dot(self, x, y, color, glow=False):
-        c = int(math.floor(x + self.ox))
-        r = int(math.floor(y + self.oy))
+    def _px(self, r, c, col, glow):
         if 0 <= c < self.w and 0 <= r < self.h:
-            col = np.array(color if len(color) == 4 else tuple(color) + (255,), dtype=np.float64)
             self.over[r, c] = col
             if glow:
                 self.over_glow[r, c] = col
 
+    def dot(self, x, y, color, glow=False):
+        """Pinta o "pixel de desenho" que contém (x, y): na grade fina isso
+        cobre 1-2 px por eixo."""
+        col = np.array(color if len(color) == 4 else tuple(color) + (255,), dtype=np.float64)
+        cx, cy = math.floor(x), math.floor(y)
+        c0 = math.ceil(cx * RES + self.ox - 0.5)
+        c1 = math.ceil((cx + 1) * RES + self.ox - 0.5)
+        r0 = math.ceil(cy * RES + self.oy - 0.5)
+        r1 = math.ceil((cy + 1) * RES + self.oy - 0.5)
+        for r in range(r0, max(r1, r0 + 1)):
+            for c in range(c0, max(c1, c0 + 1)):
+                self._px(r, c, col, glow)
+
     def line(self, x0, y0, x1, y1, color, glow=False):
-        n = int(max(abs(x1 - x0), abs(y1 - y0))) + 1
+        """Linha de 1 px na grade FINA (rachaduras e fios ficam finos)."""
+        col = np.array(color if len(color) == 4 else tuple(color) + (255,), dtype=np.float64)
+        ax, ay = (math.floor(x0) + 0.5) * RES + self.ox, (math.floor(y0) + 0.5) * RES + self.oy
+        bx, by = (math.floor(x1) + 0.5) * RES + self.ox, (math.floor(y1) + 0.5) * RES + self.oy
+        n = int(max(abs(bx - ax), abs(by - ay))) + 1
         for i in range(n + 1):
             t = i / max(n, 1)
-            self.dot(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, color, glow)
+            self._px(int(math.floor(ay + (by - ay) * t)), int(math.floor(ax + (bx - ax) * t)), col, glow)
 
     def glow_shape(self, mask, colors_by_dist=None, color=None):
         """Pinta uma máscara como emissiva (camada de brilho + cor)."""

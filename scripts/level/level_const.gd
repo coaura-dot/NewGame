@@ -11,18 +11,19 @@ extends RefCounted
 ## Tamanho do tile em UNIDADES do mundo (física, salas, IA — tudo usa isso).
 const TILE := 8
 ## Densidade da arte: cada unidade do mundo vale ART pixels de arte. Os
-## sprites, tiles (16 px) e cenários são desenhados no dobro da densidade e
+## sprites, tiles (24 px) e cenários são desenhados no triplo da densidade e
 ## exibidos com escala ART_SCALE; a câmera do mundo usa zoom ART. Assim a
 ## física e as salas continuam em unidades de 8 por tile, mas a imagem tem
-## resolução real de 480x270 (personagem com ~36 px de altura).
-const ART := 2
-const ART_SCALE := 0.5
+## resolução real de 480x270 e tudo aparece 50% MAIOR que na escala 2
+## (personagem com ~54 px de altura numa tela de 270).
+const ART := 3
+const ART_SCALE := 1.0 / 3.0
 ## Tamanho de um tile na arte (px).
 const TILE_PX := TILE * ART
 ## Resolução do mundo na tela (px): 480x270 = 4x exato em 1920x1080; o shader
 ## de exibição mantém os pixels nítidos em qualquer escala.
 const VIEW_PX := Vector2(480.0, 270.0)
-## Área do mundo visível (unidades): 240x135 = 30 x 17 tiles.
+## Área do mundo visível (unidades): 160x90 = 20 x 11,25 tiles.
 const VIEW := VIEW_PX / ART
 ## Escala da tela do mundo dentro da tela base da UI (480x270).
 const VIEW_SCALE := 1.0
