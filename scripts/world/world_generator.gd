@@ -343,6 +343,7 @@ static func fixed(db: Node = null) -> Dictionary:
 			"optional": bool(s.get("optional", false)),
 			"dimension": "prima",
 			"map": str(s.get("map", "")),
+			"subtitle": str(s.get("subtitle", "")),
 			"cleared": false,
 			"destroyed": false,
 			"visited": false,

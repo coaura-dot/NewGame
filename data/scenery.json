@@ -414,5 +414,48 @@
   "underground": false,
   "water": false,
   "cloud": "#5a3440"
+ },
+ "mata": {
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.03,
+    "vpar": 0.02,
+    "fill": "#483654"
+   },
+   {
+    "file": "l1",
+    "par": 0.08,
+    "vpar": 0.029,
+    "fill": "#362c44"
+   },
+   {
+    "file": "l2",
+    "par": 0.16,
+    "vpar": 0.044,
+    "fill": "#32293f"
+   },
+   {
+    "file": "l3",
+    "par": 0.3,
+    "vpar": 0.069,
+    "fill": "#0f131b"
+   },
+   {
+    "file": "l4",
+    "par": 0.62,
+    "vpar": 0.127,
+    "fill": "#06070d"
+   }
+  ],
+  "fog": "#5a4060",
+  "fog_alpha": 0.16,
+  "event": "bats",
+  "birds": false,
+  "rays": false,
+  "weather": "",
+  "underground": false,
+  "water": false,
+  "cloud": "#4a3450"
  }
 }

@@ -70,6 +70,7 @@ def parse(path):
     W = H = 0
     default = "#"
     default_bg = "wall"
+    abil = []
     rooms = []
     i = 0
     while i < len(lines):
@@ -86,6 +87,8 @@ def parse(path):
             default = t[1][0]
         elif t[0] == "bg":
             default_bg = t[1]
+        elif t[0] == "abilities":
+            abil = t[1:]
         elif t[0] in ("fill", "ground", "ent"):
             rooms.append({"directive": t[0], "toks": t})
         elif t[0] == "room":
@@ -217,7 +220,7 @@ def parse(path):
         for x in range(W):
             if grid[y][x] not in "#" and owner(x, y) < 0:
                 bg[y][x] = 0
-    return {"W": W, "H": H, "grid": grid, "bg": bg, "rooms": out_rooms, "ents": ents, "decor": decor, "errors": errors}
+    return {"W": W, "H": H, "grid": grid, "bg": bg, "rooms": out_rooms, "ents": ents, "decor": decor, "errors": errors, "abilities": abil}
 
 
 # ---------------------------------------------------------------------------
@@ -226,6 +229,9 @@ def parse(path):
 
 class Reach:
     def __init__(self, m, blocked_rooms=(), gates_closed=True):
+        global MAX_RISE, MAX_DX_FLAT, MAX_DX_RISE, MAX_DX_DOWN
+        if "double_jump" in m.get("abilities", []):
+            MAX_RISE, MAX_DX_FLAT, MAX_DX_RISE, MAX_DX_DOWN = 6, 8, 6, 10
         self.w, self.h = m["W"], m["H"]
         code = {"#": SOLID, "Z": SOLID, "-": ONE, "^": SPK}
         self.c = [[code.get(ch, AIR) for ch in row] for row in m["grid"]]

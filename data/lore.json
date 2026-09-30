@@ -2,12 +2,30 @@
  "_doc": "História e lore de Cindária. intro: painéis da abertura (art = ilustração desenhada em código). biomes: inscrições por bioma (achadas nas salas). bosses: título/subtítulo (cartão estilo Hollow Knight). abilities/dimensions/codex: entradas do Códice.",
  "world": "Cindária",
  "intro": [
-  {"art": "flame", "text": "No coração de Cindária ardia a Chama Primeira. Enquanto ela queimasse, a Maré dormia sob o mundo."},
-  {"art": "tide", "text": "Mas a cada mil anos a Maré sobe. Um oceano de sombra que não afoga: esvazia. O que ela toca vira Oco."},
-  {"art": "guardian", "text": "No último Cerco, a guardiã Ignara partiu a Chama em mil brasas e as escondeu dentro das criaturas do mundo, para que a Maré não pudesse apagá-la de uma só vez."},
-  {"art": "embers", "text": "A Maré recuou. Ignara não voltou. E as brasas, esquecidas, foram se apagando uma a uma nos corações dos Ocos."},
-  {"art": "spark", "text": "Mil anos depois, a última brasa intacta desperta num santuário em ruínas. Pequena. Muda. Com uma lâmina."},
-  {"art": "tide_rising", "text": "A Maré já está subindo. Junte as brasas. Reacenda o que puder. E quando o Cerco vier, escolha onde queimar."}
+  {
+   "art": "flame",
+   "text": "No coração de Cindária ardia a Chama Primeira. Enquanto ela queimasse, a Maré dormia sob o mundo."
+  },
+  {
+   "art": "tide",
+   "text": "Mas a cada mil anos a Maré sobe. Um oceano de sombra que não afoga: esvazia. O que ela toca vira Oco."
+  },
+  {
+   "art": "guardian",
+   "text": "No último Cerco, a guardiã Ignara partiu a Chama em mil brasas e as confiou aos Lampadeiros: pequenos guardiões de ferro e vidro que levavam a luz a cada canto do reino."
+  },
+  {
+   "art": "embers",
+   "text": "A Maré recuou. Ignara não voltou. E, uma a uma, as lanternas dos Lampadeiros foram se apagando nas galerias."
+  },
+  {
+   "art": "spark",
+   "text": "Mil anos depois, numa capela esquecida da superfície, uma última lanterna ainda guarda uma brasa. Pequena. Muda. Teimosa."
+  },
+  {
+   "art": "tide_rising",
+   "text": "A Maré está subindo outra vez. Junte o que restou do fogo. Acenda o que puder. E quando o Cerco vier, escolha onde queimar."
+  }
  ],
  "biomes": {
   "cemiterio": [
@@ -84,14 +102,49 @@
    "Os goblins colecionam brasas apagadas. Acham que um dia elas vão acender de novo.",
    "Cuidado com o chão que parece chão.",
    "Cada túnel daqui foi cavado para fugir de outro túnel."
+  ],
+  "cinzal": [
+   "O sino tocava ao anoitecer e todas as lâmpadas de Cindária se acendiam de uma vez.",
+   "A cinza cai, mas nunca se acumula. Ninguém sabe para onde ela vai.",
+   "Cinzal foi a última vila a apagar a lareira. Dizem que ainda há brasa no braseiro da praça."
+  ],
+  "galerias": [
+   "Os Lampadeiros desciam pelo poço ao entardecer e subiam ao amanhecer, com as lanternas vazias de cansaço.",
+   "Cada lâmpada destas galerias tinha um nome. Os nomes se apagaram antes das lâmpadas.",
+   "O Colosso vigia a porta das profundezas. Ele não odeia ninguém. Só não sabe mais parar."
+  ],
+  "bosque": [
+   "As raízes da Árvore-Mãe descem até as brasas. Por isso o bosque ainda respira.",
+   "Se ouvir alguém assobiando, responda. Se ninguém responder de volta, corra.",
+   "A Rainha da Ninhada guarda o que prende. Tudo o que brilha, ela quer para as suas gaiolas."
+  ],
+  "mata": [
+   "Se ouvir alguém assobiando, responda. Se ninguém responder de volta, corra.",
+   "Os pinheiros morreram de pé, esperando uma primavera que a Maré nunca deixou chegar.",
+   "O acampamento ficou como estava: panelas, cobertores, e ninguém para voltar."
   ]
  },
  "bosses": {
-  "duelist": {"title": "Duelista Sombrio", "subtitle": "Último cavaleiro de Ignara"},
-  "brood_mother": {"title": "Mãe da Ninhada", "subtitle": "Rainha que devorou as brasas do Sul"},
-  "colossus": {"title": "Colosso de Pedra", "subtitle": "O muro vivo da Cidadela"},
-  "nightmare": {"title": "Corcel do Pesadelo", "subtitle": "Montaria da Maré"},
-  "archdemon": {"title": "Arquidemônio", "subtitle": "Arauto da Maré"}
+  "duelist": {
+   "title": "Umbral",
+   "subtitle": "O reflexo que a Maré acendeu"
+  },
+  "brood_mother": {
+   "title": "Rainha da Ninhada",
+   "subtitle": "Senhora das gaiolas de raiz"
+  },
+  "colossus": {
+   "title": "Colosso Apagado",
+   "subtitle": "O guardião que esqueceu o que guardava"
+  },
+  "nightmare": {
+   "title": "Corcel do Pesadelo",
+   "subtitle": "Montaria da Maré"
+  },
+  "archdemon": {
+   "title": "Arquidemônio",
+   "subtitle": "Arauto da Maré"
+  }
  },
  "abilities": {
   "double_jump": "Asas de Cinza: o último sopro de uma fênix que se recusou a morrer. Pule de novo no ar.",
@@ -109,10 +162,40 @@
   "abismo": "Abismo: o fundo da Maré. Ninguém deveria conseguir entrar. Ninguém deveria conseguir sair."
  },
  "codex": [
-  {"id": "faisca", "title": "A Faísca", "text": "Nasceu da última brasa intacta de Ignara. Não fala; sente. Cada Oco derrotado devolve um pouco de brasa ao mundo."},
-  {"id": "ocos", "title": "Os Ocos", "text": "Criaturas que a Maré tocou. Por dentro, só tinta escura e brasas apagadas. Libertá-los é o único descanso que ainda lhes resta."},
-  {"id": "lanternas", "title": "Lanternas de Ímpeto", "text": "Os cavaleiros de Ignara penduravam lanternas sobre os abismos. Golpeá-las devolve o fôlego do dash e do pulo."},
-  {"id": "santuarios", "title": "Santuários", "text": "Fogueiras acesas com brasas de Ignara. Descansar nelas cura, e quem as encontra pode viajar entre elas."},
-  {"id": "cerco", "title": "O Cerco", "text": "A cada mil anos a Maré sobe em todas as terras ao mesmo tempo. Nenhuma chama é grande o bastante para proteger tudo."}
+  {
+   "id": "lume",
+   "title": "Lume, o Lampadeiro",
+   "text": "A última lanterna acesa da Ordem dos Lampadeiros. Dentro do vidro vive uma brasa de Ignara, e é ela que olha pelo Lume. Não fala; brilha. Quando se machuca, a chama encolhe e o vidro racha."
+  },
+  {
+   "id": "lampadeiros",
+   "title": "Os Lampadeiros",
+   "text": "Criados por Ignara para carregar a Chama pelo reino. Acendiam as lâmpadas das Galerias ao anoitecer, ao som do sino de Cinzal. Os que perderam a chama viraram Ocos, ou pior: alguns, como Sir Gaspar, se recusaram."
+  },
+  {
+   "id": "umbral",
+   "title": "Umbral",
+   "text": "Uma lanterna que a Maré não esvaziou: encheu. Queima com um fogo frio e azul, e caça as brasas que restam. Tem a forma do Lume, como uma sombra que aprendeu a andar sozinha."
+  },
+  {
+   "id": "ocos",
+   "title": "Os Ocos",
+   "text": "Criaturas que a Maré tocou. Por dentro, só tinta escura e brasas apagadas. Libertá-los é o único descanso que ainda lhes resta."
+  },
+  {
+   "id": "lanternas",
+   "title": "Lanternas de Ímpeto",
+   "text": "Os cavaleiros de Ignara penduravam lanternas sobre os abismos. Golpeá-las devolve o fôlego do dash e do pulo."
+  },
+  {
+   "id": "santuarios",
+   "title": "Santuários",
+   "text": "Fogueiras acesas com brasas de Ignara. Descansar nelas cura, e quem as encontra pode viajar entre elas."
+  },
+  {
+   "id": "cerco",
+   "title": "O Cerco",
+   "text": "A cada mil anos a Maré sobe em todas as terras ao mesmo tempo. Nenhuma chama é grande o bastante para proteger tudo."
+  }
  ]
 }

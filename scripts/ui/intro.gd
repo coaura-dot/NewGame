@@ -267,6 +267,6 @@ func _art_tide_rising() -> void:
 		x += 6.0
 	pts.append(Vector2(W, 132))
 	draw_colored_polygon(pts, Color(0.1, 0.02, 0.12))
-	# penhasco onde a Faísca está
+	# penhasco onde o Lume está
 	var cliff := Color(0.05, 0.03, 0.06)
 	draw_colored_polygon(PackedVector2Array([Vector2(0, 104), Vector2(110, 104), Vector2(128, 132), Vector2(0, 132)]), cliff)

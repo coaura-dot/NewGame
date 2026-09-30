@@ -96,6 +96,8 @@ func _ready() -> void:
 		var layer_names := {"surface": "Superfície", "sky": "Céu", "underground": "Subsolo"}
 		var b: Dictionary = DB.biome(str(level.region.get("biome", "")))
 		_region_sub = "%s  •  %s" % [b.get("name", ""), layer_names.get(level.region.get("layer", "surface"), "")]
+		if str(level.region.get("subtitle", "")) != "":
+			_region_sub = str(level.region["subtitle"])
 		if level.region.get("dimension", "prima") != "prima":
 			_region_sub = "Reflexo  •  " + str(DB.dimension(level.region["dimension"]).get("name", ""))
 

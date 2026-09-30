@@ -199,7 +199,7 @@
 // lagoa
 @ent 123,31 decor grass
 @ent 148,27 decor fungus
-@ent 136,32 enemy mossling behavior=sleep
+@ent 136,32 enemy mossling behavior=ambush
 @ent 132,15 decor vines
 @ent 144,15 decor roots
 // passagem leste

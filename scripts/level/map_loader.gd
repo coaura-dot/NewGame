@@ -66,6 +66,9 @@ var entities: Array = []
 var decor: Array = []
 var water_cells := {}
 var errors: Array = []
+## habilidades que o jogador certamente tem ao chegar (ex.: double_jump):
+## o teste de alcance usa o pulo correspondente
+var abilities: Array = []
 var _npc_cursor: int = 0
 
 
@@ -125,6 +128,8 @@ func _parse(text: String) -> void:
 				default_char = str(toks[1]).unicode_at(0)
 			"bg":
 				default_bg = str(toks[1])
+			"abilities":
+				abilities = toks.slice(1)
 			"fill", "ground", "ent":
 				pending_rooms.append({"directive": cmd, "toks": toks})
 			"room":
@@ -628,5 +633,6 @@ func _output() -> Dictionary:
 		"objective": obj,
 		"mode": "handmade",
 		"map": map_id,
+		"abilities": abilities,
 		"errors": errors,
 	}

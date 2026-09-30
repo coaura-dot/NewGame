@@ -131,7 +131,7 @@
 @ent 73,30 lamp
 @ent 94,30 lamp
 @ent 103,30 lamp
-@ent 79,30 npc borralha
+@ent 77,30 npc borralha
 @ent 90,30 npc fuligem
 @ent 83,30 sign D "Galerias Apagadas"
 @ent 101,30 decor house_mira
@@ -145,4 +145,4 @@
 @ent 145,20 arrival
 @ent 141,20 decor lamppost_broken
 // Tordo abre a loja na praça depois de resgatado no Bosque
-@ent 98,30 npc tordo
+@ent 97,30 npc tordo

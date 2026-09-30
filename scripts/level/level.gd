@@ -207,7 +207,7 @@ func _make_viewport() -> void:
 func _build_world() -> void:
 	var ambient_a: Array = biome.get("ambient", [0.5, 0.5, 0.6])
 	# estilo Hollow Knight: o clima vem do ambiente (mais escuro nos lugares
-	# fechados e subterrâneos); a chama da Faísca, tochas, janelas e cristais
+	# fechados e subterrâneos); a lanterna do Lume, tochas, janelas e cristais
 	# iluminam e refletem nas pedras (mapas de normais do terreno).
 	var tags: Array = biome.get("tags", [])
 	var lift := 0.42
@@ -540,7 +540,8 @@ func _leave_by(pt: Dictionary) -> void:
 	_leaving = true
 	player.set_physics_process(false)
 	# região sem chefe fica concluída ao ser atravessada
-	if not region.get("cleared", false) and str(region.get("boss", "")) == "" and pt["to"] != came_from:
+	# (regiões feitas à mão são lugares da história: não "concluem" ao sair)
+	if not region.get("cleared", false) and str(region.get("boss", "")) == "" and pt["to"] != came_from and str(layout.get("mode", "")) != "handmade":
 		complete_level()
 	Game.save()
 	var tw := create_tween()

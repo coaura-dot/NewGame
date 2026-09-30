@@ -416,6 +416,8 @@ func _shot_rooms(prefix: String) -> void:
 	var p: Player = level.player
 	var rows: PackedStringArray = level.layout["rows"]
 	for room in level.layout["rooms"]:
+		if str(room.get("port_dir", "")) == "D":
+			continue # (cair pela saída de baixo troca de região)
 		var o: Array = room["origin"]
 		var spot := _place_spot(rows, room["rect"]) if room.has("rect") else _stand_spot(rows, int(o[0]), int(o[1]))
 		p.global_position = spot

@@ -176,7 +176,7 @@ func _ready() -> void:
 	caster = SpellCaster.new(self)
 	add_child(caster)
 	buffs = BuffSystem.new(self)
-	# a chama na cabeça da Faísca ilumina o caminho (e reflete nas pedras)
+	# a brasa na lanterna do Lume ilumina o caminho (e reflete nas pedras)
 	light = LightUtil.make_light(Color(1.0, 0.66, 0.36), 0.95, 1.05, true)
 	if light:
 		light.position = Vector2(0, -16)

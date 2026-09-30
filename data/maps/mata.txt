@@ -1,0 +1,98 @@
+// ============================================================================
+// MATA DO ASSOBIO — a floresta a oeste de Cinzal, ao crepúsculo (feita à mão)
+// Pinheiros mortos, vaga-lumes e alguém que assobia na clareira. Um
+// acampamento abandonado (santuário), uma casa na árvore com um baú e o
+// Poço das Raízes, que desce até o Bosque Sussurrante. Atrás de uma parede
+// rachada no poço, a Toca Rasa guarda uma relíquia.
+// ============================================================================
+@map mata
+@size 130 56
+@default #
+@bg sky
+
+@fill 0,0,129,41 .
+@ground 0-13:42 14-43:40 44-47:40 48-49:39 50-61:37 62-89:40 90-95:39 96-105:38 106-111:39 112-129:40
+
+@room trilha_brejo "Trilha do Brejo" kind=passagem port=L rect=0,18,14,24 bg=sky
+@end
+
+@room clareira_assobio "Clareira do Assobio" kind=trilha rect=14,16,26,24 bg=sky
+@end
+
+@room colina "Colina das Raízes" kind=trilha rect=40,16,22,24 bg=sky
+@end
+
+// o poço entre as raízes: tábuas até o Bosque; parede rachada para a toca
+@room poco_raizes "Poço das Raízes" kind=passagem port=D at=44,40 rect=43,40,5,16 bg=wall relic=acrobata
+....
+....
+....
+--..B............
+....B............
+....B............
+..--B...b.....R..
+....
+....
+--..
+....
+..P.
+..--
+....
+....
+....
+@end
+
+@room toca_rasa "Toca Rasa" kind=cofre rect=48,43,13,4 bg=wall
+@end
+
+@room acampamento "Acampamento Abandonado" kind=santuario rect=62,14,28,26 bg=sky
+@end
+
+// casa na árvore: tábuas subindo o pinheiro gigante até o esconderijo
+@room pinheiros "Pinheiros Mortos" kind=trilha at=96,23 rect=90,4,22,36 bg=sky
+..........................
+..-----------.............
+..........................
+..........................
+.......------.............
+..........................
+..........................
+.------...................
+..........................
+..........................
+.......------.............
+..........................
+..........................
+------....................
+@end
+
+@room trilha_cinzal "Trilha de Cinzal" kind=passagem port=R rect=112,16,18,24 bg=sky
+@end
+
+// ---------------------------------------------------------------------------
+@ent 3,41 arrival
+@ent 10,41 sign L "Brejo das Lamparinas"
+@ent 6,41 decor dead_tree
+@ent 18,39 enemy hound
+@ent 24,39 decor tombstone
+@ent 30,39 npc assobiador
+@ent 34,39 inscription "Se ouvir alguém assobiando, responda. Se ninguém responder de volta, corra." title="Pedra da Clareira"
+@ent 37,39 decor grass
+@ent 42,39 sign D "Bosque Sussurrante"
+@ent 52,36 decor dead_tree
+@ent 58,36 decor grass
+@ent 55,28 flyer stingfly
+@ent 68,39 decor crates
+@ent 72,39 decor bench
+@ent 76,39 checkpoint
+@ent 80,39 decor fence
+@ent 84,39 lamp
+@ent 87,39 decor tombstone
+@ent 100,37 decor tree
+@ent 99,23 chest loot=pocao_vida
+@ent 104,23 decor crates
+@ent 93,38 enemy mossling behavior=ambush
+@ent 110,38 enemy hound
+@ent 118,39 decor dead_tree
+@ent 125,39 sign R "Cinzal"
+@ent 126,39 arrival port=R

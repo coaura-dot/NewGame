@@ -743,7 +743,7 @@
   }
  },
  "duelist": {
-  "name": "Duelista Sombrio",
+  "name": "Umbral",
   "tier": 2,
   "hp": 240,
   "speed": 70,
@@ -826,7 +826,7 @@
   "desc": "Um reflexo seu que aprendeu a lutar sozinho. Postura azul = contra-ataque: não golpeie."
  },
  "brood_mother": {
-  "name": "Mãe da Ninhada",
+  "name": "Rainha da Ninhada",
   "tier": 2,
   "hp": 200,
   "speed": 0,
@@ -924,7 +924,7 @@
   "desc": "Protegida pela ninhada. Derrube cada onda para abrir a guarda."
  },
  "colossus": {
-  "name": "Colosso de Pedra",
+  "name": "Colosso Apagado",
   "tier": 2,
   "hp": 320,
   "speed": 22,

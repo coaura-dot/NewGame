@@ -2,40 +2,257 @@
  "_doc": "O MUNDO DE CINDÁRIA, fixo e desenhado à mão (substitui o sorteio do WorldGenerator). grid = [coluna, camada] com camada -1 céu, 0 superfície, 1 subsolo, 2 profundezas. map = mapa feito à mão em data/maps/<map>.txt (sem map: a região é gerada pelo RegionDesigner com semente fixa). edges: a -> b na direção dir (L/R/U/D, vista de a), requires = habilidade para passar.",
  "start": "cinzal",
  "finale": "abismo",
- "abilities_order": ["double_jump", "ground_pound", "dash_2", "wall_climb"],
+ "abilities_order": [
+  "double_jump",
+  "ground_pound",
+  "dash_2",
+  "wall_climb"
+ ],
  "regions": {
-  "cinzal": {"name": "Cinzal", "biome": "cinzal", "grid": [0, 0], "hub": "vila", "map": "cinzal", "tier": 1},
-  "mata": {"name": "Mata do Assobio", "biome": "floresta", "grid": [-1, 0], "tier": 1},
-  "brejo": {"name": "Brejo das Lamparinas", "biome": "pantano", "grid": [-2, 0], "hub": "vila", "tier": 2, "optional": true},
-  "vesper": {"name": "Cidade de Vésper", "biome": "cidade_gotica", "grid": [1, 0], "hub": "cidade", "boss": "duelist", "grants": "dash_2", "tier": 2},
-  "castelo": {"name": "Salões do Rei Cinza", "biome": "castelo", "grid": [2, 0], "tier": 3, "optional": true},
-  "cidadela": {"name": "Cidadela Celeste", "biome": "cidade_ceu", "grid": [1, -1], "hub": "cidade", "tier": 3, "rewards": ["blink"]},
-  "galerias": {"name": "Galerias Apagadas", "biome": "galerias", "grid": [0, 1], "boss": "colossus", "grants": "ground_pound", "map": "galerias", "tier": 1},
-  "bosque": {"name": "Bosque Sussurrante", "biome": "bosque", "grid": [-1, 1], "boss": "brood_mother", "grants": "double_jump", "map": "bosque", "tier": 1},
-  "toca": {"name": "Toca de Fuligem", "biome": "toca_goblin", "grid": [-2, 1], "tier": 2, "optional": true},
-  "esgotos": {"name": "Esgotos de Vésper", "biome": "cidade_subterranea", "grid": [1, 1], "tier": 2},
-  "catacumbas": {"name": "Catacumbas do Ossário", "biome": "catacumbas", "grid": [0, 2], "boss": "nightmare", "grants": "wall_climb", "tier": 2},
-  "templo": {"name": "Templo Afundado", "biome": "templo_dourado", "grid": [1, 2], "tier": 3, "optional": true, "rewards": ["dimension_shift"]},
-  "abismo": {"name": "Coração da Maré", "biome": "catacumbas", "grid": [-1, 2], "boss": "archdemon", "tier": 3}
+  "cinzal": {
+   "name": "Cinzal",
+   "biome": "cinzal",
+   "grid": [
+    0,
+    0
+   ],
+   "hub": "vila",
+   "map": "cinzal",
+   "tier": 1,
+   "subtitle": "a última vila da superfície"
+  },
+  "mata": {
+   "name": "Mata do Assobio",
+   "biome": "mata",
+   "grid": [
+    -1,
+    0
+   ],
+   "tier": 1,
+   "subtitle": "onde alguém sempre assobia",
+   "map": "mata"
+  },
+  "brejo": {
+   "name": "Brejo das Lamparinas",
+   "biome": "pantano",
+   "grid": [
+    -2,
+    0
+   ],
+   "hub": "vila",
+   "tier": 2,
+   "optional": true,
+   "subtitle": "luzes sobre a água que não são fogo"
+  },
+  "vesper": {
+   "name": "Cidade de Vésper",
+   "biome": "cidade_gotica",
+   "grid": [
+    1,
+    0
+   ],
+   "hub": "cidade",
+   "boss": "duelist",
+   "grants": "dash_2",
+   "tier": 2,
+   "subtitle": "a cidade onde sempre chove"
+  },
+  "castelo": {
+   "name": "Salões do Rei Cinza",
+   "biome": "castelo",
+   "grid": [
+    2,
+    0
+   ],
+   "tier": 3,
+   "optional": true,
+   "subtitle": "o trono vazio"
+  },
+  "cidadela": {
+   "name": "Cidadela Celeste",
+   "biome": "cidade_ceu",
+   "grid": [
+    1,
+    -1
+   ],
+   "hub": "cidade",
+   "tier": 3,
+   "rewards": [
+    "blink"
+   ],
+   "subtitle": "acima das nuvens, longe da Maré"
+  },
+  "galerias": {
+   "name": "Galerias Apagadas",
+   "biome": "galerias",
+   "grid": [
+    0,
+    1
+   ],
+   "boss": "colossus",
+   "grants": "ground_pound",
+   "map": "galerias",
+   "tier": 1,
+   "subtitle": "onde os Lampadeiros acendiam o mundo"
+  },
+  "bosque": {
+   "name": "Bosque Sussurrante",
+   "biome": "bosque",
+   "grid": [
+    -1,
+    1
+   ],
+   "boss": "brood_mother",
+   "grants": "double_jump",
+   "map": "bosque",
+   "tier": 1,
+   "subtitle": "a floresta que cresceu para dentro da terra"
+  },
+  "toca": {
+   "name": "Toca de Fuligem",
+   "biome": "toca_goblin",
+   "grid": [
+    -2,
+    1
+   ],
+   "tier": 2,
+   "optional": true,
+   "subtitle": "túneis cavados para fugir de outros túneis"
+  },
+  "esgotos": {
+   "name": "Esgotos de Vésper",
+   "biome": "cidade_subterranea",
+   "grid": [
+    1,
+    1
+   ],
+   "tier": 2,
+   "subtitle": "o que a cidade esconde embaixo"
+  },
+  "catacumbas": {
+   "name": "Catacumbas do Ossário",
+   "biome": "catacumbas",
+   "grid": [
+    0,
+    2
+   ],
+   "boss": "nightmare",
+   "grants": "wall_climb",
+   "tier": 2,
+   "subtitle": "onde os guardiões ainda vigiam"
+  },
+  "templo": {
+   "name": "Templo Afundado",
+   "biome": "templo_dourado",
+   "grid": [
+    1,
+    2
+   ],
+   "tier": 3,
+   "optional": true,
+   "rewards": [
+    "dimension_shift"
+   ],
+   "subtitle": "o ouro que a Maré não levou"
+  },
+  "abismo": {
+   "name": "Coração da Maré",
+   "biome": "catacumbas",
+   "grid": [
+    -1,
+    2
+   ],
+   "boss": "archdemon",
+   "tier": 3,
+   "subtitle": "o fundo de tudo"
+  }
  },
  "edges": [
-  {"a": "cinzal", "b": "mata", "dir": "L"},
-  {"a": "mata", "b": "brejo", "dir": "L"},
-  {"a": "cinzal", "b": "vesper", "dir": "R", "requires": "double_jump"},
-  {"a": "vesper", "b": "castelo", "dir": "R", "requires": "dash_2"},
-  {"a": "vesper", "b": "cidadela", "dir": "U", "requires": "wall_climb"},
-  {"a": "cinzal", "b": "galerias", "dir": "D"},
-  {"a": "galerias", "b": "bosque", "dir": "L"},
-  {"a": "mata", "b": "bosque", "dir": "D"},
-  {"a": "bosque", "b": "toca", "dir": "L"},
-  {"a": "galerias", "b": "esgotos", "dir": "R", "requires": "double_jump"},
-  {"a": "esgotos", "b": "vesper", "dir": "U"},
-  {"a": "galerias", "b": "catacumbas", "dir": "D", "requires": "ground_pound"},
-  {"a": "catacumbas", "b": "templo", "dir": "R"},
-  {"a": "catacumbas", "b": "abismo", "dir": "L", "requires": "blink"}
+  {
+   "a": "cinzal",
+   "b": "mata",
+   "dir": "L"
+  },
+  {
+   "a": "mata",
+   "b": "brejo",
+   "dir": "L"
+  },
+  {
+   "a": "cinzal",
+   "b": "vesper",
+   "dir": "R",
+   "requires": "double_jump"
+  },
+  {
+   "a": "vesper",
+   "b": "castelo",
+   "dir": "R",
+   "requires": "dash_2"
+  },
+  {
+   "a": "vesper",
+   "b": "cidadela",
+   "dir": "U",
+   "requires": "wall_climb"
+  },
+  {
+   "a": "cinzal",
+   "b": "galerias",
+   "dir": "D"
+  },
+  {
+   "a": "galerias",
+   "b": "bosque",
+   "dir": "L"
+  },
+  {
+   "a": "mata",
+   "b": "bosque",
+   "dir": "D"
+  },
+  {
+   "a": "bosque",
+   "b": "toca",
+   "dir": "L"
+  },
+  {
+   "a": "galerias",
+   "b": "esgotos",
+   "dir": "R",
+   "requires": "double_jump"
+  },
+  {
+   "a": "esgotos",
+   "b": "vesper",
+   "dir": "U"
+  },
+  {
+   "a": "galerias",
+   "b": "catacumbas",
+   "dir": "D",
+   "requires": "ground_pound"
+  },
+  {
+   "a": "catacumbas",
+   "b": "templo",
+   "dir": "R"
+  },
+  {
+   "a": "catacumbas",
+   "b": "abismo",
+   "dir": "L",
+   "requires": "blink"
+  }
  ],
  "rifts": [
-  {"anchor": "catacumbas", "dimension": "umbra"},
-  {"anchor": "cidadela", "dimension": "eter"}
+  {
+   "anchor": "catacumbas",
+   "dimension": "umbra"
+  },
+  {
+   "anchor": "cidadela",
+   "dimension": "eter"
+  }
  ]
 }

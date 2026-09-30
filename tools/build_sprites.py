@@ -976,13 +976,39 @@ def draw_gaspar(c, p, t):
     return info
 
 
+M_MASK = Mat(["#8a8478", "#aaa496", "#c8c2b2", "#e2dccc", "#f6f2e6"], rim=0.5, outline="#2a2620", wrap=0.5, ambient=0.35)
+
+
+def draw_assobiador(c, p, t):
+    # figura alta e encapuzada, máscara pálida com a boca em "o" (assobiando)
+    p = dict(p)
+    p["flame_h"] = 0.0
+    p["head_dy"] = p.get("head_dy", 0.0) - 3.0
+    p["scarf_len"] = p["scarf_len"] + 6
+    pal = _story_pal("#1a1622", "#3a2e4a", "#2a2236", ash="#aaa496", eye="#b8a0ff")
+    info = draw_ashfolk(c, p, t, pal)
+    hx, hy = info["head"]
+    hy += 7.0
+    # capuz pontudo
+    c.poly([(hx - 7.6, hy + 4.0), (hx - 6.8, hy - 4.0), (hx - 3.0, hy - 10.0), (hx - 6.0, hy - 15.0), (hx + 2.0, hy - 9.6), (hx + 7.0, hy - 4.0),
+            (hx + 7.6, hy + 3.0), (hx + 5.6, hy + 1.0), (hx + 3.0, hy - 5.5), (hx - 4.0, hy - 5.0), (hx - 5.4, hy + 3.0)], pal["cloak"], z=6.0, bevel=2.0)
+    # boca de assobio
+    c.ellipse(hx + 3.2, hy + 3.4, 0.9, 1.0, M_SOCKET, z=6.2, no_outline=True)
+    # notas no ar
+    if int(t * 4) % 2 == 0:
+        c.dot(hx + 7.0, hy - 2.0 - (t * 6) % 4, hexc("#c8b8ff"), glow=True)
+    # cajado comprido
+    c.capsule(hx - 8.0, hy - 6.0, hx - 7.0, 0.0, 0.8, 0.8, M_STICK, z=6.5)
+    return info
+
+
 def story_pose(anim, t, i, n):
     return hero_pose("run" if anim == "move" else "idle", t, i, n)
 
 
 STORY_NPCS = {
     "npc_borralha": draw_borralha, "npc_fuligem": draw_fuligem, "npc_mira": draw_mira,
-    "npc_tordo": draw_tordo, "npc_gaspar": draw_gaspar,
+    "npc_tordo": draw_tordo, "npc_gaspar": draw_gaspar, "npc_assobiador": draw_assobiador,
 }
 
 

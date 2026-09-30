@@ -15,6 +15,8 @@ const GOLD := Color(0.95, 0.8, 0.5)
 const INK := Color(0.95, 0.93, 0.88)
 
 var active: bool = false
+## testes automáticos: as falas avançam sozinhas
+static var auto_advance: bool = false
 var _speaker: String = ""
 var _lines: Array = []
 var _i: int = 0
@@ -78,6 +80,16 @@ func _process(delta: float) -> void:
 	if int(_shown) != before and int(_shown) % 3 == 0 and text.substr(int(_shown) - 1, 1) != " ":
 		Audio.play("ui_move", 0.15, -22.0)
 	_hold = maxf(_hold - delta, 0.0)
+	if auto_advance and _hold <= 0.0:
+		_shown = float(text.length())
+		_i += 1
+		_shown = 0.0
+		_hold = 0.05
+		if _i >= _lines.size():
+			active = false
+			finished.emit()
+		_draw.queue_redraw()
+		return
 	if _hold <= 0.0 and (Input.is_action_just_pressed("interact") or Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("attack") or Input.is_action_just_pressed("ui_accept")):
 		if _shown < text.length():
 			_shown = float(text.length())

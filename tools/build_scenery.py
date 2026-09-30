@@ -1160,6 +1160,14 @@ PAINTERS = {
 # faixas de nuvem estão em coordenadas da tela antiga (256x144) e são
 # convertidas (x1.875).
 STYLES = {
+    "mata": {
+        "seed": 149, "painter": "forest",
+        "sky": {"colors": ["#141428", "#2e2644", "#6a3e58", "#c0705a"], "sun": {"pos": [60, 84], "r": 10, "color": "#ffb880", "halo": "#e06a50", "glow": 0.45},
+                "stars": 50, "bands": [[74, "#5a3a54", 0.35], [90, "#9a5a5a", 0.3]]},
+        "pal": {"far": "#2e2a44", "far_rim": "#d07a6a", "mid": "#161a26", "mid_hi": "#3a3a52", "near": "#07080e"},
+        "fog": "#5a4060", "fog_alpha": 0.16, "event": "bats", "cloud": "#4a3450",
+        "parallax": [0.03, 0.08, 0.16, 0.3, 0.62],
+    },
     "galerias": {
         "seed": 131, "painter": "galerias",
         "sky": {"colors": ["#05060b", "#0b0f1a", "#121a2a", "#0c111c"]},

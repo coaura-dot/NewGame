@@ -27,6 +27,11 @@ const MAX_DX_FLAT := 5
 const MAX_DX_RISE := 4
 const MAX_DX_DOWN := 7
 
+## Limites do pulo (instância): com o pulo duplo, sobe e alcança mais
+## (mapas de áreas que só se visitam com as Asas de Cinza).
+var max_rise: int = MAX_RISE
+var max_dx_flat: int = MAX_DX_FLAT
+var max_dx_rise: int = MAX_DX_RISE
 var w: int = 0
 var h: int = 0
 var cells := PackedByteArray()
@@ -36,6 +41,14 @@ var segs: Array = []
 var seg_of := PackedInt32Array()
 var out_edges: Array = [] ## id -> Array[int]
 var in_edges: Array = []
+
+
+## Pulo duplo: sobe até 6 tiles e cruza vãos de até 8.
+func with_double_jump() -> ReachMap:
+	max_rise = 6
+	max_dx_flat = 8
+	max_dx_rise = 6
+	return self
 
 
 func _init(rows: PackedStringArray) -> void:
@@ -120,7 +133,7 @@ func build() -> void:
 	for i in segs.size():
 		var s: Array = segs[i]
 		var sy: int = s[2]
-		for dy in range(-MAX_RISE, 14):
+		for dy in range(-max_rise, 14):
 			var ty: int = sy + dy
 			if not by_row.has(ty):
 				continue
@@ -171,13 +184,13 @@ func _link(a: Array, b: Array) -> bool:
 	var ay: int = a[2]
 	var by: int = b[2]
 	var rise: int = ay - by
-	if rise > MAX_RISE:
+	if rise > max_rise:
 		return false
-	var max_dx: int = MAX_DX_FLAT
+	var max_dx: int = max_dx_flat
 	if rise >= 2:
-		max_dx = MAX_DX_RISE
+		max_dx = max_dx_rise
 	elif rise < 0:
-		max_dx = mini(MAX_DX_DOWN, MAX_DX_FLAT + (-rise) / 2)
+		max_dx = mini(MAX_DX_DOWN + (max_dx_flat - MAX_DX_FLAT), max_dx_flat + (-rise) / 2)
 	# distância horizontal entre os trechos
 	var gap := 0
 	if b[0] > a[1]:

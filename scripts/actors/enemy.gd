@@ -183,15 +183,20 @@ func _actor_physics(d: float, raw: float) -> void:
 	# cenas da história: ninguém ataca enquanto a câmera conta a história
 	var still: bool = level != null and is_instance_valid(level) and level.cutscene != null and level.cutscene.playing
 	if _asleep < 0:
-		_asleep = 1 if str(get_meta("behavior", "")) == "sleep" else 0
-	if _asleep == 1:
-		if hp < max_hp() or (target and global_position.distance_to(target.global_position) < 44.0):
+		var bh := str(get_meta("behavior", ""))
+		_asleep = 1 if bh == "sleep" else (2 if bh == "ambush" else 0)
+	if _asleep > 0:
+		# dormindo (ronca) ou de tocaia (quieto, parece parte do cenário)
+		var reach := 44.0 if _asleep == 1 else 30.0
+		if hp < max_hp() or (target and global_position.distance_to(target.global_position) < reach):
 			_asleep = 0
 			emote("!", 0.8)
+			if flying == false:
+				velocity.y = -120.0
 		else:
 			still = true
 			_snore_t -= d
-			if _snore_t <= 0.0:
+			if _snore_t <= 0.0 and _asleep == 1:
 				_snore_t = 2.4
 				emote("z", 1.6)
 	if still:

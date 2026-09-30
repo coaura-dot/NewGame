@@ -879,5 +879,76 @@
    "contrast": 1.06,
    "vignette": 0.4
   }
+ },
+ "mata": {
+  "music": "floresta",
+  "name": "Mata do Assobio",
+  "tileset": "bosque",
+  "background": "cemetery",
+  "tint": [
+   1,
+   1,
+   1
+  ],
+  "ambient": [
+   0.34,
+   0.34,
+   0.44
+  ],
+  "torch": [
+   1.2,
+   1.6,
+   0.8
+  ],
+  "particles": "fireflies",
+  "hub": "",
+  "enemies": {
+   "hound": 2,
+   "stingfly": 2,
+   "mossling": 2,
+   "hellcat": 1
+  },
+  "tags": [
+   "outdoor",
+   "nature",
+   "dark"
+  ],
+  "scenery": "mata",
+  "ambience": "floresta",
+  "space": "open",
+  "water": false,
+  "props": "forest",
+  "water_color": [
+   0.14,
+   0.3,
+   0.3,
+   0.8
+  ],
+  "backwall": [
+   0.4,
+   0.46,
+   0.42
+  ],
+  "deep": [
+   0.015,
+   0.025,
+   0.018
+  ],
+  "foreground": "forest",
+  "fg_color": [
+   0.012,
+   0.014,
+   0.02
+  ],
+  "grade": {
+   "tint": [
+    0.98,
+    0.97,
+    1.04
+   ],
+   "saturation": 0.92,
+   "contrast": 1.05,
+   "vignette": 0.34
+  }
  }
 }

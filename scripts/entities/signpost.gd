@@ -2,7 +2,7 @@ class_name Signpost
 extends Node2D
 ## Placa de madeira na beira do caminho: mostra para onde a trilha leva
 ## (seta pintada na tábua + "Mata das Raízes Velhas"). O texto aparece
-## quando a Faísca se aproxima. Desenhada na densidade da arte (px de 1/ART).
+## quando o Lume se aproxima. Desenhada na densidade da arte (px de 1/ART).
 
 const FONT := preload("res://assets/fonts/kenney_mini.ttf")
 const WOOD := Color(0.42, 0.28, 0.17)

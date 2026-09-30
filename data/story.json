@@ -291,6 +291,46 @@
      ]
     }
    ]
+  },
+  "assobiador": {
+   "name": "O Assobiador",
+   "title": "???",
+   "sprite": "npc_assobiador",
+   "facing": "R",
+   "greet": "note",
+   "talk": [
+    {
+     "if": "!met_assobiador",
+     "set": "met_assobiador",
+     "lines": [
+      "Fiu-fiu... Você respondeu. Quase ninguém responde.",
+      "Não se assuste com o assobio. Os que assobiam são os que ainda lembram de alguma música.",
+      "Os que se calaram... esses, sim. Esses são os Ocos.",
+      "Você carrega uma brasa inteira aí dentro do vidro. Que bonito. Que perigoso.",
+      "A Maré sente o cheiro de fogo, sabia? Quanto mais você acender, mais ela vai vir."
+     ]
+    },
+    {
+     "if": "boss:colossus & !assobiador_colosso",
+     "set": "assobiador_colosso",
+     "lines": [
+      "O velho Colosso descansou, então. Fiu... Ele guardava a porta das profundezas.",
+      "Lá embaixo ficam as Catacumbas. E embaixo das Catacumbas... bem. Você vai ver. Todo mundo vê, no fim."
+     ]
+    },
+    {
+     "idle": true,
+     "lines": [
+      "Fiu-fiu-fiuuu... (ele assobia uma música que você quase reconhece)"
+     ]
+    },
+    {
+     "idle": true,
+     "lines": [
+      "Eu não sou daqui. Eu não sou de lugar nenhum. É mais leve assim."
+     ]
+    }
+   ]
   }
  },
  "objectives": [
