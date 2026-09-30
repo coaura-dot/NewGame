@@ -554,12 +554,85 @@ def duelist_pose(anim, t, i, n):
     return hero_pose("run" if anim == "move" else anim, t, i, n)
 
 
+# ===========================================================================
+# ALDEÕES: o povo de cinza de Cindária. Mesma família da Faísca, mas SEM
+# chama (só ela guarda a última brasa) — olhos de brasa fraca, mantos e
+# acessórios pelo ofício.
+# ===========================================================================
+
+def _vpal(cloak, lining, scarf, ash="#d9d2c6", eye="#e8a860"):
+    return {
+        "ash": Mat(ash, n=5, spread=0.55, rim=0.7, rim_color="#fff6e8", outline="#2a2230", wrap=0.5, ambient=0.3),
+        "cloak": Mat(cloak, n=5, spread=0.6, rim=0.6, outline="#0c0a10"),
+        "cloak_in": Mat(lining, n=4, spread=0.6, rim=0.0, outline="#0c0a10"),
+        "scarf": Mat(scarf, n=5, spread=0.6, rim=0.6, outline="#140a0a"),
+        "eye": hexc(eye), "eye_core": hexc("#fff0d0"), "eye_edge": hexc("#a05a2a"),
+        "crack": hexc("#7a6a60"), "crack_dim": hexc("#5a4c48"),
+    }
+
+
+VILLAGERS = {
+    "ferreira": (_vpal("#4a3226", "#8a4a2a", "#6a4a30", ash="#c8b8a8"), "apron"),
+    "mercador": (_vpal("#3e5a3a", "#c8a050", "#c89a40"), "hat"),
+    "curandeira": (_vpal("#e0dcd0", "#7ab08a", "#5a9a6a"), "hood"),
+    "sabio": (_vpal("#2e2a5a", "#6a5ab0", "#8a7ad0", eye="#a8c8ff"), "hood"),
+    "capita": (_vpal("#5a5e6e", "#a02a2a", "#8a2a2a"), "helm"),
+    "receptador": (_vpal("#1c1a22", "#4a2a5a", "#2a2432", ash="#9a948c"), "hood"),
+    "bardo": (_vpal("#7a2e5a", "#e0b040", "#d0a040"), "hat"),
+    "anciao": (_vpal("#5e564c", "#8a7a60", "#8a7a60", ash="#b8b0a8"), "beard"),
+    "crianca": (_vpal("#b07a3a", "#e0c070", "#c05a3a"), "none"),
+}
+M_HAT = Mat("#3a2a1e", n=4, spread=0.6, rim=0.5, outline="#100a06")
+M_HELM = Mat(["#3a3f52", "#6d7690", "#a9b3c8", "#dde4f0"], spec=0.8, rim=0.5, outline="#10121c")
+M_APRON = Mat("#6a4a30", n=4, spread=0.6, rim=0.4, outline="#1a100a")
+M_BEARD = Mat("#e8e2d8", n=4, spread=0.4, rim=0.6, outline="#4a4440")
+
+
+def draw_villager(role):
+    pal, acc = VILLAGERS[role]
+    small = role == "crianca"
+
+    def draw(c, p, t):
+        p = dict(p)
+        p["flame_h"] = 0.0  # sem chama
+        info = draw_hero(c, p, t, pal)
+        hx, hy = info["head"]
+        hy += 7.0  # centro da cabeça
+        if acc == "hat":
+            c.ellipse(hx, hy - 5.0, 9.5, 1.6, M_HAT, z=6.0)
+            c.ellipse(hx, hy - 7.5, 5.0, 3.2, M_HAT, z=6.1)
+        elif acc == "hood":
+            c.poly([(hx - 7.6, hy + 1.0), (hx - 6.0, hy - 6.0), (hx - 1.0, hy - 9.5), (hx + 4.0, hy - 8.0),
+                    (hx + 7.0, hy - 3.0), (hx + 6.2, hy - 1.5), (hx + 2.0, hy - 6.0), (hx - 4.8, hy - 3.0), (hx - 5.2, hy + 2.0)],
+                   pal["cloak"], z=6.0, bevel=2.0)
+        elif acc == "helm":
+            c.ellipse(hx, hy - 3.0, 7.4, 4.6, M_HELM, z=6.0)
+            c.poly([(hx - 1.0, hy - 7.0), (hx + 1.0, hy - 7.0), (hx + 0.5, hy - 11.0), (hx - 0.5, hy - 11.0)], pal["scarf"], z=6.1, bevel=0.8)
+        elif acc == "apron":
+            c.poly([(hx - 3.0, hy + 9.0), (hx + 4.0, hy + 9.0), (hx + 5.0, hy + 17.0), (hx - 3.5, hy + 17.0)], M_APRON, z=5.0, bevel=1.5)
+        elif acc == "beard":
+            c.poly([(hx - 1.0, hy + 3.0), (hx + 6.0, hy + 3.0), (hx + 4.0, hy + 9.5), (hx + 1.5, hy + 11.0)], M_BEARD, z=6.0, bevel=1.5)
+        return info
+    return draw
+
+
+def villager_pose(anim, t, i, n):
+    p = hero_pose("run" if anim == "move" else "idle", t, i, n)
+    return p
+
+
+VILLAGER_ANIMS = {"idle": (8, 6, True), "move": (8, 12, True)}
+
+
 CHARACTERS = {
     "weapons": build_weapons,
     "duelist": lambda meta: render_character("duelist", (HERO_W, HERO_H, HERO_OX, HERO_OY), DUELIST_ANIMS, duelist_pose, draw_duelist, meta),
     "hero": lambda meta: render_character("hero", (HERO_W, HERO_H, HERO_OX, HERO_OY), HERO_ANIMS, hero_pose, draw_hero, meta),
 }
 
+
+for _role in VILLAGERS:
+    CHARACTERS["villager_" + _role] = (lambda r: (lambda meta: render_character("villager_" + r, (HERO_W, HERO_H, HERO_OX, HERO_OY), VILLAGER_ANIMS, villager_pose, draw_villager(r), meta)))(_role)
 
 for _eid, (_size, _anims, _pose, _draw) in EN.ENEMIES.items():
     CHARACTERS[_eid] = (lambda eid, size, anims, pose, draw: (lambda meta: render_character(eid, size, anims, pose, draw, meta)))(_eid, _size, _anims, _pose, _draw)

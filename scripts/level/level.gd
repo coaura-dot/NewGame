@@ -347,6 +347,12 @@ func _spawn_entities() -> void:
 				al.boss_id = params.get("boss", "") if params.get("boss", "") != "" else region.get("boss", "")
 				al.position = _tile_feet(e["tile"])
 				node = al
+			"landmark":
+				var lm := Landmark.new()
+				lm.kind = str(data.get("kind", "statue"))
+				lm.tint = Color(tint_a[0], tint_a[1], tint_a[2])
+				lm.position = _tile_feet(e["tile"])
+				node = lm
 			"sign":
 				var sg := Signpost.new()
 				sg.text = str(data.get("text", ""))

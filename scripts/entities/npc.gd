@@ -26,6 +26,10 @@ func _ready() -> void:
 	super._ready()
 	var look := {"body": [5, 4], "head": [6, 5], "eyes": "hollow", "legs": 2}
 	look.merge(ROLE_LOOK.get(npc.get("role", ""), {}), true)
+	# arte nova: aldeão de cinza pelo ofício (tools/build_sprites.py)
+	var sheet_id := "villager_" + str(npc.get("role", ""))
+	if not CreatureSprite.load_sheet(sheet_id).is_empty():
+		look["sprite"] = sheet_id
 	_spr = CreatureSprite.new()
 	_spr.spec = look
 	_spr.flip_h = randf() < 0.5

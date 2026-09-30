@@ -1991,8 +1991,10 @@ func _populate() -> void:
 					_ent("inscription", ins, i, {"biome": biome_id, "idx": 0})
 			"covil":
 				_lair(p, spots)
+				_landmark(p)
 			"coracao":
 				var c2 := _center_spot(p, spots)
+				_landmark(p, c2)
 				if c2.x >= 0:
 					_ent("relic", c2, i, {"loot": LevelGenerator.roll_loot(rng, db, int(params.get("tier", 1)) + 1, true, true)}, true)
 					var ins2 := _near_spot(spots, c2 + Vector2i(-6, 0), 4)
@@ -2060,6 +2062,22 @@ func _populate() -> void:
 			var at4 := _near_spot(sp2, cp + Vector2i(4 if right else -4, 0), 3)
 			if at4.x >= 0:
 				_ent("sign", at4, shrine_idx, {"text": str(places[objective_idx]["name"]), "dir": "R" if right else "L"})
+
+
+## Marco visual do lugar (estátua, árvore ancestral ou cristal gigante),
+## conforme o bioma, no chão largo mais perto do centro.
+func _landmark(p: Dictionary, at: Vector2i = Vector2i(-1, -1)) -> void:
+	var kind := "statue"
+	if biome_id in ["floresta", "pantano", "acampamento_barbaro"]:
+		kind = "tree"
+	elif biome_id in ["toca_goblin", "cidade_magos", "cidade_ceu"]:
+		kind = "crystal"
+	if at.x < 0:
+		at = _center_spot(p, _spots(p, 3))
+	if at.x < 0:
+		return
+	# fica um pouco atrás do centro (não em cima do chefe/relíquia)
+	entities.append({"type": "landmark", "tile": [at.x + (6 if rng.randf() < 0.5 else -6), at.y], "room": int(p["index"]), "data": {"kind": kind}})
 
 
 func _far_spot(p: Dictionary, spots: Array) -> Vector2i:
