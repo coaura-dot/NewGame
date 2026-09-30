@@ -36,6 +36,10 @@ var _bonus_t: float = 0.0
 var _rank: String = ""
 var _rank_sub: String = ""
 var _rank_t: float = 0.0
+## Nome do lugar ao entrar nele pela primeira vez (estilo Hollow Knight)
+var _place_name: String = ""
+var _place_t: float = 0.0
+var _places_seen := {}
 
 
 func _ready() -> void:
@@ -83,6 +87,7 @@ func _ready() -> void:
 		_rank_sub = "%.1fs   +%d brasas" % [time, bonus] if bonus > 0 else "%.1fs" % time
 		_rank_t = 1.9)
 	Events.dialogue_requested.connect(open_dialogue)
+	Events.room_entered.connect(_on_place_entered)
 	Events.player_spawned.connect(func(p): player = p)
 	if level:
 		player = level.player
@@ -104,6 +109,7 @@ func _process(delta: float) -> void:
 	_rank_t = maxf(_rank_t - delta, 0.0)
 	_region_title_t = maxf(_region_title_t - delta, 0.0)
 	_boss_card_t = maxf(_boss_card_t - delta, 0.0)
+	_place_t = maxf(_place_t - delta, 0.0)
 	if player:
 		var ratio: float = player.hp / maxf(player.max_hp(), 1.0)
 		_hp_ghost = move_toward(_hp_ghost, ratio, delta * 0.5) if _hp_ghost > ratio else ratio
@@ -124,6 +130,19 @@ func _layer_node(cb: Callable) -> Control:
 		cb.call())
 	_root.add_child(c)
 	return c
+
+
+func _on_place_entered(room: Dictionary) -> void:
+	if not room.has("name") or not room.has("index"):
+		return
+	var idx := int(room["index"])
+	if _places_seen.has(idx):
+		return
+	_places_seen[idx] = true
+	if _places_seen.size() == 1 or _region_title_t > 0.5:
+		return # o título da região já está na tela
+	_place_name = str(room["name"])
+	_place_t = 2.8
 
 
 func toast(text: String) -> void:
@@ -335,6 +354,23 @@ func _draw_hud() -> void:
 		var br: float = boss.hp / maxf(boss.max_hp(), 1.0)
 		_text(Vector2(140, 246), boss.data.get("name", "Chefe"), 12, Color(1.6, 0.7, 0.5))
 		_bar(Rect2(140, 250, 200, 6), br, Color(1.4, 0.35, 0.2))
+	# objetivo da região (canto de cima, discreto)
+	if level and level.world_mode and level.layout.has("objective"):
+		var obj: Dictionary = level.layout["objective"]
+		if not obj.is_empty():
+			var done: bool = level.region.get("cleared", false)
+			var oc := Color(1.9, 1.25, 0.6, 0.55 if done else 0.85)
+			var dp := Vector2(13, 55)
+			d.draw_colored_polygon(PackedVector2Array([dp + Vector2(0, -3), dp + Vector2(3, 0), dp + Vector2(0, 3), dp + Vector2(-3, 0)]), oc if not done else Color(0.6, 0.6, 0.6, 0.6))
+			_text(Vector2(19, 58), ("Concluído: " if done else "") + str(obj.get("text", "")), 9, oc)
+	# nome do lugar
+	if _place_t > 0.0 and _place_name != "":
+		var pa := minf(_place_t, 1.0) * minf((2.8 - _place_t) * 3.0, 1.0)
+		var pw := FONT_TITLE.get_string_size(_place_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
+		d.draw_string_outline(FONT_TITLE, Vector2(240 - pw * 0.5, 62), _place_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Color(0.03, 0.02, 0.06, pa))
+		d.draw_string(FONT_TITLE, Vector2(240 - pw * 0.5, 62), _place_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.92, 0.75, pa))
+		var lw := 40.0 * clampf(pa * 1.4, 0.0, 1.0)
+		d.draw_line(Vector2(240 - lw, 68), Vector2(240 + lw, 68), Color(1.0, 0.85, 0.6, pa * 0.7), 1.0)
 	# título da região
 	if _region_title_t > 0.0 and _region_title != "":
 		var a := minf(_region_title_t, 1.0) * minf((4.0 - _region_title_t) * 1.5, 1.0)

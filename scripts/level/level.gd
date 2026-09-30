@@ -197,8 +197,8 @@ func _build_world() -> void:
 	var lift := 0.42
 	if tags.has("indoor"):
 		lift = 0.34
-	if tags.has("underground") or tags.has("dark"):
-		lift = 0.24
+	if tags.has("underground") or tags.has("dark") or str(region.get("layer", "")) == "underground":
+		lift = 0.3
 	if tags.has("sky"):
 		lift = 0.55
 	var ambient := Color(ambient_a[0], ambient_a[1], ambient_a[2]).lerp(Color.WHITE, lift)
@@ -350,6 +350,7 @@ func _spawn_entities() -> void:
 			"sign":
 				var sg := Signpost.new()
 				sg.text = str(data.get("text", ""))
+				sg.dir = str(data.get("dir", "R"))
 				sg.position = _tile_feet(e["tile"])
 				node = sg
 			"inscription":

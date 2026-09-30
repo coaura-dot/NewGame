@@ -21,6 +21,12 @@ var _t: float = 0.0
 var _panel: Control = null
 var _siege_mode: bool = false
 var _dragging: bool = false
+## "region" = mapa detalhado da região atual (terreno explorado, lugares,
+## objetivo, saídas); "world" = mapa do mundo (viagem rápida). Tab alterna.
+var _view: String = "region"
+var _rtex: ImageTexture = null
+var _rzoom: float = 1.0
+var _rpan: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -47,6 +53,11 @@ func open() -> void:
 	get_tree().paused = true
 	_sel = str(Game.profile.get("region", ""))
 	_center_on(_sel)
+	_view = "region" if _has_region_map() else "world"
+	if _view == "region":
+		_build_region_texture()
+		_rzoom = 1.0
+		_rpan = Vector2.ZERO
 	Audio.play("ui_confirm", 0.0, -6.0)
 
 
@@ -75,6 +86,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			close()
 		get_viewport().set_input_as_handled()
+	elif _panel == null and event is InputEventKey and event.pressed and event.keycode == KEY_TAB:
+		if _has_region_map():
+			_view = "world" if _view == "region" else "region"
+			if _view == "region":
+				_build_region_texture()
+			Audio.play("ui_move", 0.0, -8.0)
+		get_viewport().set_input_as_handled()
+	elif _panel == null and _view == "region":
+		for pair in [["move_left", Vector2(1, 0)], ["move_right", Vector2(-1, 0)], ["move_up", Vector2(0, 1)], ["move_down", Vector2(0, -1)]]:
+			if event.is_action_pressed(pair[0]):
+				_rpan += pair[1] * 40.0
+				get_viewport().set_input_as_handled()
+		if event is InputEventKey and event.pressed and event.keycode in [KEY_EQUAL, KEY_PLUS, KEY_KP_ADD]:
+			_rzoom = minf(_rzoom * 1.5, 4.0)
+		elif event is InputEventKey and event.pressed and event.keycode in [KEY_MINUS, KEY_KP_SUBTRACT]:
+			_rzoom = maxf(_rzoom / 1.5, 1.0)
+			if _rzoom <= 1.0:
+				_rpan = Vector2.ZERO
 	elif _panel == null:
 		for pair in [["move_left", Vector2i(-1, 0)], ["move_right", Vector2i(1, 0)], ["move_up", Vector2i(0, -1)], ["move_down", Vector2i(0, 1)]]:
 			if event.is_action_pressed(pair[0]):
@@ -86,6 +115,17 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _on_gui_input(event: InputEvent) -> void:
+	if _view == "region":
+		if event is InputEventMouseButton and event.pressed:
+			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				_rzoom = minf(_rzoom * 1.25, 4.0)
+			elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+				_rzoom = maxf(_rzoom / 1.25, 1.0)
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+			_dragging = event.pressed
+		elif event is InputEventMouseMotion and _dragging:
+			_rpan += event.relative
+		return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			_dragging = event.pressed
@@ -277,6 +317,9 @@ func _biome_color(r: Dictionary) -> Color:
 
 
 func _on_draw() -> void:
+	if _view == "region":
+		_draw_region()
+		return
 	var d := _draw
 	# fundo: céu, superfície, subsolo (corte lateral)
 	d.draw_rect(Rect2(0, 0, 480, 270), Color(0.04, 0.035, 0.07, 0.96))
@@ -353,7 +396,7 @@ func _on_draw() -> void:
 			if shrines.has(_sel):
 				info += " • santuário (Enter: viajar)"
 		_text(Vector2(8, 206), info, 10, UIKit.INK)
-	_text(Vector2(8, 262), "Setas/arrastar: mover • Enter: viajar • M/Esc: fechar", 9, UIKit.DIM)
+	_text(Vector2(8, 262), "Setas/arrastar: mover • Enter: viajar • Tab: mapa da região • M/Esc: fechar", 9, UIKit.DIM)
 	if Game.is_siege_ready() and not Game.social.get("siege", {}).get("started", false) and _panel == null:
 		_text(Vector2(330, 262), "[C] O CERCO COMEÇOU", 10, Color(2.0, 0.6, 0.4))
 
@@ -413,3 +456,192 @@ func _input(event: InputEvent) -> void:
 	if is_open and _panel == null and event is InputEventKey and event.pressed and event.keycode == KEY_C:
 		if Game.is_siege_ready() and not Game.social.get("siege", {}).get("started", false):
 			_start_siege_choice()
+
+
+# ---------------------------------------------------------------------------
+# Mapa da região atual (estilo Hollow Knight)
+# ---------------------------------------------------------------------------
+
+func _has_region_map() -> bool:
+	return level != null and is_instance_valid(level) and level.world_mode and level.layout.has("macro")
+
+
+func _explored() -> Array:
+	return Game.profile.get("explored", {}).get(level.region_id, [])
+
+
+## Terreno dos lugares já visitados, 1 pixel por tile: bordas da rocha em
+## tom de pergaminho, espaço aberto escuro, plataformas finas.
+func _build_region_texture() -> void:
+	var lay: Dictionary = level.layout
+	var rows: PackedStringArray = lay["rows"]
+	var w: int = int(lay["width"])
+	var h: int = int(lay["height"])
+	var m: Dictionary = lay["macro"]
+	var owners: Array = m["owner"]
+	var cw: int = int(m["cw"])
+	var ch: int = int(m["ch"])
+	var gw: int = int(m["gw"])
+	var seen := {}
+	for i in _explored():
+		seen[int(i)] = true
+	var bg: PackedStringArray = lay.get("bg", PackedStringArray())
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var edge := Color(0.93, 0.85, 0.66)
+	var open := Color(0.16, 0.14, 0.2, 0.92)
+	var plat := Color(0.75, 0.66, 0.5)
+	for y in h:
+		var row: String = rows[y]
+		for x in w:
+			var o: int = int(owners[(y / ch) * gw + (x / cw)])
+			if o < 0 or not seen.has(o):
+				continue
+			var c := row.unicode_at(x)
+			if c == 35:
+				var border := false
+				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+					var xx: int = x + d.x
+					var yy: int = y + d.y
+					if xx >= 0 and yy >= 0 and xx < w and yy < h and rows[yy].unicode_at(xx) != 35:
+						border = true
+				if border:
+					img.set_pixel(x, y, edge)
+			elif c == 45:
+				img.set_pixel(x, y, plat)
+			elif bg.is_empty() or bg[y].unicode_at(x) != 48:
+				img.set_pixel(x, y, open)
+	_rtex = ImageTexture.create_from_image(img)
+
+
+func _region_xf() -> Array:
+	var lay: Dictionary = level.layout
+	var w := float(lay["width"])
+	var h := float(lay["height"])
+	var area := Rect2(10, 34, 460, 206)
+	var sc := minf(area.size.x / w, area.size.y / h) * _rzoom
+	var size := Vector2(w, h) * sc
+	var off := area.position + (area.size - size) * 0.5 + _rpan
+	return [off, sc]
+
+
+func _draw_region() -> void:
+	var d := _draw
+	d.draw_rect(Rect2(0, 0, 480, 270), Color(0.05, 0.04, 0.07, 0.97))
+	var lay: Dictionary = level.layout
+	var xf := _region_xf()
+	var off: Vector2 = xf[0]
+	var sc: float = xf[1]
+	d.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if _rtex:
+		d.draw_texture_rect(_rtex, Rect2(off, Vector2(float(lay["width"]), float(lay["height"])) * sc), false)
+	var T := LevelConst.TILE
+	var seen := {}
+	for i in _explored():
+		seen[int(i)] = true
+	var rooms: Array = lay["rooms"]
+	# ícones das coisas importantes nos lugares visitados
+	for e in lay["entities"]:
+		var room := int(e.get("room", -1))
+		if not seen.has(room):
+			continue
+		var p := off + (Vector2(int(e["tile"][0]), int(e["tile"][1])) + Vector2(0.5, 0.0)) * sc
+		match str(e["type"]):
+			"checkpoint":
+				_icon_flame(p)
+			"boss":
+				var alive: bool = level.boss_node != null and is_instance_valid(level.boss_node) and not level.boss_node.dead
+				_icon_skull(p - Vector2(3.5, 6), Color(1.6, 0.5, 0.4) if alive else Color(0.6, 0.6, 0.6), not alive)
+			"chest", "relic":
+				d.draw_rect(Rect2(p - Vector2(2, 4), Vector2(4, 4)), Color(2.0, 1.6, 0.5))
+			"npc", "quest_board":
+				d.draw_circle(p - Vector2(0, 3), 2.0, Color(0.7, 1.4, 1.0))
+			"rift":
+				d.draw_circle(p - Vector2(0, 3), 3.0, Color(1.4, 0.7, 2.4))
+	# nomes dos lugares visitados
+	for r in rooms:
+		if not seen.has(int(r["index"])):
+			continue
+		var rr: Array = r["rect"]
+		var rect := Rect2(off + Vector2(int(rr[0]), int(rr[1])) * sc, Vector2(int(rr[2]), int(rr[3])) * sc)
+		var nm := str(r.get("name", ""))
+		var fw := FONT.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
+		if fw < rect.size.x * 1.6 or _rzoom > 1.4:
+			_text(Vector2(rect.get_center().x - fw * 0.5, rect.position.y + 10), nm, 9, Color(0.95, 0.9, 0.75, 0.85))
+	# saídas: seta + região vizinha (se o lugar da saída foi visitado)
+	for pt in lay.get("ports", []):
+		if not seen.has(int(pt["room"])):
+			continue
+		var rr2: Array = rooms[int(pt["room"])]["rect"]
+		var rect2 := Rect2(off + Vector2(int(rr2[0]), int(rr2[1])) * sc, Vector2(int(rr2[2]), int(rr2[3])) * sc)
+		var to_name := str(Game.world["regions"].get(pt["to"], {}).get("name", "?"))
+		var label := "   " + to_name
+		var lw := FONT.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
+		var lp := rect2.get_center()
+		match str(pt["dir"]):
+			"L": lp = Vector2(rect2.position.x + 2, rect2.get_center().y + 12)
+			"R": lp = Vector2(rect2.end.x - lw - 2, rect2.get_center().y + 12)
+			"U": lp = Vector2(rect2.get_center().x - lw * 0.5, rect2.position.y + 20)
+			"D": lp = Vector2(rect2.get_center().x - lw * 0.5, rect2.end.y - 4)
+		var locked: bool = str(pt.get("requires", "")) != "" and not Game.profile.get("abilities", []).has(str(pt["requires"]))
+		var pc := Color(1.4, 0.6, 0.5) if locked else Color(0.7, 1.1, 1.5)
+		_text(lp, label, 9, pc)
+		_arrow(lp + Vector2(4, -3), str(pt["dir"]), pc)
+	# objetivo (sempre marcado: é o rumo da região)
+	var obj: Dictionary = lay.get("objective", {})
+	if not obj.is_empty() and int(obj.get("room", -1)) >= 0:
+		var rr3: Array = rooms[int(obj["room"])]["rect"]
+		var c := off + (Vector2(int(rr3[0]), int(rr3[1])) + Vector2(int(rr3[2]), int(rr3[3])) * 0.5) * sc
+		var pulse := 3.0 + sin(_t * 5.0) * 1.0
+		var oc := Color(2.4, 1.3, 0.5) if not level.region.get("cleared", false) else Color(0.7, 0.7, 0.7)
+		d.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -pulse - 2), c + Vector2(pulse + 2, 0), c + Vector2(0, pulse + 2), c + Vector2(-pulse - 2, 0)]), Color(0.05, 0.03, 0.02, 0.8))
+		d.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -pulse), c + Vector2(pulse, 0), c + Vector2(0, pulse), c + Vector2(-pulse, 0)]), oc)
+	# você está aqui
+	if level.player:
+		var pp: Vector2 = off + level.player.global_position / T * sc
+		if fmod(_t, 0.6) < 0.42:
+			d.draw_circle(pp - Vector2(0, 3), 3.0, Color(0.1, 0.05, 0.02))
+			d.draw_circle(pp - Vector2(0, 3), 2.0, Color(3.0, 2.0, 0.8))
+	# cabeçalho e rodapé
+	_text(Vector2(8, 14), str(level.region.get("name", "")), 14, UIKit.GOLD)
+	var room_i: int = level.room_at(level.player.global_position) if level.player else -1
+	if room_i >= 0:
+		_text(Vector2(8, 27), str(rooms[room_i].get("name", "")), 10, UIKit.INK)
+	if not obj.is_empty():
+		var ot := ("Concluído: " if level.region.get("cleared", false) else "Objetivo: ") + str(obj.get("text", ""))
+		var ow := FONT.get_string_size(ot, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+		_text(Vector2(472 - ow, 14), ot, 10, Color(2.0, 1.3, 0.6))
+	_legend(Vector2(8, 250))
+	_text(Vector2(8, 264), "Setas/arrastar: mover • +/-/roda: zoom • Tab: mapa do mundo (viagem rápida) • M/Esc: fechar", 9, UIKit.DIM)
+
+
+func _legend(p: Vector2) -> void:
+	var x := p.x
+	_icon_flame(Vector2(x + 3, p.y + 1))
+	_text(Vector2(x + 8, p.y), "Santuário", 9, UIKit.DIM)
+	x += 58
+	_icon_skull(Vector2(x, p.y - 7), Color(1.6, 0.5, 0.4), false)
+	_text(Vector2(x + 10, p.y), "Guardião", 9, UIKit.DIM)
+	x += 54
+	_draw.draw_rect(Rect2(x, p.y - 5, 4, 4), Color(2.0, 1.6, 0.5))
+	_text(Vector2(x + 7, p.y), "Tesouro", 9, UIKit.DIM)
+	x += 50
+	_draw.draw_circle(Vector2(x + 2, p.y - 3), 2.0, Color(0.7, 1.4, 1.0))
+	_text(Vector2(x + 7, p.y), "Pessoas", 9, UIKit.DIM)
+	x += 50
+	_draw.draw_colored_polygon(PackedVector2Array([Vector2(x + 3, p.y - 7), Vector2(x + 6, p.y - 4), Vector2(x + 3, p.y - 1), Vector2(x, p.y - 4)]), Color(2.4, 1.3, 0.5))
+	_text(Vector2(x + 9, p.y), "Objetivo", 9, UIKit.DIM)
+
+
+func _icon_flame(p: Vector2) -> void:
+	_draw.draw_colored_polygon(PackedVector2Array([p + Vector2(0, -7), p + Vector2(3, -2), p + Vector2(0, 0), p + Vector2(-3, -2)]), Color(2.4, 1.2, 0.4))
+	_draw.draw_colored_polygon(PackedVector2Array([p + Vector2(0, -4), p + Vector2(1.5, -1.5), p + Vector2(0, -0.5), p + Vector2(-1.5, -1.5)]), Color(3.0, 2.4, 1.2))
+
+
+func _arrow(p: Vector2, dir: String, c: Color) -> void:
+	var pts := PackedVector2Array()
+	match dir:
+		"L": pts = PackedVector2Array([p + Vector2(-3, 0), p + Vector2(2, -3), p + Vector2(2, 3)])
+		"R": pts = PackedVector2Array([p + Vector2(3, 0), p + Vector2(-2, -3), p + Vector2(-2, 3)])
+		"U": pts = PackedVector2Array([p + Vector2(0, -3), p + Vector2(3, 2), p + Vector2(-3, 2)])
+		_: pts = PackedVector2Array([p + Vector2(0, 3), p + Vector2(3, -2), p + Vector2(-3, -2)])
+	_draw.draw_colored_polygon(pts, c)

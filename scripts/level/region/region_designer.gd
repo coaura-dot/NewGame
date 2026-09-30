@@ -2032,11 +2032,10 @@ func _populate() -> void:
 				p["spawn"] = [sp.x, sp.y]
 				if sp.x >= 0:
 					anchors_extra.append(sp)
-					var arrow: String = {"L": "←", "R": "→", "U": "↑", "D": "↓"}[str(pt["dir"])]
-					var txt := "%s %s" % [arrow, str(port_names.get(pt["dir"], "Região vizinha"))]
+					var txt := str(port_names.get(pt["dir"], "Região vizinha"))
 					var ss := _near_spot(spots, sp + Vector2i(3 if pt["dir"] == "L" else -3, 0), 2)
 					if ss.x >= 0:
-						_ent("sign", ss, i, {"text": txt})
+						_ent("sign", ss, i, {"text": txt, "dir": str(pt["dir"])})
 				if str(pt.get("requires", "")) != "":
 					_port_gate(p)
 	# ligações especiais: paredes rachadas, portões de habilidade e alavancas
@@ -2060,7 +2059,7 @@ func _populate() -> void:
 			var right: bool = orr.get_center().x > cp.x * 1.0
 			var at4 := _near_spot(sp2, cp + Vector2i(4 if right else -4, 0), 3)
 			if at4.x >= 0:
-				_ent("sign", at4, shrine_idx, {"text": "%s %s" % ["→" if right else "←", str(places[objective_idx]["name"])]})
+				_ent("sign", at4, shrine_idx, {"text": str(places[objective_idx]["name"]), "dir": "R" if right else "L"})
 
 
 func _far_spot(p: Dictionary, spots: Array) -> Vector2i:
@@ -2504,7 +2503,7 @@ func _finish_entities() -> void:
 					cnt += 1
 		# tochas nos lugares fechados (luz para as pedras refletirem)
 		if (mode == "enclosed" or pcell(i).position.y > gr) and not kind in ["santuario", "vila"]:
-			var tn := int(p["cells"][0])
+			var tn := int(p["cells"][0]) * int(p["cells"][1]) + 1
 			for k3 in tn:
 				var s3 := _wall_spot(p)
 				if s3.x >= 0:
@@ -2562,9 +2561,10 @@ func _wall_spot(p: Dictionary) -> Vector2i:
 		var y := rng.randi_range(r.position.y + 2, r.end.y - 3)
 		if gget(x, y) != AIR or _used.has(Vector2i(x, y)):
 			continue
-		if (gget(x - 1, y) == SOLID or gget(x + 1, y) == SOLID) and gget(x, y + 2) == SOLID or gget(x, y + 3) == SOLID:
-			if gget(x - 1, y) == SOLID or gget(x + 1, y) == SOLID:
-				return Vector2i(x, y)
+		var wall := gget(x - 1, y) == SOLID or gget(x + 1, y) == SOLID
+		var floor_near := gget(x, y + 2) == SOLID or gget(x, y + 3) == SOLID or gget(x, y + 4) == SOLID
+		if wall and floor_near and gget(x, y + 1) == AIR:
+			return Vector2i(x, y)
 	return Vector2i(-1, -1)
 
 

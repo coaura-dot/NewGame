@@ -49,6 +49,8 @@ func _ready() -> void:
 			Game.pending = {"region": rid}
 			await _shot_overview("fase_" + biome)
 			SaveSystem.delete_save(9)
+	if scenario in ["modos"]:
+		await _shot_modes()
 	if scenario in ["biomes", "all"]:
 		await _shot_biomes()
 	if scenario in ["intro", "all"]:
@@ -330,8 +332,8 @@ func _shot_map() -> void:
 			continue
 		r["visited"] = true
 		var params := {"seed": int(r["level_seed"]), "biome": r["biome"], "tier": int(r["tier"]), "boss": r.get("boss", ""),
-			"hub": r.get("hub", ""), "npcs": [], "abilities": [], "ports": WorldGenerator.ports(Game.world, id)}
-		var lay := LevelGenerator.generate(params, lib, DB)
+			"hub": r.get("hub", ""), "npcs": [], "abilities": [], "ports": WorldGenerator.ports(Game.world, id), "layer": r.get("layer", "")}
+		var lay := RegionDesigner.generate(params, DB)
 		Game.record_map(id, lay)
 		for i in lay["rooms"].size():
 			if i % 3 != 2 or id == start:
@@ -344,7 +346,19 @@ func _shot_map() -> void:
 	level.map_screen.open()
 	await _frames(10)
 	await _save("mapa")
+	level.map_screen._view = "world"
+	await _frames(4)
+	await _save("mapa_mundo")
 	level.map_screen.close()
+	# HUD: objetivo e nome de lugar
+	for room in level.layout["rooms"]:
+		if room["kind"] in ["trilha", "salao", "poco", "galeria"]:
+			level.player.global_position = _place_spot(level.layout["rows"], room["rect"])
+			level.player.reset_physics_interpolation()
+			level._focus_camera_on_player()
+			break
+	await _frames(40)
+	await _save("hud_lugar")
 	level.queue_free()
 	await _frames(2)
 	SaveSystem.delete_save(9)
@@ -440,3 +454,57 @@ func _stand_spot(rows: PackedStringArray, ox: int, oy: int) -> Vector2:
 			if rows[yy][x] != "#" and rows[yy - 1][x] != "#" and rows[yy + 1][x] in ["#", "-"]:
 				return Vector2(x * T + T * 0.5, (yy + 1) * T)
 	return Vector2((ox + 20) * T, (oy + 12) * T)
+
+
+## Regiões de cada tipo (castelo, caverna, céu, cidade...): alguns lugares de
+## cada uma numa folha (modos.png).
+func _shot_modes() -> void:
+	var want := ["castelo", "toca_goblin", "cidade_ceu", "cidade_gotica", "catacumbas", "pantano"]
+	var frames: Array[Image] = []
+	for b in want:
+		var found := ""
+		for s in [1234, 77, 99, 4321, 555]:
+			Game.new_game(s, 9)
+			for id in Game.world["regions"].keys():
+				if Game.world["regions"][id]["biome"] == b and Game.world["regions"][id].get("dimension", "prima") == "prima":
+					found = id
+					break
+			if found != "":
+				break
+		if found == "":
+			continue
+		Game.pending = {"region": found}
+		var level: Node = load("res://scenes/level.tscn").instantiate()
+		add_child(level)
+		await _frames(20)
+		var p: Player = level.player
+		var rows: PackedStringArray = level.layout["rows"]
+		var picks: Array = []
+		for room in level.layout["rooms"]:
+			if room["kind"] in ["santuario", "vila", "covil", "coracao", "salao", "poco", "abismo", "galeria", "ninho"] and picks.size() < 4:
+				var dup := false
+				for q in picks:
+					if q["kind"] == room["kind"]:
+						dup = true
+				if not dup:
+					picks.append(room)
+		for room in picks:
+			p.global_position = _place_spot(rows, room["rect"])
+			p.velocity = Vector2.ZERO
+			p.reset_physics_interpolation()
+			level._focus_camera_on_player()
+			await _frames(14)
+			await RenderingServer.frame_post_draw
+			var img: Image = get_viewport().get_texture().get_image()
+			img.resize(480, 270, Image.INTERPOLATE_BILINEAR)
+			img.convert(Image.FORMAT_RGBA8)
+			frames.append(img)
+		level.queue_free()
+		await _frames(3)
+		SaveSystem.delete_save(9)
+	var cols := 4
+	var nrows := (frames.size() + cols - 1) / cols
+	var sheet := Image.create(480 * cols, 270 * maxi(nrows, 1), false, Image.FORMAT_RGBA8)
+	for i in frames.size():
+		sheet.blit_rect(frames[i], Rect2i(0, 0, 480, 270), Vector2i((i % cols) * 480, (i / cols) * 270))
+	sheet.save_png(out_dir.path_join("modos.png"))

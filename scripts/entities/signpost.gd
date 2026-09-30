@@ -1,7 +1,7 @@
 class_name Signpost
 extends Node2D
 ## Placa de madeira na beira do caminho: mostra para onde a trilha leva
-## ("→ Mata das Raízes Velhas", "← Covil do Guardião"). O texto aparece
+## (seta pintada na tábua + "Mata das Raízes Velhas"). O texto aparece
 ## quando a Faísca se aproxima. Desenhada na densidade da arte (px de 1/ART).
 
 const FONT := preload("res://assets/fonts/kenney_mini.ttf")
@@ -11,6 +11,8 @@ const WOOD_D := Color(0.24, 0.15, 0.1)
 const LINE := Color(0.09, 0.06, 0.05)
 
 var text: String = ""
+## "L"/"R"/"U"/"D": para onde a placa aponta
+var dir: String = "R"
 var level: Node = null
 var _a: float = 0.0
 
@@ -35,7 +37,7 @@ func _draw() -> void:
 	draw_rect(Rect2(-2, -30, 4, 30), WOOD)
 	draw_rect(Rect2(-2, -30, 1, 30), WOOD_L)
 	# tábua em seta
-	var right := not text.begins_with("←")
+	var right := dir != "L"
 	var pts := PackedVector2Array()
 	if right:
 		pts = PackedVector2Array([Vector2(-16, -34), Vector2(12, -34), Vector2(18, -27), Vector2(12, -20), Vector2(-16, -20)])
