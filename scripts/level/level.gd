@@ -177,8 +177,18 @@ func _make_viewport() -> void:
 
 func _build_world() -> void:
 	var ambient_a: Array = biome.get("ambient", [0.5, 0.5, 0.6])
-	# visual limpo: ambiente claro, luzes só realçam
-	var ambient := Color(ambient_a[0], ambient_a[1], ambient_a[2]).lerp(Color.WHITE, 0.7)
+	# estilo Hollow Knight: o clima vem do ambiente (mais escuro nos lugares
+	# fechados e subterrâneos); a chama da Faísca, tochas, janelas e cristais
+	# iluminam e refletem nas pedras (mapas de normais do terreno).
+	var tags: Array = biome.get("tags", [])
+	var lift := 0.42
+	if tags.has("indoor"):
+		lift = 0.26
+	if tags.has("underground") or tags.has("dark"):
+		lift = 0.16
+	if tags.has("sky"):
+		lift = 0.55
+	var ambient := Color(ambient_a[0], ambient_a[1], ambient_a[2]).lerp(Color.WHITE, lift)
 	if dimension.get("rules", []).has("low_light"):
 		ambient *= 0.75
 	var cm := CanvasModulate.new()

@@ -50,6 +50,9 @@ static func make_light(color: Color, energy: float = 1.0, scale: float = 1.0, sh
 	l.shadow_enabled = shadows and bool(Settings.video("shadows"))
 	l.shadow_filter = Light2D.SHADOW_FILTER_PCF5
 	l.shadow_filter_smooth = 2.0
+	# altura da luz (unidades): com os mapas de normais do terreno, a luz bate
+	# de lado nas pedras e realça o relevo (reflexo nas bordas dos blocos)
+	l.height = 26.0
 	# ilumina o cenário (camada 1) e os personagens (camada 2)
 	l.range_item_cull_mask = LIT_WORLD | LIT_ACTORS
 	return l

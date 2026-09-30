@@ -1,243 +1,325 @@
 {
  "_doc": "Gerado por tools/build_scenery.py. Estilos de cenário de fundo (camadas em assets/art/scenery/<estilo>/).",
  "forest": {
-  "far_fill": "#8fb8b8",
-  "mid_fill": "#4d7f63",
-  "near_fill": "#23402f",
-  "fog": "#e8f4e8",
-  "fog_alpha": 0.18,
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.03,
+    "vpar": 0.02,
+    "fill": "#bed6d0"
+   },
+   {
+    "file": "l1",
+    "par": 0.08,
+    "vpar": 0.029,
+    "fill": "#94b5ab"
+   },
+   {
+    "file": "l2",
+    "par": 0.16,
+    "vpar": 0.044,
+    "fill": "#87a999"
+   },
+   {
+    "file": "l3",
+    "par": 0.3,
+    "vpar": 0.069,
+    "fill": "#2e5240"
+   },
+   {
+    "file": "l4",
+    "par": 0.62,
+    "vpar": 0.127,
+    "fill": "#182f23"
+   }
+  ],
+  "fog": "#e4f2e4",
+  "fog_alpha": 0.16,
   "event": "birds",
   "birds": true,
   "rays": true,
   "weather": "",
   "underground": false,
   "water": false,
-  "parallax": [
-   0.08,
-   0.2,
-   0.4
-  ],
-  "vparallax": [
-   0.02,
-   0.04,
-   0.07
-  ],
   "cloud": "#ffffff"
  },
  "castle": {
-  "far_fill": "#5a5478",
-  "mid_fill": "#2e2b48",
-  "near_fill": "#17152a",
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.05,
+    "vpar": 0.024,
+    "fill": "#776c95"
+   },
+   {
+    "file": "l1",
+    "par": 0.16,
+    "vpar": 0.044,
+    "fill": "#453e60"
+   },
+   {
+    "file": "l2",
+    "par": 0.4,
+    "vpar": 0.087,
+    "fill": "#131125"
+   }
+  ],
   "fog": "#9a8ab8",
-  "fog_alpha": 0.14,
+  "fog_alpha": 0.12,
   "event": "storm",
   "birds": false,
   "rays": false,
   "weather": "",
   "underground": false,
   "water": false,
-  "parallax": [
-   0.08,
-   0.2,
-   0.4
-  ],
-  "vparallax": [
-   0.02,
-   0.04,
-   0.07
-  ],
   "cloud": "#9a8ab8"
  },
  "gothic": {
-  "far_fill": "#3a3c58",
-  "mid_fill": "#20223a",
-  "near_fill": "#101020",
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.06,
+    "vpar": 0.026,
+    "fill": "#4f5071"
+   },
+   {
+    "file": "l1",
+    "par": 0.2,
+    "vpar": 0.051,
+    "fill": "#2f304b"
+   },
+   {
+    "file": "l2",
+    "par": 0.42,
+    "vpar": 0.091,
+    "fill": "#0d0d1b"
+   }
+  ],
   "fog": "#6a6a90",
-  "fog_alpha": 0.22,
+  "fog_alpha": 0.2,
   "event": "titan",
   "birds": false,
   "rays": false,
   "weather": "rain",
   "underground": false,
   "water": false,
-  "parallax": [
-   0.08,
-   0.2,
-   0.4
-  ],
-  "vparallax": [
-   0.02,
-   0.04,
-   0.07
-  ],
   "cloud": "#6a6a90"
  },
  "ruins": {
-  "far_fill": "#b08aa0",
-  "mid_fill": "#6a4f62",
-  "near_fill": "#35263a",
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.05,
+    "vpar": 0.024,
+    "fill": "#d3aeab"
+   },
+   {
+    "file": "l1",
+    "par": 0.18,
+    "vpar": 0.047,
+    "fill": "#896c73"
+   },
+   {
+    "file": "l2",
+    "par": 0.4,
+    "vpar": 0.087,
+    "fill": "#2f1e33"
+   }
+  ],
   "fog": "#ffd8b8",
-  "fog_alpha": 0.2,
+  "fog_alpha": 0.18,
   "event": "birds",
   "birds": true,
   "rays": true,
   "weather": "",
   "underground": false,
   "water": false,
-  "parallax": [
-   0.08,
-   0.2,
-   0.4
-  ],
-  "vparallax": [
-   0.02,
-   0.04,
-   0.07
-  ],
   "cloud": "#ffe8d8"
  },
  "desert": {
-  "far_fill": "#d8b088",
-  "mid_fill": "#c08858",
-  "near_fill": "#8a5a38",
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.05,
+    "vpar": 0.024,
+    "fill": "#e5c59a"
+   },
+   {
+    "file": "l1",
+    "par": 0.18,
+    "vpar": 0.047,
+    "fill": "#ca9a6b"
+   },
+   {
+    "file": "l2",
+    "par": 0.4,
+    "vpar": 0.087,
+    "fill": "#835539"
+   }
+  ],
   "fog": "#f8e0b0",
-  "fog_alpha": 0.2,
+  "fog_alpha": 0.18,
   "event": "sandworm",
   "birds": false,
   "rays": false,
   "weather": "heat",
   "underground": false,
   "water": false,
-  "parallax": [
-   0.08,
-   0.2,
-   0.4
-  ],
-  "vparallax": [
-   0.02,
-   0.04,
-   0.07
-  ],
   "cloud": "#f8e0b0"
  },
  "sky": {
-  "far_fill": "#9ab4d8",
-  "mid_fill": "#6a7aa8",
-  "near_fill": "#dfe8f8",
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.04,
+    "vpar": 0.022,
+    "fill": "#eff3fb"
+   },
+   {
+    "file": "l1",
+    "par": 0.16,
+    "vpar": 0.044,
+    "fill": "#000000"
+   },
+   {
+    "file": "l2",
+    "par": 0.45,
+    "vpar": 0.096,
+    "fill": "#e7eef9"
+   }
+  ],
   "fog": "#ffffff",
-  "fog_alpha": 0.2,
+  "fog_alpha": 0.18,
   "event": "whale",
   "birds": true,
   "rays": false,
   "weather": "",
   "underground": false,
   "water": false,
-  "parallax": [
-   0.08,
-   0.2,
-   0.4
-  ],
-  "vparallax": [
-   0.02,
-   0.04,
-   0.07
-  ],
   "cloud": "#ffffff"
  },
  "cave": {
-  "far_fill": "#1e2034",
-  "mid_fill": "#12131f",
-  "near_fill": "#08080f",
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.06,
+    "vpar": 0.026,
+    "fill": "#1e2137"
+   },
+   {
+    "file": "l1",
+    "par": 0.2,
+    "vpar": 0.051,
+    "fill": "#34343f"
+   },
+   {
+    "file": "l2",
+    "par": 0.42,
+    "vpar": 0.091,
+    "fill": "#24242a"
+   }
+  ],
   "fog": "#3a4870",
-  "fog_alpha": 0.12,
+  "fog_alpha": 0.1,
   "event": "eyes",
   "birds": false,
   "rays": false,
   "weather": "",
   "underground": true,
   "water": false,
-  "parallax": [
-   0.08,
-   0.2,
-   0.4
-  ],
-  "vparallax": [
-   0.02,
-   0.04,
-   0.07
-  ],
   "cloud": "#3a4870"
  },
  "war": {
-  "far_fill": "#6a3440",
-  "mid_fill": "#321a24",
-  "near_fill": "#180c12",
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.05,
+    "vpar": 0.024,
+    "fill": "#924847"
+   },
+   {
+    "file": "l1",
+    "par": 0.18,
+    "vpar": 0.047,
+    "fill": "#51292c"
+   },
+   {
+    "file": "l2",
+    "par": 0.4,
+    "vpar": 0.087,
+    "fill": "#15090f"
+   }
+  ],
   "fog": "#c06050",
-  "fog_alpha": 0.18,
+  "fog_alpha": 0.16,
   "event": "catapults",
   "birds": false,
   "rays": false,
   "weather": "embers",
   "underground": false,
   "water": false,
-  "parallax": [
-   0.08,
-   0.2,
-   0.4
-  ],
-  "vparallax": [
-   0.02,
-   0.04,
-   0.07
-  ],
   "cloud": "#5a3036"
  },
  "graveyard": {
-  "far_fill": "#34405a",
-  "mid_fill": "#1e2436",
-  "near_fill": "#0e1220",
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.05,
+    "vpar": 0.024,
+    "fill": "#5c6a87"
+   },
+   {
+    "file": "l1",
+    "par": 0.18,
+    "vpar": 0.047,
+    "fill": "#363e54"
+   },
+   {
+    "file": "l2",
+    "par": 0.4,
+    "vpar": 0.087,
+    "fill": "#0b0f1b"
+   }
+  ],
   "fog": "#8898b8",
-  "fog_alpha": 0.24,
+  "fog_alpha": 0.22,
   "event": "bats",
   "birds": false,
   "rays": false,
   "weather": "",
   "underground": false,
   "water": false,
-  "parallax": [
-   0.08,
-   0.2,
-   0.4
-  ],
-  "vparallax": [
-   0.02,
-   0.04,
-   0.07
-  ],
   "cloud": "#8898b8"
  },
  "swamp": {
-  "far_fill": "#6a8068",
-  "mid_fill": "#3a4a38",
-  "near_fill": "#1c2418",
+  "layers": [
+   {
+    "file": "l0",
+    "par": 0.05,
+    "vpar": 0.024,
+    "fill": "#a2b492"
+   },
+   {
+    "file": "l1",
+    "par": 0.18,
+    "vpar": 0.047,
+    "fill": "#4d6456"
+   },
+   {
+    "file": "l2",
+    "par": 0.4,
+    "vpar": 0.087,
+    "fill": "#171f13"
+   }
+  ],
   "fog": "#c8d8b0",
-  "fog_alpha": 0.3,
+  "fog_alpha": 0.26,
   "event": "wisps",
   "birds": true,
   "rays": false,
   "weather": "",
   "underground": false,
   "water": true,
-  "parallax": [
-   0.08,
-   0.2,
-   0.4
-  ],
-  "vparallax": [
-   0.02,
-   0.04,
-   0.07
-  ],
   "cloud": "#c8d8b0"
  }
 }

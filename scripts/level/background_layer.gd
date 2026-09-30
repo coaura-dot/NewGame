@@ -1,7 +1,8 @@
 class_name BackgroundLayer
 extends CanvasLayer
-## Cenário de fundo em camadas (pixel art gerada por tools/build_scenery.py):
-## céu fixo + 3 silhuetas com parallax (longe/meio/perto) e VIDA por cima —
+## Cenário de fundo em camadas (pixel art gerada por tools/build_scenery.py,
+## resolução 480x270): céu fixo + N camadas com parallax (longe -> perto,
+## data/scenery.json -> layers) e VIDA por cima —
 ## nuvens, névoa que anda, raios de sol, pássaros em bando e um "evento" por
 ## estilo (relâmpagos no castelo, um titã caminhando atrás da cidade gótica,
 ## verme gigante nas dunas, baleia do céu, olhos na caverna, catapultas na
@@ -9,14 +10,21 @@ extends CanvasLayer
 ## Inspiração: Kingdom Two Crowns, Blasphemous, Dead Cells.
 
 const DIR := "res://assets/art/scenery/"
-const LAYER_W := 512.0
+const LAYER_W := 960.0
+## A "vida" (pássaros, névoa, eventos) é desenhada numa tela virtual de
+## metade da resolução com escala 2 (pixels de 2x2, como os antigos).
+const LIFE := 2.0
 
 static var _meta: Dictionary = {}
 
 var camera: Camera2D = null
-## Tamanho da tela onde o cenário é desenhado (fase: 256x144; menu: 320x180)
+## Tamanho da tela onde o cenário é desenhado (480x270)
 var W: float = LevelConst.VIEW_PX.x
 var H: float = LevelConst.VIEW_PX.y
+## Tela virtual da vida (W/2 x H/2)
+var VW: float = 240.0
+var VH: float = 135.0
+var _cloud_tex: Array = []
 var style_id: String = "forest"
 var tint: Color = Color.WHITE
 ## Linha de referência (y do mundo) em que as camadas ficam na posição de
@@ -56,7 +64,9 @@ func build(set_id: String, color: Color, level_top: float = 0.0) -> void:
 	style_id = set_id if load_meta().has(set_id) else "forest"
 	meta = load_meta().get(style_id, {})
 	tint = color
-	ref_y = level_top + H * 1.6
+	ref_y = level_top + H * 0.8
+	VW = W / LIFE
+	VH = H / LIFE
 	layer = -10
 	_rng.seed = hash(style_id)
 	_sky = _tex("sky")
@@ -64,13 +74,14 @@ func build(set_id: String, color: Color, level_top: float = 0.0) -> void:
 		var img := _sky.get_image()
 		_sky_top = img.get_pixel(0, 0)
 		_sky_bottom = img.get_pixel(0, img.get_height() - 1)
-	var par: Array = meta.get("parallax", [0.08, 0.2, 0.4])
-	var vpar: Array = meta.get("vparallax", [0.03, 0.07, 0.14])
-	var names := ["far", "mid", "near"]
-	for i in 3:
-		var tex := _tex(names[i])
+	for L in meta.get("layers", []):
+		var tex := _tex(str(L.get("file", "")))
 		if tex:
-			_layers.append([tex, float(par[i]), float(vpar[i]), Color(str(meta.get(names[i] + "_fill", "#000000")))])
+			_layers.append([tex, float(L.get("par", 0.1)), float(L.get("vpar", 0.03)), Color(str(L.get("fill", "#000000")))])
+	for k in 4:
+		var ct := _tex("cloud%d" % k)
+		if ct:
+			_cloud_tex.append(ct)
 	_draw = Control.new()
 	_draw.size = Vector2(W, H)
 	_draw.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -88,14 +99,14 @@ func _setup_life() -> void:
 	var outdoor: bool = not meta.get("underground", false)
 	if outdoor and style_id in ["forest", "ruins", "sky", "desert", "swamp", "war"]:
 		for i in (9 if style_id == "sky" else 5):
-			_clouds.append([_rng.randf() * LAYER_W, _rng.randf_range(8, 60), _rng.randf_range(6, 14), _rng.randf_range(2, 6), _rng.randf_range(0.03, 0.12)])
+			_clouds.append([_rng.randf() * LAYER_W, _rng.randf_range(12, 110), _rng.randi_range(0, 3), _rng.randf_range(3, 10), _rng.randf_range(0.03, 0.12)])
 	match str(meta.get("event", "")):
 		"wisps":
 			for i in 7:
-				_wisps.append([_rng.randf() * LAYER_W, _rng.randf_range(70, 118), _rng.randf() * TAU])
+				_wisps.append([_rng.randf() * LAYER_W * 0.5, _rng.randf_range(70, 118), _rng.randf() * TAU])
 		"eyes":
 			for i in 6:
-				_eyes.append([_rng.randf() * LAYER_W, _rng.randf_range(30, 110), _rng.randf_range(0, 6), _rng.randf() < 0.5])
+				_eyes.append([_rng.randf() * LAYER_W * 0.5, _rng.randf_range(30, 110), _rng.randf_range(0, 6), _rng.randf() < 0.5])
 	_event_t = _rng.randf_range(4.0, 10.0)
 
 
@@ -115,13 +126,13 @@ func _process(delta: float) -> void:
 			_next_flock = _rng.randf_range(7.0, 16.0)
 			var dir := 1.0 if _rng.randf() < 0.5 else -1.0
 			var scale := _rng.randf_range(0.8, 1.6)
-			_flocks.append([-20.0 if dir > 0 else W + 20.0, _rng.randf_range(16, 60), dir * _rng.randf_range(14, 26) * scale, _rng.randi_range(3, 7), _rng.randf() * TAU, scale])
+			_flocks.append([-20.0 if dir > 0 else VW + 20.0, _rng.randf_range(16, 60), dir * _rng.randf_range(14, 26) * scale, _rng.randi_range(3, 7), _rng.randf() * TAU, scale])
 			if _rng.randf() < 0.6:
 				Audio.play("birds", 0.1, -14.0)
 	for f in _flocks:
 		f[0] += f[2] * delta
 		f[4] += delta * 10.0
-	_flocks = _flocks.filter(func(f): return f[0] > -60.0 and f[0] < W + 60.0)
+	_flocks = _flocks.filter(func(f): return f[0] > -60.0 and f[0] < VW + 60.0)
 	for b in _bolts:
 		b[1] -= delta
 	_bolts = _bolts.filter(func(b): return b[1] > 0.0)
@@ -139,7 +150,7 @@ func _update_event(delta: float) -> void:
 				_event_t = _rng.randf_range(5.0, 12.0)
 				_flash = 1.0
 				var pts := PackedVector2Array()
-				var x := _rng.randf_range(20, W - 20)
+				var x := _rng.randf_range(20, VW - 20)
 				var y := 0.0
 				while y < 90.0:
 					pts.append(Vector2(x, y))
@@ -164,10 +175,10 @@ func _start_event(ev: String) -> void:
 		"whale":
 			_event = {"t": 0.0, "life": 45.0, "dir": 1.0 if _rng.randf() < 0.5 else -1.0, "y": _rng.randf_range(24, 50)}
 		"sandworm":
-			_event = {"t": 0.0, "life": 3.2, "x": _rng.randf_range(40, W - 40)}
+			_event = {"t": 0.0, "life": 3.2, "x": _rng.randf_range(40, VW - 40)}
 			Audio.play("rumble", 0.1, -10.0)
 		"catapults":
-			_event = {"t": 0.0, "life": 2.4, "x0": _rng.randf_range(-20, W * 0.4), "x1": _rng.randf_range(W * 0.5, W + 20), "h": _rng.randf_range(40, 80)}
+			_event = {"t": 0.0, "life": 2.4, "x0": _rng.randf_range(-20, VW * 0.4), "x1": _rng.randf_range(VW * 0.5, VW + 20), "h": _rng.randf_range(40, 80)}
 		"bats":
 			_event = {"t": 0.0, "life": 7.0, "dir": 1.0 if _rng.randf() < 0.5 else -1.0, "y": _rng.randf_range(20, 50)}
 
@@ -180,12 +191,19 @@ func _cam() -> Vector2:
 	return camera.get_screen_center_position() if camera else Vector2.ZERO
 
 
+## Deslocamento vertical (px da tela) de uma camada com parallax vertical `vpar`.
 func _vy(vpar: float) -> float:
-	return roundf(clampf((_cam().y - ref_y) * vpar, -24.0, 36.0))
+	return roundf(clampf((_cam().y - ref_y) * vpar * LevelConst.ART, -46.0, 68.0))
+
+
+## O mesmo, na tela virtual da vida.
+func _lvy(vpar: float) -> float:
+	return roundf(_vy(vpar) / LIFE)
 
 
 func _on_draw() -> void:
-	var cam := _cam()
+	var cam := _cam() * LevelConst.ART # posição da câmera em px de tela
+	var lcam := cam / LIFE
 	var sky_off := _vy(0.015)
 	var flash_mod := Color(1, 1, 1).lerp(Color(1.6, 1.6, 1.9), _flash)
 	if _sky:
@@ -195,20 +213,37 @@ func _on_draw() -> void:
 		elif sky_off > 0.0:
 			_draw.draw_rect(Rect2(0, H - sky_off - 1, W, sky_off + 1), _sky_bottom * tint * flash_mod)
 	# evento bem ao fundo (atrás de tudo)
-	_draw_event_far(cam)
+	_life(true)
+	_draw_event_far(lcam)
 	for b in _bolts:
 		_draw.draw_polyline(b[0], Color(3, 3, 3.4, clampf(b[1] * 8.0, 0.0, 1.0)), 1.0)
-	for i in _layers.size():
+	_life(false)
+	var n := _layers.size()
+	for i in n:
 		var L: Array = _layers[i]
 		if i == 1:
-			_draw_clouds(cam, 0.12, 1.0)
-			_draw_fog(0, cam)
-		if i == 2:
-			_draw_wisps(cam)
+			_draw_clouds(cam)
+			_life(true)
+			_draw_fog(0, lcam)
+			_life(false)
+		if i == maxi(n - 2, 1):
+			_life(true)
+			_draw_wisps(lcam)
 			_draw_flocks()
 			_draw_rays()
+			_life(false)
 		_draw_layer(L[0], cam.x * float(L[1]), _vy(float(L[2])), L[3], flash_mod)
-	_draw_fog(1, cam)
+	_life(true)
+	_draw_fog(1, lcam)
+	_life(false)
+
+
+## Liga/desliga a escala da tela virtual da vida.
+func _life(on: bool) -> void:
+	if on:
+		_draw.draw_set_transform(Vector2.ZERO, 0.0, Vector2(LIFE, LIFE))
+	else:
+		_draw.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_layer(tex: Texture2D, scroll: float, dy: float, fill: Color, mod: Color) -> void:
@@ -223,21 +258,16 @@ func _draw_layer(tex: Texture2D, scroll: float, dy: float, fill: Color, mod: Col
 		_draw.draw_rect(Rect2(0, bottom - 1, W, H - bottom + 1), fill * tint * mod)
 
 
-func _draw_clouds(cam: Vector2, _depth: float, _a: float) -> void:
+func _draw_clouds(cam: Vector2) -> void:
+	if _cloud_tex.is_empty():
+		return
 	for c in _clouds:
-		var x: float = fposmod(float(c[0]) - cam.x * float(c[4]), LAYER_W) - 40.0
-		if x > W + 40.0:
+		var tex: Texture2D = _cloud_tex[int(c[2]) % _cloud_tex.size()]
+		var x: float = fposmod(float(c[0]) - cam.x * float(c[4]), LAYER_W) - tex.get_width()
+		if x > W:
 			continue
 		var y: float = float(c[1]) - _vy(0.02)
-		var r: float = float(c[2]) * 0.75
-		var fogc := Color(str(meta.get("cloud", meta.get("fog", "#ffffff"))))
-		var col := Color(fogc.r, fogc.g, fogc.b, 0.8) * tint
-		var shade := Color(fogc.r * 0.85, fogc.g * 0.86, fogc.b * 0.92, 0.8) * tint
-		for k in [[0.0, 0.0, 1.0], [-r * 0.9, r * 0.25, 0.7], [r * 0.9, r * 0.2, 0.75], [r * 1.7, r * 0.45, 0.5]]:
-			var p := Vector2(roundf(x + float(k[0])), roundf(y + float(k[1])))
-			_draw.draw_circle(p + Vector2(0, 1), r * float(k[2]), shade)
-			_draw.draw_circle(p, r * float(k[2]) * 0.92, col)
-		_draw.draw_rect(Rect2(roundf(x - r * 1.6), roundf(y + r * 0.55), roundf(r * 4.0), 1), shade)
+		_draw.draw_texture(tex, Vector2(roundf(x), roundf(y)), tint)
 
 
 func _draw_fog(band: int, cam: Vector2) -> void:
@@ -247,14 +277,14 @@ func _draw_fog(band: int, cam: Vector2) -> void:
 	var c := Color(str(meta.get("fog", "#ffffff")))
 	c.a = a
 	var base := 104.0 if band == 0 else 128.0
-	base -= _vy(0.1 if band == 0 else 0.2)
+	base -= _lvy(0.1 if band == 0 else 0.2)
 	var speed := 4.0 if band == 0 else 9.0
 	var sx := _t * speed + cam.x * (0.25 if band == 0 else 0.5)
 	var x := 0.0
-	while x < W:
+	while x < VW:
 		var wave := sin((x + sx) * 0.05) * 3.0 + sin((x + sx) * 0.013 + 1.7) * 5.0
 		var top := roundf(base + wave)
-		_draw.draw_rect(Rect2(x, top, 4, H - top), c)
+		_draw.draw_rect(Rect2(x, top, 4, VH - top), c)
 		x += 4.0
 
 
@@ -264,7 +294,7 @@ func _draw_rays() -> void:
 	for i in 3:
 		var a := 0.05 + 0.03 * sin(_t * 0.6 + i * 2.0)
 		var x0 := 120.0 + i * 46.0 + sin(_t * 0.2 + i) * 6.0
-		var pts := PackedVector2Array([Vector2(x0, 0), Vector2(x0 + 14, 0), Vector2(x0 - 40, H), Vector2(x0 - 70, H)])
+		var pts := PackedVector2Array([Vector2(x0, 0), Vector2(x0 + 14, 0), Vector2(x0 - 40, VH), Vector2(x0 - 70, VH)])
 		_draw.draw_colored_polygon(pts, Color(1.0, 0.97, 0.85, a))
 
 
@@ -288,10 +318,10 @@ func _draw_flocks() -> void:
 
 func _draw_wisps(cam: Vector2) -> void:
 	for w in _wisps:
-		var x: float = fposmod(float(w[0]) - cam.x * 0.25 + sin(_t * 0.4 + float(w[2])) * 10.0, LAYER_W)
-		if x > W:
+		var x: float = fposmod(float(w[0]) - cam.x * 0.25 + sin(_t * 0.4 + float(w[2])) * 10.0, LAYER_W * 0.5)
+		if x > VW:
 			continue
-		var y: float = float(w[1]) + sin(_t * 1.3 + float(w[2])) * 4.0 - _vy(0.1)
+		var y: float = float(w[1]) + sin(_t * 1.3 + float(w[2])) * 4.0 - _lvy(0.1)
 		var a := 0.6 + 0.4 * sin(_t * 3.0 + float(w[2]) * 3.0)
 		_draw.draw_circle(Vector2(x, y), 3.0, Color(0.6, 1.4, 1.0, 0.18 * a))
 		_draw.draw_rect(Rect2(roundf(x), roundf(y), 1, 1), Color(1.4, 2.6, 1.8, a))
@@ -299,11 +329,11 @@ func _draw_wisps(cam: Vector2) -> void:
 
 func _draw_event_far(cam: Vector2) -> void:
 	var ev := str(meta.get("event", ""))
-	var dy := _vy(0.04)
+	var dy := _lvy(0.04)
 	if ev == "eyes":
 		for e in _eyes:
-			var x: float = fposmod(float(e[0]) - cam.x * 0.1, LAYER_W)
-			if x > W:
+			var x: float = fposmod(float(e[0]) - cam.x * 0.1, LAYER_W * 0.5)
+			if x > VW:
 				continue
 			var blink := fposmod(_t + float(e[2]), 6.0)
 			if blink < 0.15 or (blink > 3.0 and blink < 3.12):
@@ -321,7 +351,7 @@ func _draw_event_far(cam: Vector2) -> void:
 			# gigante magro caminhando devagar atrás da cidade (olhos acesos)
 			var k := t / float(_event["life"])
 			var dir: float = _event["dir"]
-			var x := lerpf(-60.0, W + 60.0, k) if dir > 0 else lerpf(W + 60.0, -60.0, k)
+			var x := lerpf(-60.0, VW + 60.0, k) if dir > 0 else lerpf(VW + 60.0, -60.0, k)
 			var step := sin(t * 1.2)
 			var base := 118.0 - dy
 			var c := Color(0.16, 0.16, 0.26, 0.9) * tint
@@ -338,7 +368,7 @@ func _draw_event_far(cam: Vector2) -> void:
 		"whale":
 			var k2 := t / float(_event["life"])
 			var dir2: float = _event["dir"]
-			var x2 := lerpf(-80.0, W + 80.0, k2) if dir2 > 0 else lerpf(W + 80.0, -80.0, k2)
+			var x2 := lerpf(-80.0, VW + 80.0, k2) if dir2 > 0 else lerpf(VW + 80.0, -80.0, k2)
 			var y2: float = float(_event["y"]) + sin(t * 0.5) * 4.0 - dy
 			var c2 := Color(0.45, 0.55, 0.78, 0.75) * tint
 			var p := Vector2(roundf(x2), roundf(y2))
@@ -390,7 +420,7 @@ func _draw_event_far(cam: Vector2) -> void:
 			var k5: float = t / float(_event["life"])
 			var dir5: float = _event["dir"]
 			for i in 14:
-				var bx := lerpf(-30.0, W + 30.0, k5) if dir5 > 0 else lerpf(W + 30.0, -30.0, k5)
+				var bx := lerpf(-30.0, VW + 30.0, k5) if dir5 > 0 else lerpf(VW + 30.0, -30.0, k5)
 				bx += sin(i * 2.3) * 18.0 - dir5 * i * 3.0
 				var by: float = float(_event["y"]) + cos(i * 1.7) * 10.0 + sin(t * 8.0 + i) * 2.0 - dy
 				var up := sin(t * 20.0 + i) > 0.0

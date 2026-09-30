@@ -8,30 +8,31 @@ const T := LevelConst.TILE
 
 
 static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictionary:
-	var ts := TileSetBuilder.build(biome.get("tileset", "castle"))
+	var tsname := str(biome.get("tileset", "castle"))
+	var ts := TileSetBuilder.build(tsname)
 	var tint_a: Array = biome.get("tint", [1, 1, 1])
 	var tint := Color(tint_a[0], tint_a[1], tint_a[2])
 	var indoor: bool = layout.get("indoor", false)
-
-	var bg := _layer("BackWall", ts, -20, tint)
-	var solid := _layer("Terrain", ts, 0, tint)
-	var trim := _layer("Trim", ts, 1, tint)
-	var ceil := _layer("Ceiling", ts, 1, tint)
-	var deco := _layer("Deco", ts, 2, tint)
-	bg.collision_enabled = false
-	bg.occlusion_enabled = false
-	trim.collision_enabled = false
-	trim.occlusion_enabled = false
-	ceil.collision_enabled = false
-	ceil.occlusion_enabled = false
-	deco.collision_enabled = false
-	deco.occlusion_enabled = false
-	for l in [bg, solid, trim, ceil, deco]:
-		root.add_child(l)
-
 	var rows: PackedStringArray = layout["rows"]
 	var w: int = layout["width"]
 	var h: int = layout["height"]
+
+	var bg := _layer("BackWall", ts, -20, tint * Color(0.62, 0.62, 0.7))
+	var solid := _layer("Terrain", ts, 0, tint)
+	var trim := _layer("Fringe", ts, 1, tint)
+	var ceil := _layer("Hang", ts, 1, tint)
+	var deco := _layer("Deco", ts, 2, tint)
+	for l in [bg, trim, ceil, deco]:
+		l.collision_enabled = false
+		l.occlusion_enabled = false
+	for l in [bg, solid, trim, ceil, deco]:
+		root.add_child(l)
+	# profundidade: distância de cada célula sólida até o ar (0 = borda)
+	var depth := _depth_texture(rows, w, h)
+	solid.material = TileSetBuilder.terrain_material(tsname, depth, Vector2(w, h))
+	bg.material = TileSetBuilder.terrain_material(tsname, null, Vector2(w, h), true)
+	var grassy := _has_fringe(tsname)
+
 	var windows := _windows(layout, biome)
 	var room_mask := _room_mask(layout)
 	# fora (céu aberto) só as salas mais altas; as de baixo são subterrâneas
@@ -46,16 +47,18 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 			var c := row[x]
 			var cell := Vector2i(x, y)
 			if c == "#":
-				_place_solid(solid, trim, ceil, deco, rows, x, y, w, h)
+				_place_solid(solid, trim, ceil, deco, rows, x, y, w, h, grassy)
 			else:
 				var rc := Vector2i(x / LevelConst.ROOM_W, y / LevelConst.ROOM_H)
 				if room_mask.has(rc) and (indoor or not open_sky.has(rc)) and not windows.has(cell):
-					bg.set_cell(cell, TileSetBuilder.SOURCE, TileSetBuilder.BG[TileSetBuilder.variant(x, y, 4)])
+					bg.set_cell(cell, TileSetBuilder.SOURCE, TileSetBuilder.BG_TILE)
 				if c == "-":
 					var l := _ch(rows, x - 1, y, w, h) == "-"
 					var r := _ch(rows, x + 1, y, w, h) == "-"
 					var coord := TileSetBuilder.PLAT_M
-					if not l:
+					if not l and not r:
+						coord = TileSetBuilder.PLAT_S
+					elif not l:
 						coord = TileSetBuilder.PLAT_L
 					elif not r:
 						coord = TileSetBuilder.PLAT_R
@@ -82,6 +85,53 @@ static func build(root: Node2D, layout: Dictionary, biome: Dictionary) -> Dictio
 	if biome.get("water", false):
 		pools = _water(root, rows, w, h, biome)
 	return {"terrain": solid, "background": bg, "hazard": hazard, "spikes": spikes, "pools": pools}
+
+
+## Textura (1 pixel por célula) com a profundidade da rocha: 0 na borda,
+## subindo até 1 a ~5 tiles do ar. O shader filtra linear => degradê suave.
+static func _depth_texture(rows: PackedStringArray, w: int, h: int) -> ImageTexture:
+	var dist := PackedInt32Array()
+	dist.resize(w * h)
+	var queue: Array[int] = []
+	for y in h:
+		var row: String = rows[y]
+		for x in w:
+			var i := y * w + x
+			if row[x] == "#":
+				dist[i] = 99
+			else:
+				dist[i] = 0
+				queue.append(i)
+	var head := 0
+	while head < queue.size():
+		var i: int = queue[head]
+		head += 1
+		var x := i % w
+		var y := i / w
+		var d := dist[i] + 1
+		if d > 6:
+			continue
+		for o in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var xx: int = x + o.x
+			var yy: int = y + o.y
+			if xx < 0 or yy < 0 or xx >= w or yy >= h:
+				continue
+			var j := yy * w + xx
+			if dist[j] > d:
+				dist[j] = d
+				queue.append(j)
+	var img := Image.create(w, h, false, Image.FORMAT_L8)
+	for y in h:
+		for x in w:
+			var d := dist[y * w + x]
+			# 1ª linha sólida (d=1) fica clara; escurece a partir da 2ª
+			var v := clampf((float(d) - 1.25) / 2.6, 0.0, 1.0)
+			img.set_pixel(x, y, Color(v, v, v))
+	return ImageTexture.create_from_image(img)
+
+
+static func _has_fringe(tsname: String) -> bool:
+	return tsname in ["castle", "ruins", "forest", "graveyard", "swamp", "cave", "desert", "war"]
 
 
 ## Poças rasas (até 2 tiles) nos buracos do terreno cercados de chão dos
@@ -170,6 +220,8 @@ static func _layer(n: String, ts: TileSet, z: int, tint: Color) -> TileMapLayer:
 	l.tile_set = ts
 	l.z_index = z
 	l.modulate = tint
+	# tiles de 16 px de arte em células de 8 unidades
+	l.scale = Vector2.ONE * LevelConst.ART_SCALE
 	return l
 
 
@@ -183,45 +235,34 @@ static func _is_solid(rows: PackedStringArray, x: int, y: int, w: int, h: int) -
 	return _ch(rows, x, y, w, h) == "#"
 
 
-static func _place_solid(solid: TileMapLayer, trim: TileMapLayer, ceil: TileMapLayer, deco: TileMapLayer, rows: PackedStringArray, x: int, y: int, w: int, h: int) -> void:
-	var up := _is_solid(rows, x, y - 1, w, h)
-	var up2 := _is_solid(rows, x, y - 2, w, h)
-	var down := _is_solid(rows, x, y + 1, w, h)
-	var left := _is_solid(rows, x - 1, y, w, h)
-	var right := _is_solid(rows, x + 1, y, w, h)
+static func _place_solid(solid: TileMapLayer, trim: TileMapLayer, ceil: TileMapLayer, deco: TileMapLayer, rows: PackedStringArray, x: int, y: int, w: int, h: int, grassy: bool) -> void:
+	var mask := 0
+	var deep := true
+	var bit := 1
+	for o in [Vector2i(0, -1), Vector2i(1, -1), Vector2i(1, 0), Vector2i(1, 1), Vector2i(0, 1), Vector2i(-1, 1), Vector2i(-1, 0), Vector2i(-1, -1)]:
+		if _is_solid(rows, x + o.x, y + o.y, w, h):
+			mask |= bit
+		else:
+			deep = false
+		bit <<= 1
+	var m := BlobTable.canon(mask)
+	var idx: int = BlobTable.INDEX.get(m, 0)
+	if BlobTable.VARIANTS.has(m):
+		var v := TileSetBuilder.variant(x, y, 4)
+		if v > 0:
+			idx = BlobTable.VARIANTS[m][v - 1]
 	var cell := Vector2i(x, y)
 	# rocha profunda: nenhum vizinho (8) vazio => sem colisão/oclusão
-	var deep := true
-	for dy in [-1, 0, 1]:
-		for dx in [-1, 0, 1]:
-			if not _is_solid(rows, x + dx, y + dy, w, h):
-				deep = false
-	var coord: Vector2i
-	if not up:
-		if not left and not right:
-			coord = TileSetBuilder.TOP_SINGLE
-		elif not left:
-			coord = TileSetBuilder.TOP_L
-		elif not right:
-			coord = TileSetBuilder.TOP_R
-		else:
-			coord = TileSetBuilder.TOP[TileSetBuilder.variant(x, y, 4)]
-		# decoração acima da superfície
-		var above := _ch(rows, x, y - 1, w, h)
-		if above == "." and TileSetBuilder.variant(x * 3, y * 7, 10) < 4:
-			deco.set_cell(Vector2i(x, y - 1), TileSetBuilder.SOURCE, TileSetBuilder.DECO[TileSetBuilder.variant(x, y, 4)])
-	elif not up2:
-		coord = TileSetBuilder.SUB[TileSetBuilder.variant(x, y, 4)]
-	else:
-		coord = TileSetBuilder.FILL[TileSetBuilder.variant(x, y, 4)]
-	solid.set_cell(cell, TileSetBuilder.SOURCE, coord, TileSetBuilder.NO_COLLISION if deep else 0)
-	if up:
-		if not left:
-			trim.set_cell(cell, TileSetBuilder.SOURCE, TileSetBuilder.EDGE_L)
-		elif not right:
-			trim.set_cell(cell, TileSetBuilder.SOURCE, TileSetBuilder.EDGE_R)
-	if not down:
-		ceil.set_cell(cell, TileSetBuilder.SOURCE, TileSetBuilder.CEIL)
+	solid.set_cell(cell, TileSetBuilder.SOURCE, BlobTable.coord(idx), TileSetBuilder.NO_COLLISION if deep else 0)
+	var above := _ch(rows, x, y - 1, w, h)
+	if above == "." or above == "^":
+		if grassy and above == ".":
+			trim.set_cell(Vector2i(x, y - 1), TileSetBuilder.SOURCE, TileSetBuilder.FRINGE[TileSetBuilder.variant(x, y, 4)])
+		# decoração acima da superfície (não em cima de espinhos/saídas)
+		if above == "." and TileSetBuilder.variant(x * 3, y * 7, 10) < 3:
+			deco.set_cell(Vector2i(x, y - 1), TileSetBuilder.SOURCE, TileSetBuilder.DECO[TileSetBuilder.variant(x * 5, y, 8)])
+	if _ch(rows, x, y + 1, w, h) == "." and TileSetBuilder.variant(x * 11, y * 5, 10) < 4:
+		ceil.set_cell(Vector2i(x, y + 1), TileSetBuilder.SOURCE, TileSetBuilder.HANG[TileSetBuilder.variant(x, y * 3, 4)])
 
 
 static func _spike_alt(rows: PackedStringArray, x: int, y: int, w: int, h: int) -> int:

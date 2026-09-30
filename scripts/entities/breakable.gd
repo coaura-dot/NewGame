@@ -6,7 +6,8 @@ extends StaticBody2D
 var hits_left: int = 3
 var pound_only: bool = false
 var tile_tex: Texture2D
-var region: Rect2 = Rect2(56, 0, 8, 8)
+## bloco rachado do atlas de 16 px (tools/build_tiles.py, índice 59)
+var region: Rect2 = Rect2(48, 112, 16, 16)
 var tint: Color = Color.WHITE
 var team: int = Layers.Team.NEUTRAL
 var dead: bool = false
@@ -69,4 +70,10 @@ func _draw() -> void:
 	else:
 		draw_rect(Rect2(0, 0, 8, 8), Color(0.3, 0.28, 0.3))
 	if hits_left < 3:
-		draw_rect(Rect2(3, 2, 1, 4), Color(0, 0, 0, 0.8))
+		# rachaduras novas a cada golpe (em meio pixel = 1 px de arte)
+		var c := Color(0, 0, 0, 0.85)
+		draw_rect(Rect2(3.0, 1.5, 0.5, 2.5), c)
+		draw_rect(Rect2(3.5, 4.0, 0.5, 2.0), c)
+		if hits_left < 2:
+			draw_rect(Rect2(5.0, 3.0, 2.0, 0.5), c)
+			draw_rect(Rect2(1.5, 5.5, 1.5, 0.5), c)

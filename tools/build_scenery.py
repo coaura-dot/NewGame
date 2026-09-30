@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-"""Pinta os cenários de fundo em pixel art (camadas com parallax) por estilo.
+"""Cenários de fundo em pixel art de alta resolução (tela 480x270), em
+camadas com parallax, por estilo.
 
-Inspiração: Kingdom Two Crowns (silhuetas em camadas, céu luminoso,
-perspectiva atmosférica), Blasphemous (arquitetura gótica contra a luz) e
-Dead Cells (cores saturadas, borda iluminada). Tudo é gerado por código
-(ruído periódico, formas simples, pontilhado ordenado nos degradês) e as
-camadas emendam sem costura na horizontal.
+Inspiração: Kingdom Two Crowns (camadas, céu luminoso, perspectiva
+atmosférica, reflexo na água), Hollow Knight e Blasphemous (silhuetas contra
+a luz com BORDA ILUMINADA, janelas acesas, névoa) e Dead Cells (cor).
+
+Como funciona: cada objeto é desenhado como silhueta chapada numa camada e
+depois um passo de "luz" pinta a borda do lado do sol/lua (rim light), um
+degradê vertical (mais claro em cima, mais escuro embaixo) e uma textura
+pontilhada sutil. As camadas mais distantes são misturadas com a cor da
+névoa (perspectiva atmosférica). Tudo emenda sem costura na horizontal.
 
 Saída por estilo em assets/art/scenery/<estilo>/:
-  sky.png   256x144  céu fixo (degradê pontilhado, sol/lua, estrelas)
-  far.png   512xH    montanhas/horizonte (mais claro, "longe")
-  mid.png   512xH    silhuetas do bioma (castelo, árvores, dunas, ilhas...)
-  near.png  512xH    primeiro plano de fundo (mais escuro, mais perto)
-e data/scenery.json com cores, fatores de parallax e o "evento" animado de
-cada estilo (pássaros, titã ao fundo, catapultas, baleia do céu...).
+  sky.png           480x270  céu fixo (degradê em faixas, sol/lua, estrelas)
+  l0.png .. lN.png  960x270  camadas do fundo (longe -> perto)
+  cloud0..3.png              nuvens que andam
+e data/scenery.json (paleta, parallax de cada camada, névoa, evento).
 
 Uso: python3 tools/build_scenery.py [estilo ...]      (requer numpy, pillow)
 """
@@ -24,12 +27,14 @@ import sys
 
 import numpy as np
 from PIL import Image, ImageDraw
+from scipy import ndimage
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "assets", "art", "scenery")
 DATA = os.path.join(ROOT, "data", "scenery.json")
-W = 512
-SKY_W, SKY_H = 256, 144
+W = 960
+H = 270
+SKY_W, SKY_H = 480, 270
 
 BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16.0 + 1 / 32.0
 
@@ -40,7 +45,7 @@ def rgb(h):
 
 
 def mix(a, b, t):
-    return tuple(int(round(a[i] + (b[i] - a[i]) * t)) for i in range(3))
+    return tuple(int(round(int(a[i]) + (int(b[i]) - int(a[i])) * t)) for i in range(3))
 
 
 def lighten(c, t):
@@ -51,12 +56,15 @@ def darken(c, t):
     return mix(c, (0, 0, 0), t)
 
 
+def hexs(c):
+    return "#%02x%02x%02x" % tuple(c)
+
+
 # ---------------------------------------------------------------------------
 # Ruído periódico (emenda em W)
 # ---------------------------------------------------------------------------
 
 def pnoise(n, cells, seed, octaves=4, persistence=0.5):
-    """Ruído de valor 1D periódico de comprimento n. Retorna array 0..1."""
     rng = np.random.default_rng(seed)
     out = np.zeros(n)
     amp = 1.0
@@ -76,6 +84,326 @@ def pnoise(n, cells, seed, octaves=4, persistence=0.5):
     return out / total
 
 
+def noise2(w, h, cells, seed):
+    """Ruído 2D suave, periódico em x."""
+    rng = np.random.default_rng(seed)
+    cy = max(2, int(cells * h / w) + 1)
+    g = rng.random((cy + 1, cells))
+    x = np.arange(w) / w * cells
+    y = np.arange(h) / h * cy
+    xi = np.floor(x).astype(int)
+    yi = np.floor(y).astype(int)
+    xf = x - xi
+    yf = y - yi
+    xf = xf * xf * (3 - 2 * xf)
+    yf = yf * yf * (3 - 2 * yf)
+    a = g[np.ix_(yi, xi % cells)]
+    b = g[np.ix_(yi, (xi + 1) % cells)]
+    c = g[np.ix_(np.minimum(yi + 1, cy), xi % cells)]
+    d = g[np.ix_(np.minimum(yi + 1, cy), (xi + 1) % cells)]
+    return (a * (1 - xf) + b * xf) * (1 - yf[:, None]) + (c * (1 - xf) + d * xf) * yf[:, None]
+
+
+# ---------------------------------------------------------------------------
+# Camada: desenho de silhuetas com emenda horizontal
+# ---------------------------------------------------------------------------
+
+class Layer:
+    def __init__(self, h=H):
+        self.img = Image.new("RGBA", (W, h), (0, 0, 0, 0))
+        self.d = ImageDraw.Draw(self.img)
+        self.h = h
+        # "emissivos" (janelas, cristais): pintados depois da luz
+        self.glow = Image.new("RGBA", (W, h), (0, 0, 0, 0))
+        self.g = ImageDraw.Draw(self.glow)
+
+    def rect(self, x, y, w, h, c, glow=False):
+        d = self.g if glow else self.d
+        c = tuple(c) + (255,) if len(c) == 3 else c
+        for ox in (-W, 0, W):
+            d.rectangle([x + ox, y, x + ox + w - 1, y + h - 1], fill=c)
+
+    def poly(self, pts, c, glow=False):
+        d = self.g if glow else self.d
+        c = tuple(c) + (255,) if len(c) == 3 else c
+        for ox in (-W, 0, W):
+            d.polygon([(p[0] + ox, p[1]) for p in pts], fill=c)
+
+    def ellipse(self, x0, y0, x1, y1, c, glow=False):
+        d = self.g if glow else self.d
+        c = tuple(c) + (255,) if len(c) == 3 else c
+        for ox in (-W, 0, W):
+            d.ellipse([x0 + ox, y0, x1 + ox, y1], fill=c)
+
+    def line(self, pts, c, width=1, glow=False):
+        d = self.g if glow else self.d
+        c = tuple(c) + (255,) if len(c) == 3 else c
+        for ox in (-W, 0, W):
+            d.line([(p[0] + ox, p[1]) for p in pts], fill=c, width=width)
+
+    def fill_below(self, tops, c):
+        a = np.array(self.img)
+        for x in range(W):
+            t = int(max(0, tops[x]))
+            a[t:, x, :3] = c
+            a[t:, x, 3] = 255
+        self.img = Image.fromarray(a, "RGBA")
+        self.d = ImageDraw.Draw(self.img)
+
+    def array(self):
+        return np.array(self.img).astype(np.float64)
+
+    def set_array(self, a):
+        self.img = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGBA")
+        self.d = ImageDraw.Draw(self.img)
+
+
+def light_pass(L, base, rim, sun_dir=-1, top_light=0.14, bottom_dark=0.26, rim_w=2, tex=0.06, seed=0, y0=None, y1=None, radius=5.0, bump=0.22):
+    """Atalho: volume + borda iluminada com tons derivados da cor base."""
+    base = tuple(int(v) for v in base)
+    volume_pass(L, base, mix(base, rim, 0.3), darken(base, 0.28), rim, sun_dir=sun_dir, radius=radius, bump=bump,
+                bump_cells=28, seed=seed, levels=4, rim_w=rim_w, top_light=top_light, bottom_dark=bottom_dark)
+
+
+def volume_pass(L, base, light, shadow, rim, sun_dir=-1, radius=6.0, bump=0.0, bump_cells=40, seed=0, levels=4, rim_w=2, top_light=0.12, bottom_dark=0.25):
+    """Dá VOLUME às silhuetas: relevo = distância até a borda (perfil
+    arredondado) + ruído opcional (folhagem, rocha); normal do relevo ->
+    luz do lado do sol em faixas (sombra, base, luz, brilho) + borda
+    iluminada (rim light) + degradê vertical."""
+    a = L.array()
+    A = a[..., 3] > 0
+    h = L.h
+    if not A.any():
+        return
+    d = ndimage.distance_transform_edt(np.pad(A, ((0, 0), (W, W)), mode="wrap"))[:, W:2 * W]
+    k = np.clip(d / radius, 0, 1)
+    hgt = np.sqrt(np.clip(1 - (1 - k) ** 2, 0, 1)) * radius
+    if bump > 0:
+        hgt = hgt + (noise2(W, h, bump_cells, seed) - 0.5) * bump * radius
+        hgt = hgt + (noise2(W, h, bump_cells * 3, seed + 1) - 0.5) * bump * radius * 0.5
+    gx = (np.roll(hgt, -1, axis=1) - np.roll(hgt, 1, axis=1)) * 0.5
+    gy = np.zeros_like(hgt)
+    gy[1:-1] = (hgt[2:] - hgt[:-2]) * 0.5
+    n = np.stack([-gx, -gy, np.ones_like(hgt) * 0.9], -1)
+    n /= np.linalg.norm(n, axis=-1, keepdims=True)
+    Ld = np.array([sun_dir * -0.62, -0.62, 0.48])
+    Ld = Ld / np.linalg.norm(Ld)
+    lum = np.clip(n @ Ld, -1, 1)
+    lum = (lum + 0.35) / 1.35
+    ys = np.arange(h)
+    lum = lum + (top_light * (1 - ys / h) - bottom_dark * (ys / h))[:, None]
+    ramp = [np.array(shadow, float), np.array(base, float), np.array(light, float), np.array(light, float) * 0.6 + np.array(rim, float) * 0.4]
+    ramp = ramp[:levels]
+    idx = np.clip((lum * len(ramp)).astype(int), 0, len(ramp) - 1)
+    col = np.array(ramp)[idx]
+    # textura pontilhada leve
+    bay = np.tile(BAYER, (h // 4 + 1, W // 4 + 1))[:h, :W]
+    nz = noise2(W, h, 70, seed + 9)
+    col[(nz > 0.66) & (bay < 0.3)] *= 0.9
+    # borda do lado do sol + topo
+    rimc = np.array(rim, float)
+    edge_sun = np.zeros_like(A)
+    edge_top = np.zeros_like(A)
+    for k2 in range(1, rim_w + 1):
+        edge_sun |= A & ~np.roll(A, -sun_dir * k2, axis=1)
+        up = np.zeros_like(A)
+        up[k2:] = A[:-k2]
+        edge_top |= A & ~up
+    col[edge_top & (lum > 0.3)] = col[edge_top & (lum > 0.3)] * 0.4 + rimc * 0.6
+    col[edge_sun] = col[edge_sun] * 0.25 + rimc * 0.75
+    a[..., :3] = np.where(A[..., None], col, a[..., :3])
+    L.set_array(a)
+
+
+def haze(L, fog, t0, t1, y0=0, y1=None):
+    """Perspectiva atmosférica: mistura com a névoa (mais embaixo = mais)."""
+    a = L.array()
+    fog = np.array(fog, dtype=np.float64)
+    h = L.h
+    y1 = y1 if y1 is not None else h
+    ys = np.arange(h)
+    k = np.clip((ys - y0) / max(1, y1 - y0), 0, 1)
+    t = (t0 + (t1 - t0) * k)
+    t = np.round(t * 8) / 8
+    alpha = a[..., 3] > 0
+    mixd = a[..., :3] * (1 - t[:, None, None]) + fog * t[:, None, None]
+    a[..., :3] = np.where(alpha[..., None], mixd, a[..., :3])
+    L.set_array(a)
+
+
+def finish(L):
+    """Junta os emissivos por cima."""
+    L.img.alpha_composite(L.glow)
+    return L.img
+
+
+def reflect(L, water_y, water, alpha=0.5):
+    """Água com reflexo (Kingdom Two Crowns)."""
+    a = L.array()
+    water = np.array(water, dtype=np.float64)
+    h = L.h
+    for y in range(water_y, h):
+        src = water_y - (y - water_y) - 1
+        shift = int(round(math.sin(y * 0.7) * 2))
+        row = np.zeros((W, 4))
+        row[:, :3] = water
+        row[:, 3] = 255
+        if src >= 0 and (y - water_y) % 4 != 3:
+            s = np.roll(a[src], shift, axis=0)
+            m = s[:, 3] > 0
+            f = alpha * (1 - (y - water_y) / (h - water_y + 10))
+            row[m, :3] = water * (1 - f) + s[m, :3] * f
+        a[y] = row
+    # brilhos na superfície
+    for x in range(W):
+        if (x // 5) % 5 == 0:
+            a[water_y, x, :3] = np.minimum(water * 1.5 + 20, 255)
+    L.set_array(a)
+
+
+def ridge(L, base, amp, cells, seed, color, octaves=4, sharp=False):
+    nz = pnoise(W, cells, seed, octaves)
+    if sharp:
+        nz = 1 - np.abs(nz * 2 - 1)
+    tops = (base - nz * amp).astype(int)
+    L.fill_below(tops, color)
+    return tops
+
+
+def snow_caps(L, tops, base, amp, color, rim):
+    a = L.array()
+    line = base - amp * 0.62
+    for x in range(W):
+        t = tops[x]
+        if t < line:
+            depth = int((line - t) * 0.5) + 3 + (x * 7 % 4)
+            for y in range(max(0, t), min(L.h, t + depth)):
+                a[y, x, :3] = color if (x + y) % 7 else rim
+    L.set_array(a)
+
+
+# ---------------------------------------------------------------------------
+# Objetos
+# ---------------------------------------------------------------------------
+
+def pine(L, x, gy, hgt, c):
+    w = max(5, hgt // 3)
+    L.rect(x - 1, gy - hgt // 5, 3, hgt // 5 + 2, darken(c, 0.25))
+    tiers = 3 if hgt < 40 else 4
+    for i in range(tiers):
+        ty = gy - hgt + i * hgt // (tiers + 1)
+        bw = w * (i + 2) // (tiers + 1) + 2
+        L.poly([(x, ty), (x + bw, ty + hgt // 3 + 2), (x + bw // 3, ty + hgt // 3), (x - bw // 3, ty + hgt // 3), (x - bw, ty + hgt // 3 + 2)], c)
+
+
+def round_tree(L, x, gy, hgt, c, rng):
+    L.rect(x - 1, gy - hgt // 2, 3, hgt // 2 + 2, darken(c, 0.25))
+    r = hgt // 3
+    for _ in range(6):
+        ox = int(rng.integers(-r, r + 1))
+        oy = int(rng.integers(-r // 2, r // 2 + 1))
+        rr = int(rng.integers(r // 2 + 2, r + 3))
+        cy = gy - hgt + r + oy
+        L.ellipse(x + ox - rr, cy - rr, x + ox + rr, cy + rr, c)
+
+
+def dead_tree(L, x, gy, hgt, c, rng, thick=3):
+    L.poly([(x - thick, gy), (x + thick, gy), (x + 1, gy - hgt), (x - 1, gy - hgt)], c)
+
+    def branch(bx, by, ang, ln, th):
+        if ln < 4 or th < 1:
+            return
+        ex = bx + math.cos(ang) * ln
+        ey = by + math.sin(ang) * ln
+        L.line([(bx, by), (ex, ey)], c, width=max(1, int(th)))
+        for s in (-1, 1):
+            if rng.random() < 0.8:
+                branch(ex, ey, ang + s * rng.uniform(0.3, 0.7), ln * rng.uniform(0.5, 0.75), th - 1)
+
+    for k in range(int(rng.integers(2, 5))):
+        by = gy - hgt * rng.uniform(0.45, 0.95)
+        s = -1 if k % 2 else 1
+        branch(x, by, -math.pi / 2 + s * rng.uniform(0.4, 1.0), hgt * rng.uniform(0.25, 0.45), thick - 1)
+
+
+def house(L, x, gy, w, h, c, win, rng, roof="peak"):
+    L.rect(x, gy - h, w, h, c)
+    if roof == "peak":
+        rh = w // 2 + 3
+        L.poly([(x - 2, gy - h), (x + w // 2, gy - h - rh), (x + w + 1, gy - h)], c)
+        if rng.random() < 0.5:
+            L.rect(x + w - 5, gy - h - rh + 2, 3, rh, c)  # chaminé
+    elif roof == "spire":
+        L.poly([(x - 1, gy - h), (x + w // 2, gy - h - w * 2), (x + w, gy - h)], c)
+    if win:
+        for wy in range(gy - h + 4, gy - 4, 7):
+            for wx in range(x + 2, x + w - 2, 5):
+                if rng.random() < 0.45:
+                    L.rect(wx, wy, 2, 3, win, glow=True)
+
+
+def tower(L, x, gy, w, h, c, win=None, cone=True, flag=None, rng=None):
+    L.rect(x, gy - h, w, h, c)
+    if cone:
+        L.poly([(x - 2, gy - h), (x + w // 2, gy - h - w - 6), (x + w + 1, gy - h)], c)
+        if flag:
+            fx = x + w // 2
+            L.rect(fx, gy - h - w - 16, 1, 11, c)
+            L.poly([(fx + 1, gy - h - w - 16), (fx + 9, gy - h - w - 13), (fx + 1, gy - h - w - 10)], flag)
+    else:
+        for bx in range(x - 1, x + w + 1, 4):
+            L.rect(bx, gy - h - 4, 2, 4, c)
+    if win:
+        for wy in range(gy - h + 6, gy - 8, 14):
+            L.rect(x + w // 2 - 1, wy, 2, 5, win, glow=True)
+
+
+def column(L, x, gy, h, c, broken=False, w=6):
+    L.rect(x, gy - h, w, h, c)
+    L.rect(x - 2, gy - 4, w + 4, 4, c)
+    if not broken:
+        L.rect(x - 2, gy - h - 3, w + 4, 3, c)
+    else:
+        L.poly([(x, gy - h), (x + w, gy - h - 4), (x + w, gy - h + 3), (x, gy - h + 5)], c)
+
+
+def arch(L, x, gy, w, h, c, thick=5):
+    L.rect(x, gy - h, thick, h, c)
+    L.rect(x + w - thick, gy - h, thick, h, c)
+    for i in range(w):
+        t = i / max(1, w - 1)
+        y = gy - h - int(math.sin(t * math.pi) * w * 0.45)
+        L.rect(x + i, y - thick, 1, thick + 2, c)
+
+
+def battlement(L, y, c, win, rng, h):
+    L.rect(0, y, W, h - y, c)
+    for bx in range(0, W, 12):
+        L.rect(bx, y - 6, 7, 6, c)
+    for bx in range(24, W, 96):
+        tower(L, bx, y + 2, 20, 42 + int(rng.integers(0, 20)), c, win, cone=False)
+
+
+def cloud_img(w, h, rng, col, shade, hi):
+    """Nuvem fofa em 3 tons (para as nuvens que andam)."""
+    L = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(L)
+    blobs = []
+    for i in range(7):
+        r = int(rng.integers(h // 4, h // 2))
+        cx = int(rng.integers(r, w - r))
+        cy = h - r - int(rng.integers(0, max(1, h // 3)))
+        blobs.append((cx, cy, r))
+    for cx, cy, r in blobs:
+        d.ellipse([cx - r, cy - r + 2, cx + r, cy + r + 2], fill=shade + (235,))
+    for cx, cy, r in blobs:
+        d.ellipse([cx - r, cy - r, cx + r, cy + r - 1], fill=col + (240,))
+    for cx, cy, r in blobs:
+        d.ellipse([cx - r + 2, cy - r, cx + r - 4, cy - r // 3], fill=hi + (245,))
+    d.rectangle([4, h - 3, w - 5, h - 1], fill=shade + (230,))
+    return L
+
+
 # ---------------------------------------------------------------------------
 # Céu
 # ---------------------------------------------------------------------------
@@ -83,609 +411,548 @@ def pnoise(n, cells, seed, octaves=4, persistence=0.5):
 def sky(style):
     s = style["sky"]
     stops = [rgb(c) for c in s["colors"]]
-    # expande as paradas em faixas (8 por segmento): pixel art em faixas, com
-    # pontilhado só nas 3 linhas de transição entre uma faixa e a próxima
     bands = []
     for i in range(len(stops) - 1):
-        for k in range(6):
-            bands.append(mix(stops[i], stops[i + 1], k / 6))
+        for k in range(8):
+            bands.append(mix(stops[i], stops[i + 1], k / 8))
     bands.append(stops[-1])
-    img = Image.new("RGB", (SKY_W, SKY_H))
-    px = img.load()
+    a = np.zeros((SKY_H, SKY_W, 3))
     nb = len(bands)
     band_h = SKY_H / nb
     for y in range(SKY_H):
         b = min(int(y / band_h), nb - 1)
         into = y - b * band_h
-        for x in range(SKY_W):
-            c = bands[b]
-            if b + 1 < nb and into > band_h - 3:
-                f = (into - (band_h - 3)) / 3.0
-                if f > BAYER[y % 4, x % 4]:
-                    c = bands[b + 1]
-            px[x, y] = c
-    d = ImageDraw.Draw(img)
+        row = np.array(bands[b], dtype=np.float64)
+        a[y, :] = row
+        if b + 1 < nb and into > band_h - 4:
+            f = (into - (band_h - 4)) / 4.0
+            m = f > BAYER[y % 4, np.arange(SKY_W) % 4]
+            a[y, m] = bands[b + 1]
     rng = np.random.default_rng(style["seed"])
     for _ in range(s.get("stars", 0)):
         x, y = int(rng.integers(0, SKY_W)), int(rng.integers(0, int(SKY_H * 0.6)))
-        b = int(rng.integers(150, 256))
-        px[x, y] = (b, b, min(255, b + 20))
-        if rng.random() < 0.08 and 0 < x < SKY_W - 1 and 0 < y < SKY_H - 1:
+        b = int(rng.integers(130, 256))
+        a[y, x] = (b, b, min(255, b + 25))
+        if rng.random() < 0.07 and 1 < x < SKY_W - 2 and 1 < y < SKY_H - 2:
             for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                px[x + dx, y + dy] = mix(px[x + dx, y + dy], (b, b, 255), 0.5)
+                a[y + dy, x + dx] = a[y + dy, x + dx] * 0.4 + np.array([b, b, 255]) * 0.6
+    img = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGB").convert("RGBA")
+    d = ImageDraw.Draw(img)
     if "sun" in s:
-        sx, sy, r = s["sun"]["pos"][0], s["sun"]["pos"][1], s["sun"]["r"]
+        sx, sy, r = int(s["sun"]["pos"][0] * 1.875), int(s["sun"]["pos"][1] * 1.875), int(s["sun"]["r"] * 1.875)
         core = rgb(s["sun"]["color"])
         halo = rgb(s["sun"].get("halo", s["sun"]["color"]))
-        # halo: dois anéis lisos cada vez mais transparentes
         glow = s["sun"].get("glow", 0.35)
-        for ring, a in [(int(r * 2.4), glow * 0.35), (int(r * 1.6), glow * 0.7)]:
-            for yy in range(sy - ring, sy + ring + 1):
-                for xx in range(sx - ring, sx + ring + 1):
-                    if 0 <= xx < SKY_W and 0 <= yy < SKY_H and math.hypot(xx - sx, yy - sy) <= ring:
-                        px[xx, yy] = mix(px[xx, yy], halo, a)
-        d.ellipse([sx - r, sy - r, sx + r, sy + r], fill=core)
+        px = np.array(img).astype(np.float64)
+        yy, xx = np.mgrid[0:SKY_H, 0:SKY_W]
+        dist = np.hypot(xx - sx, yy - sy)
+        for ring, al in [(r * 3.2, glow * 0.22), (r * 2.2, glow * 0.38), (r * 1.5, glow * 0.6)]:
+            m = dist <= ring
+            px[m, :3] = px[m, :3] * (1 - al) + np.array(halo) * al
+        img = Image.fromarray(np.clip(px, 0, 255).astype(np.uint8), "RGBA")
+        d = ImageDraw.Draw(img)
+        d.ellipse([sx - r, sy - r, sx + r, sy + r], fill=core + (255,))
         if s["sun"].get("moon"):
-            # crateras e sombra da lua
-            for cx, cy, cr in [(-3, -2, 2), (2, 3, 1), (4, -3, 1)]:
-                d.ellipse([sx + cx - cr, sy + cy - cr, sx + cx + cr, sy + cy + cr], fill=darken(core, 0.12))
-    # faixas de nuvem distantes (estáticas, bem sutis)
+            for cx, cy, cr in [(-6, -4, 4), (4, 6, 3), (7, -6, 2), (-2, 8, 2)]:
+                d.ellipse([sx + cx - cr, sy + cy - cr, sx + cx + cr, sy + cy + cr], fill=darken(core, 0.1) + (255,))
+            # sombra do lado oposto à luz
+            d.ellipse([sx - r + 3, sy - r - 2, sx + r + 5, sy + r - 2], outline=None)
+        else:
+            d.ellipse([sx - r + 2, sy - r + 2, sx + r // 3, sy + r // 3], fill=lighten(core, 0.4) + (255,))
     for band in s.get("bands", []):
         y0, col, amt = band
+        y0 = int(y0 * 1.875)
         col = rgb(col)
-        nz = pnoise(SKY_W, 8, style["seed"] + y0, 3)
+        nz = pnoise(SKY_W, 10, style["seed"] + y0, 3)
+        px = np.array(img)
         for x in range(SKY_W):
-            h = int(nz[x] * 5)
-            for yy in range(y0 - h, y0 + 1):
+            hh = int(nz[x] * 9)
+            for yy in range(y0 - hh, y0 + 1):
                 if 0 <= yy < SKY_H and amt > BAYER[yy % 4, x % 4]:
-                    px[x, yy] = mix(px[x, yy], col, 0.6)
+                    px[yy, x, :3] = np.array(mix(px[yy, x, :3], col, 0.55))
+        img = Image.fromarray(px, "RGBA")
     return img
 
 
 # ---------------------------------------------------------------------------
-# Primitivas das camadas (RGBA, fundo transparente)
-# ---------------------------------------------------------------------------
-
-def layer(h=144):
-    return Image.new("RGBA", (W, h), (0, 0, 0, 0))
-
-
-def haze(img, fog, y0, y1, t0, t1, steps=6):
-    """Desbota os pixels opacos para a cor da névoa de cima (y0, t0) para
-    baixo (y1, t1) em faixas lisas de 2 linhas (perspectiva atmosférica)."""
-    px = img.load()
-    fog = rgb(fog)
-    for y in range(max(0, y0), img.height):
-        k = min(max(((y // 2) * 2 - y0) / max(1, (y1 - y0)), 0.0), 1.0)
-        t = round((t0 + (t1 - t0) * k) * steps) / steps
-        for x in range(img.width):
-            c = px[x, y]
-            if c[3] == 0:
-                continue
-            px[x, y] = mix(c[:3], fog, t) + (c[3],)
-
-
-def reflect(img, water_y, water, alpha=0.55):
-    """Água com reflexo (Kingdom Two Crowns): espelha o que está acima da
-    linha d'água, escurece/tinge e quebra em linhas horizontais (ondas)."""
-    px = img.load()
-    water = rgb(water)
-    h = img.height
-    for y in range(water_y, h):
-        src = water_y - (y - water_y) - 1
-        shift = int(round(math.sin(y * 0.9) * 1.5))
-        for x in range(img.width):
-            base = water
-            if src >= 0:
-                c = px[(x + shift) % img.width, src]
-                if c[3] > 0 and (y - water_y) % 3 != 2:
-                    base = mix(water, c[:3], alpha * (1 - (y - water_y) / (h - water_y + 8)))
-            px[x, y] = base + (255,)
-    for x in range(img.width):
-        if (x // 3) % 4 != 0:
-            px[x, water_y] = lighten(water, 0.35) + (255,)
-
-
-def ridge(img, base, amp, cells, seed, color, rim=None, sun_dir=1, snow=None, octaves=4, sharp=False):
-    """Serra de montanhas/colinas preenchida até o fundo. Retorna alturas."""
-    h = img.height
-    nz = pnoise(W, cells, seed, octaves)
-    if sharp:
-        nz = 1 - np.abs(nz * 2 - 1)
-    tops = (base - nz * amp).astype(int)
-    px = img.load()
-    c = color + (255,)
-    for x in range(W):
-        for y in range(max(0, tops[x]), h):
-            px[x, y] = c
-    if rim:
-        rc = rim + (255,)
-        for x in range(W):
-            prev = tops[(x - sun_dir) % W]
-            if tops[x] <= prev and 0 <= tops[x] < h:
-                px[x, tops[x]] = rc
-                if tops[x] < prev - 1 and tops[x] + 1 < h:
-                    px[x, tops[x] + 1] = rc
-    if snow:
-        sc = snow + (255,)
-        line = base - amp * 0.72
-        for x in range(W):
-            if tops[x] < line:
-                for y in range(tops[x], min(h, int(line + (tops[x] % 3)))):
-                    if y - tops[x] < 4 + (x * 7 % 5):
-                        px[x, y] = sc
-    return tops
-
-
-def rect(d, x, y, w, h, c):
-    for ox in (-W, 0, W):
-        d.rectangle([x + ox, y, x + ox + w - 1, y + h - 1], fill=c)
-
-
-def poly(d, pts, c):
-    for ox in (-W, 0, W):
-        d.polygon([(p[0] + ox, p[1]) for p in pts], fill=c)
-
-
-def ellipse(d, x0, y0, x1, y1, c):
-    for ox in (-W, 0, W):
-        d.ellipse([x0 + ox, y0, x1 + ox, y1], fill=c)
-
-
-def pine(d, x, gy, hgt, c, hi=None):
-    w = max(3, hgt // 3)
-    rect(d, x - 1, gy - hgt // 5, 2, hgt // 5, c)
-    tiers = 3 if hgt > 18 else 2
-    for i in range(tiers):
-        ty = gy - hgt + i * hgt // (tiers + 1)
-        bw = w * (i + 2) // (tiers + 1) + 2
-        poly(d, [(x, ty), (x - bw, ty + hgt // 2), (x + bw, ty + hgt // 2)], c)
-        if hi:
-            poly(d, [(x, ty + 1), (x - bw // 2, ty + hgt // 4), (x, ty + hgt // 4)], hi)
-
-
-def round_tree(d, x, gy, hgt, c, hi=None, rng=None):
-    rect(d, x - 1, gy - hgt // 2, 3, hgt // 2, c)
-    r = hgt // 3 + 2
-    ellipse(d, x - r, gy - hgt, x + r, gy - hgt + r * 2, c)
-    ellipse(d, x - r - 3, gy - hgt + r // 2, x + r - 3, gy - hgt + r * 2, c)
-    ellipse(d, x - r + 4, gy - hgt + r // 2, x + r + 3, gy - hgt + r * 2 + 1, c)
-    if hi:
-        ellipse(d, x - r + 2, gy - hgt + 1, x + 1, gy - hgt + r // 2 + 2, hi)
-
-
-def dead_tree(d, x, gy, hgt, c, rng, thick=2):
-    rect(d, x - thick // 2, gy - hgt, thick, hgt, c)
-    rect(d, x - thick, gy - 2, thick * 2 + 1, 2, c)
-    for i in range(5):
-        by = gy - hgt + i * hgt // 6 + 2
-        side = 1 if i % 2 else -1
-        ln = int(rng.integers(4, 4 + hgt // 5))
-        for k in range(ln):
-            rect(d, x + side * (k + 1), by - k // 2, 1, 1, c)
-            if k == ln // 2 and rng.random() < 0.6:
-                for j in range(3):
-                    rect(d, x + side * (k + 1) + side * j, by - k // 2 - j - 1, 1, 1, c)
-
-
-def building(d, x, gy, w, h, c, win=None, rng=None, roof="peak"):
-    rect(d, x, gy - h, w, h, c)
-    if roof == "peak":
-        poly(d, [(x - 1, gy - h), (x + w // 2, gy - h - w // 2 - 1), (x + w, gy - h)], c)
-    elif roof == "flat":
-        rect(d, x - 1, gy - h - 1, w + 2, 1, c)
-    elif roof == "dome":
-        ellipse(d, x, gy - h - w // 2, x + w - 1, gy - h + w // 2, c)
-    if win and rng is not None:
-        for wy in range(gy - h + 3, gy - 3, 4):
-            for wx in range(x + 2, x + w - 2, 3):
-                if rng.random() < 0.35:
-                    rect(d, wx, wy, 1, 2, win)
-
-
-def tower(d, x, gy, w, h, c, win=None, cone=True, flag=None):
-    rect(d, x, gy - h, w, h, c)
-    if cone:
-        poly(d, [(x - 1, gy - h), (x + w // 2, gy - h - w - 3), (x + w, gy - h)], c)
-        if flag:
-            rect(d, x + w // 2, gy - h - w - 7, 1, 4, c)
-            rect(d, x + w // 2 + 1, gy - h - w - 7, 3, 2, flag)
-    else:
-        for bx in range(x, x + w, 2):
-            rect(d, bx, gy - h - 2, 1, 2, c)
-    if win:
-        rect(d, x + w // 2, gy - h + 4, 1, 2, win)
-        if h > 20:
-            rect(d, x + w // 2, gy - h + 12, 1, 2, win)
-
-
-def column(d, x, gy, h, c, broken=False, w=4):
-    rect(d, x, gy - h, w, h, c)
-    rect(d, x - 1, gy - h, w + 2, 2, c)
-    rect(d, x - 1, gy - 2, w + 2, 2, c)
-    if broken:
-        poly(d, [(x - 1, gy - h), (x + w + 1, gy - h), (x + w + 1, gy - h - 3), (x + w // 2, gy - h - 1)], c)
-
-
-def arch(d, x, gy, w, h, c, thick=3):
-    rect(d, x, gy - h, thick, h, c)
-    rect(d, x + w - thick, gy - h, thick, h, c)
-    for i in range(w):
-        t = i / (w - 1)
-        yy = int(gy - h - math.sin(t * math.pi) * (w / 2.2))
-        rect(d, x + i, yy, 1, thick, c)
-
-
-def tent(d, x, gy, w, c, stripe=None):
-    poly(d, [(x, gy), (x + w // 2, gy - w * 2 // 3), (x + w, gy)], c)
-    if stripe:
-        poly(d, [(x + w // 2, gy - w * 2 // 3), (x + w // 2 - 2, gy), (x + w // 2 + 2, gy)], stripe)
-
-
-def battlement(d, y, c, win=None, rng=None):
-    """Muralha de castelo em primeiro plano: ameias, seteiras e estandartes."""
-    rect(d, 0, y, W, 144 - y, c)
-    for bx in range(0, W, 8):
-        rect(d, bx, y - 4, 5, 4, c)
-    for bx in range(24, W, 64):
-        rect(d, bx, y - 30, 14, 30, c)
-        for k in range(0, 14, 4):
-            rect(d, bx + k, y - 34, 3, 4, c)
-        if win:
-            rect(d, bx + 6, y - 22, 2, 5, win)
-
-
-# ---------------------------------------------------------------------------
-# Estilos (todas as camadas têm 144 px de altura = coordenadas da tela)
+# Estilos (cada painter devolve a lista de camadas, longe -> perto)
 # ---------------------------------------------------------------------------
 
 def paint_forest(st, rng):
     p = st["pal"]
-    far = layer()
-    ridge(far, 96, 42, 4, st["seed"], rgb(p["far"]), rim=rgb(p["far_rim"]), sun_dir=-1)
-    ridge(far, 108, 18, 6, st["seed"] + 9, mix(rgb(p["far"]), rgb(p["mid"]), 0.35), octaves=3)
-    haze(far, st["fog"], 60, 144, 0.1, 0.55)
-    mid = layer()
-    tops = ridge(mid, 118, 12, 6, st["seed"] + 1, rgb(p["mid"]), octaves=3)
-    d = ImageDraw.Draw(mid)
+    fog = rgb(st["fog"])
+    rim = rgb(p["far_rim"])
+    out = []
+    # 0: montanhas distantes com neve
+    L = Layer()
+    t = ridge(L, 176, 92, 4, st["seed"], rgb(p["far"]), sharp=True)
+    snow_caps(L, t, 176, 92, lighten(rgb(p["far"]), 0.4), lighten(rgb(p["far"]), 0.65))
+    c = rgb(p["far"])
+    volume_pass(L, c, lighten(c, 0.16), darken(c, 0.1), rim, sun_dir=1, radius=12, bump=0.35, bump_cells=18, seed=1, levels=3)
+    haze(L, fog, 0.3, 0.62, 80, 270)
+    out.append(finish(L))
+    # 1: colinas com floresta distante
+    L = Layer()
+    c1 = mix(rgb(p["far"]), rgb(p["mid"]), 0.45)
+    t = ridge(L, 200, 30, 6, st["seed"] + 3, c1, octaves=3)
     x = 0
     while x < W:
-        gy = int(tops[x % W]) + 2
-        hgt = int(rng.integers(26, 52))
-        if rng.random() < 0.6:
-            pine(d, x, gy, hgt, rgb(p["mid"]), rgb(p["mid_hi"]))
+        pine(L, x, int(t[x % W]) + 3, int(rng.integers(16, 30)), c1)
+        x += int(rng.integers(3, 8))
+    volume_pass(L, c1, lighten(c1, 0.18), darken(c1, 0.12), lighten(c1, 0.45), sun_dir=1, radius=4, bump=0.2, seed=2, levels=3)
+    haze(L, fog, 0.2, 0.42, 150, 270)
+    out.append(finish(L))
+    # 2: floresta média (pinheiros e copas)
+    L = Layer()
+    c2 = mix(rgb(p["mid"]), rgb(p["far"]), 0.25)
+    t = ridge(L, 220, 16, 6, st["seed"] + 1, c2, octaves=3)
+    x = 0
+    while x < W:
+        gy = int(t[x % W]) + 4
+        if rng.random() < 0.55:
+            pine(L, x, gy, int(rng.integers(40, 72)), c2)
         else:
-            round_tree(d, x, gy, hgt, rgb(p["mid"]), rgb(p["mid_hi"]))
-        x += int(rng.integers(6, 14))
-    haze(mid, st["fog"], 100, 144, 0.0, 0.35)
-    near = layer()
-    tops = ridge(near, 132, 6, 5, st["seed"] + 2, rgb(p["near"]), octaves=2)
-    d = ImageDraw.Draw(near)
+            round_tree(L, x, gy, int(rng.integers(36, 60)), c2, rng)
+        x += int(rng.integers(8, 18))
+    volume_pass(L, c2, lighten(c2, 0.2), darken(c2, 0.18), rgb(p["mid_hi"]), sun_dir=1, radius=6, bump=0.3, bump_cells=40, seed=3)
+    haze(L, fog, 0.14, 0.34, 160, 270)
+    out.append(finish(L))
+    # 3: floresta perto (mais escura, mais detalhe)
+    L = Layer()
+    c3 = darken(rgb(p["mid"]), 0.25)
+    t = ridge(L, 240, 12, 5, st["seed"] + 4, c3, octaves=2)
     x = 0
     while x < W:
-        gy = int(tops[x % W]) + 2
-        hgt = int(rng.integers(50, 96))
+        gy = int(t[x % W]) + 4
         if rng.random() < 0.5:
-            pine(d, x, gy, hgt, rgb(p["near"]))
+            pine(L, x, gy, int(rng.integers(70, 120)), c3)
         else:
-            round_tree(d, x, gy, hgt, rgb(p["near"]))
-        x += int(rng.integers(34, 70))
-    return far, mid, near
+            round_tree(L, x, gy, int(rng.integers(60, 100)), c3, rng)
+        x += int(rng.integers(26, 60))
+    volume_pass(L, c3, mix(c3, rgb(p["mid_hi"]), 0.3), darken(c3, 0.3), rgb(p["mid_hi"]), sun_dir=1, radius=8, bump=0.3, bump_cells=50, seed=4)
+    out.append(finish(L))
+    # 4: primeiro plano: capim alto e troncos (bem escuro, parallax forte)
+    L = Layer()
+    c4 = rgb(p["near"])
+    t = ridge(L, 258, 8, 5, st["seed"] + 2, c4, octaves=2)
+    for x in range(0, W, 2):
+        if rng.random() < 0.5:
+            hh = int(rng.integers(4, 16))
+            L.rect(x, int(t[x]) - hh, 1, hh, c4)
+    volume_pass(L, c4, lighten(c4, 0.15), darken(c4, 0.3), mix(c4, rgb(p["mid_hi"]), 0.5), sun_dir=1, radius=5, bump=0.5, seed=5, levels=3, rim_w=1)
+    out.append(finish(L))
+    return out
 
 
 def paint_castle(st, rng):
     p = st["pal"]
-    far = layer()
-    ridge(far, 100, 44, 3, st["seed"], rgb(p["far"]), rim=rgb(p["far_rim"]), sharp=True, snow=rgb(p["far_rim"]))
-    haze(far, st["fog"], 60, 144, 0.05, 0.5)
-    mid = layer()
-    ridge(mid, 122, 6, 4, st["seed"] + 1, rgb(p["mid"]), octaves=2)
-    d = ImageDraw.Draw(mid)
-    win = rgb(p["window"]) + (255,)
+    fog = rgb(st["fog"])
+    out = []
+    L = Layer()
+    t = ridge(L, 186, 90, 3, st["seed"], rgb(p["far"]), sharp=True)
+    snow_caps(L, t, 186, 90, lighten(rgb(p["far"]), 0.3), rgb(p["far_rim"]))
+    light_pass(L, rgb(p["far"]), rgb(p["far_rim"]), sun_dir=-1, tex=0.02, seed=1)
+    haze(L, fog, 0.2, 0.55, 100, 270)
+    out.append(finish(L))
+    # castelo principal (média distância)
+    L = Layer()
     c = rgb(p["mid"])
-    cx = int(rng.integers(40, 200))
-    rect(d, cx, 84, 110, 40, c)
-    for bx in range(cx, cx + 110, 4):
-        rect(d, bx, 81, 2, 3, c)
-    for i, (tx, th) in enumerate([(cx - 8, 64), (cx + 30, 86), (cx + 70, 58), (cx + 104, 70)]):
-        tower(d, tx, 122, 12, th, c, win, cone=i % 2 == 0, flag=rgb(p["flag"]))
-    for i in range(5):
-        tx = int(rng.integers(0, W))
-        tower(d, tx, 122, 8, int(rng.integers(26, 48)), c, win, cone=rng.random() < 0.6)
-    haze(mid, st["fog"], 90, 144, 0.0, 0.3)
-    near = layer()
-    d = ImageDraw.Draw(near)
-    battlement(d, 128, rgb(p["near"]), win, rng)
-    for bx in range(56, W, 128):
-        rect(d, bx, 104, 1, 24, rgb(p["near"]))
-        poly(d, [(bx + 1, 104), (bx + 9, 104), (bx + 9, 116), (bx + 5, 112), (bx + 1, 116)], rgb(p["flag"]))
-    return far, mid, near
+    win = rgb(p["window"])
+    ridge(L, 230, 10, 4, st["seed"] + 1, c, octaves=2)
+    for k in range(2):
+        cx = int(rng.integers(60, 400)) + k * 480
+        L.rect(cx, 150, 200, 82, c)
+        for bx in range(cx, cx + 200, 8):
+            L.rect(bx, 144, 5, 6, c)
+        for i, (tx, th) in enumerate([(cx - 14, 120), (cx + 50, 160), (cx + 120, 110), (cx + 186, 134)]):
+            tower(L, tx, 232, 22, th, c, win, cone=i % 2 == 0, flag=rgb(p["flag"]), rng=rng)
+        L.poly([(cx + 80, 150), (cx + 100, 124), (cx + 120, 150)], c)
+        for wx in range(cx + 12, cx + 190, 18):
+            if rng.random() < 0.6:
+                L.rect(wx, 170, 3, 6, win, glow=True)
+    for i in range(6):
+        tower(L, int(rng.integers(0, W)), 232, 14, int(rng.integers(50, 90)), c, win, cone=rng.random() < 0.6, rng=rng)
+    light_pass(L, c, rgb(p["far_rim"]), sun_dir=-1, tex=0.04, seed=2)
+    haze(L, fog, 0.05, 0.25, 140, 270)
+    out.append(finish(L))
+    # muralha perto
+    L = Layer()
+    c = rgb(p["near"])
+    battlement(L, 236, c, win, rng, H)
+    for bx in range(100, W, 240):
+        L.rect(bx, 190, 2, 46, c)
+        L.poly([(bx + 2, 190), (bx + 18, 190), (bx + 18, 214), (bx + 10, 206), (bx + 2, 214)], rgb(p["flag"]))
+    light_pass(L, c, mix(c, rgb(p["far_rim"]), 0.5), sun_dir=-1, rim_w=1, tex=0.05, seed=3)
+    out.append(finish(L))
+    return out
 
 
 def paint_gothic(st, rng):
     p = st["pal"]
-    far = layer()
-    d = ImageDraw.Draw(far)
+    fog = rgb(st["fog"])
+    win = rgb(p["window"])
+    out = []
+    L = Layer()
     fc = rgb(p["far"])
-    ridge(far, 112, 8, 4, st["seed"], fc, octaves=2)
-    for x in range(0, W, 9):
-        h = int(rng.integers(20, 55))
-        building(d, x, 112, int(rng.integers(8, 14)), h, fc, roof="peak")
-    for i in range(3):
-        tower(d, int(rng.integers(0, W)), 112, 6, int(rng.integers(60, 85)), fc)
-    haze(far, st["fog"], 50, 144, 0.1, 0.5)
-    mid = layer()
-    d = ImageDraw.Draw(mid)
+    t = ridge(L, 210, 14, 4, st["seed"], fc, octaves=2)
+    for x in range(0, W, 14):
+        house(L, x, int(t[x % W]) + 2, int(rng.integers(12, 22)), int(rng.integers(30, 90)), fc, None, rng, roof="peak" if rng.random() < 0.7 else "spire")
+    for i in range(4):
+        tower(L, int(rng.integers(0, W)), 212, 10, int(rng.integers(110, 150)), fc, cone=True, rng=rng)
+    light_pass(L, fc, lighten(fc, 0.35), sun_dir=1, tex=0.02, seed=1)
+    haze(L, fog, 0.15, 0.5, 60, 270)
+    out.append(finish(L))
+    L = Layer()
     mc = rgb(p["mid"])
-    win = rgb(p["window"]) + (255,)
-    ridge(mid, 126, 3, 4, st["seed"] + 1, mc, octaves=1)
+    ridge(L, 234, 6, 4, st["seed"] + 1, mc, octaves=1)
     x = 0
     while x < W:
-        w = int(rng.integers(12, 22))
-        h = int(rng.integers(26, 60))
-        building(d, x, 126, w, h, mc, win, rng, roof="peak" if rng.random() < 0.7 else "flat")
-        x += w + int(rng.integers(0, 3))
-    cx = int(rng.integers(100, 300))
-    tower(d, cx, 126, 14, 96, mc, win)
-    tower(d, cx + 40, 126, 14, 96, mc, win)
-    rect(d, cx, 60, 54, 66, mc)
-    ellipse(d, cx + 20, 72, cx + 33, 85, win)
-    haze(mid, st["fog"], 90, 144, 0.0, 0.25)
-    near = layer()
-    d = ImageDraw.Draw(near)
+        w = int(rng.integers(22, 40))
+        house(L, x, 236, w, int(rng.integers(50, 110)), mc, win, rng, roof="peak" if rng.random() < 0.7 else "spire")
+        x += w + int(rng.integers(0, 5))
+    cx = int(rng.integers(200, 600))
+    tower(L, cx, 236, 26, 180, mc, win, rng=rng)
+    tower(L, cx + 76, 236, 26, 180, mc, win, rng=rng)
+    L.rect(cx, 110, 102, 126, mc)
+    L.ellipse(cx + 36, 130, cx + 64, 158, win, glow=True)
+    light_pass(L, mc, lighten(mc, 0.4), sun_dir=1, tex=0.04, seed=2)
+    haze(L, fog, 0.0, 0.2, 160, 270)
+    out.append(finish(L))
+    L = Layer()
     nc = rgb(p["near"])
-    ridge(near, 136, 2, 4, st["seed"] + 2, nc, octaves=1)
-    for x in range(0, W, 48):
-        rect(d, x + 10, 104, 2, 32, nc)
-        ellipse(d, x + 7, 98, x + 14, 105, nc)
-        rect(d, x + 9, 101, 4, 3, win)
-    return far, mid, near
+    ridge(L, 254, 3, 4, st["seed"] + 2, nc, octaves=1)
+    for x in range(0, W, 90):
+        L.rect(x + 20, 190, 3, 64, nc)
+        L.ellipse(x + 14, 180, x + 28, 194, nc)
+        L.rect(x + 18, 185, 7, 6, win, glow=True)
+    light_pass(L, nc, lighten(nc, 0.3), sun_dir=1, rim_w=1, tex=0.04, seed=3)
+    out.append(finish(L))
+    return out
 
 
 def paint_ruins(st, rng):
     p = st["pal"]
-    far = layer()
-    ridge(far, 100, 34, 3, st["seed"], rgb(p["far"]), rim=rgb(p["far_rim"]), sun_dir=1)
-    haze(far, st["fog"], 60, 144, 0.1, 0.55)
-    mid = layer()
-    tops = ridge(mid, 120, 10, 5, st["seed"] + 1, rgb(p["mid"]), octaves=3)
-    d = ImageDraw.Draw(mid)
+    fog = rgb(st["fog"])
+    out = []
+    L = Layer()
+    ridge(L, 188, 64, 3, st["seed"], rgb(p["far"]))
+    light_pass(L, rgb(p["far"]), rgb(p["far_rim"]), sun_dir=-1, tex=0.02, seed=1)
+    haze(L, fog, 0.2, 0.55, 100, 270)
+    out.append(finish(L))
+    L = Layer()
     c = rgb(p["mid"])
+    t = ridge(L, 226, 18, 5, st["seed"] + 1, c, octaves=3)
     x = 10
     while x < W:
-        gy = int(tops[x % W]) + 2
+        gy = int(t[x % W]) + 3
         r = rng.random()
-        if r < 0.4:
-            arch(d, x, gy, int(rng.integers(18, 30)), int(rng.integers(20, 36)), c)
-            x += 36
-        elif r < 0.75:
-            column(d, x, gy, int(rng.integers(14, 40)), c, broken=True)
-            x += int(rng.integers(10, 20))
+        if r < 0.35:
+            arch(L, x, gy, int(rng.integers(34, 56)), int(rng.integers(40, 70)), c)
+            x += 64
+        elif r < 0.7:
+            column(L, x, gy, int(rng.integers(28, 76)), c, broken=True)
+            x += int(rng.integers(18, 36))
         else:
-            round_tree(d, x, gy, int(rng.integers(20, 34)), c, rgb(p["mid_hi"]))
-            x += 16
-    haze(mid, st["fog"], 90, 144, 0.0, 0.3)
-    near = layer()
-    tops = ridge(near, 134, 5, 4, st["seed"] + 2, rgb(p["near"]), octaves=2)
-    d = ImageDraw.Draw(near)
-    for x in range(0, W, 96):
-        ox = x + int(rng.integers(0, 30))
-        column(d, ox, int(tops[ox % W]) + 2, int(rng.integers(60, 100)), rgb(p["near"]), broken=True, w=7)
-    return far, mid, near
+            round_tree(L, x, gy, int(rng.integers(40, 66)), c, rng)
+            x += 30
+    light_pass(L, c, rgb(p["far_rim"]), sun_dir=-1, tex=0.04, seed=2)
+    haze(L, fog, 0.05, 0.3, 160, 270)
+    out.append(finish(L))
+    L = Layer()
+    c = rgb(p["near"])
+    t = ridge(L, 252, 8, 4, st["seed"] + 2, c, octaves=2)
+    for x in range(0, W, 180):
+        ox = x + int(rng.integers(0, 60))
+        column(L, ox, int(t[ox % W]) + 3, int(rng.integers(110, 190)), c, broken=True, w=13)
+    light_pass(L, c, mix(c, rgb(p["far_rim"]), 0.5), sun_dir=-1, rim_w=1, tex=0.05, seed=3)
+    out.append(finish(L))
+    return out
 
 
 def paint_desert(st, rng):
     p = st["pal"]
-    far = layer()
-    d = ImageDraw.Draw(far)
-    fc = rgb(p["far"])
-    for i in range(3):
-        px_ = int(rng.integers(0, W))
-        s = int(rng.integers(26, 46))
-        poly(d, [(px_ - s, 104), (px_, 104 - s), (px_ + s, 104)], fc)
-        poly(d, [(px_, 104 - s), (px_ + s, 104), (px_ + 2, 104)], darken(fc, 0.1))
-    ridge(far, 108, 12, 3, st["seed"], fc, rim=rgb(p["far_rim"]), octaves=2)
-    haze(far, st["fog"], 56, 144, 0.15, 0.5)
-    mid = layer()
-    ridge(mid, 122, 16, 3, st["seed"] + 1, rgb(p["mid"]), rim=rgb(p["mid_hi"]), sun_dir=-1, octaves=2)
-    d = ImageDraw.Draw(mid)
-    for i in range(6):
-        x = int(rng.integers(0, W))
-        rect(d, x, 96, 2, 24, rgb(p["mid"]))
-        for k in range(5):
-            a = -1.2 + k * 0.6
-            poly(d, [(x + 1, 96), (x + 1 + int(math.cos(a) * 9), 96 + int(math.sin(a) * 5) + 3), (x + 1 + int(math.cos(a) * 9), 96 + int(math.sin(a) * 5) + 5)], rgb(p["mid"]))
-    near = layer()
-    ridge(near, 138, 12, 2, st["seed"] + 2, rgb(p["near"]), rim=rgb(p["near_hi"]), sun_dir=-1, octaves=2)
-    return far, mid, near
+    fog = rgb(st["fog"])
+    out = []
+    L = Layer()
+    c = rgb(p["far"])
+    ridge(L, 176, 34, 3, st["seed"], c, octaves=2)
+    for k in range(3):
+        px = int(rng.integers(0, W))
+        pw = int(rng.integers(60, 110))
+        L.poly([(px - pw, 180), (px, 180 - pw * 0.8), (px + pw, 180)], lighten(c, 0.08))
+        # face na sombra
+        L.poly([(px, 180 - pw * 0.8), (px + pw, 180), (px + pw * 0.2, 180)], darken(c, 0.14))
+    light_pass(L, c, rgb(p["far_rim"]), sun_dir=-1, tex=0.02, seed=1)
+    haze(L, fog, 0.25, 0.55, 110, 270)
+    out.append(finish(L))
+    L = Layer()
+    c = rgb(p["mid"])
+    t = ridge(L, 204, 30, 5, st["seed"] + 1, c, octaves=3)
+    for x in range(0, W, 60):
+        if rng.random() < 0.4:
+            gx = x + int(rng.integers(0, 40))
+            gy = int(t[gx % W]) + 2
+            L.rect(gx, gy - 30, 3, 30, darken(c, 0.2))
+            for ang in range(5):
+                a = -math.pi / 2 + (ang - 2) * 0.55
+                L.line([(gx + 1, gy - 30), (gx + 1 + math.cos(a) * 14, gy - 30 + math.sin(a) * 9 + 5)], darken(c, 0.2), 2)
+    light_pass(L, c, rgb(p["mid_hi"]), sun_dir=-1, tex=0.04, seed=2)
+    # ondulações da areia
+    a = L.array()
+    for y in range(0, H, 5):
+        for x in range(W):
+            if a[y, x, 3] > 0 and (x + y * 3) % 9 < 5:
+                a[y, x, :3] *= 0.92
+    L.set_array(a)
+    haze(L, fog, 0.05, 0.2, 170, 270)
+    out.append(finish(L))
+    L = Layer()
+    c = rgb(p["near"])
+    ridge(L, 232, 16, 4, st["seed"] + 2, c, octaves=2)
+    light_pass(L, c, rgb(p["near_hi"]), sun_dir=-1, rim_w=2, tex=0.05, seed=3)
+    out.append(finish(L))
+    return out
 
 
 def paint_sky(st, rng):
     p = st["pal"]
-    far = layer()
-    d = ImageDraw.Draw(far)
-    for i in range(5):
-        x = int(rng.integers(0, W))
-        y = int(rng.integers(36, 76))
-        s = int(rng.integers(6, 12))
-        ellipse(d, x - s, y - 2, x + s, y + 3, rgb(p["far"]))
-        poly(d, [(x - s + 1, y + 1), (x + s - 1, y + 1), (x, y + s * 2)], rgb(p["far"]))
-    nz = pnoise(W, 10, st["seed"], 3)
-    for x in range(W):
-        top = int(104 - nz[x] * 10)
-        for y in range(top, 144):
-            far.putpixel((x, y), rgb(p["cloud"]) + (255,) if y > top + 1 else rgb(p["cloud_hi"]) + (255,))
-    haze(far, st["fog"], 30, 100, 0.2, 0.5)
-    mid = layer()
-    d = ImageDraw.Draw(mid)
-    mc = rgb(p["mid"])
-    win = rgb(p["window"]) + (255,)
-    for i in range(4):
-        x = int(rng.integers(0, W))
-        y = int(rng.integers(64, 104))
-        s = int(rng.integers(16, 30))
-        ellipse(d, x - s, y - 3, x + s, y + 4, mc)
-        poly(d, [(x - s + 2, y + 2), (x + s - 2, y + 2), (x + int(rng.integers(-4, 4)), y + s + 10)], mc)
-        rect(d, x - s + 2, y - 4, s * 2 - 4, 2, rgb(p["mid_hi"]))
-        for k in range(int(rng.integers(1, 4))):
-            tower(d, x - s // 2 + k * 8, y - 3, 5, int(rng.integers(10, 26)), mc, win)
-        if rng.random() < 0.6:
-            rect(d, x + s // 3, y + 2, 1, 30, rgb(p["cloud_hi"]))
-    near = layer()
-    nz = pnoise(W, 6, st["seed"] + 5, 3)
-    for x in range(W):
-        top = int(134 - nz[x] * 16)
-        for y in range(top, 144):
-            near.putpixel((x, y), rgb(p["near"]) + (255,) if y > top + 1 else rgb(p["near_hi"]) + (255,))
-    return far, mid, near
+    fog = rgb(st["fog"])
+    out = []
+    # mar de nuvens distante
+    L = Layer()
+    c = rgb(p["cloud"])
+    nz = pnoise(W, 14, st["seed"], 4)
+    tops = (170 - nz * 26).astype(int)
+    L.fill_below(tops, c)
+    for x in range(0, W, 3):
+        r = int(rng.integers(6, 16))
+        L.ellipse(x - r, tops[x] - r // 2, x + r, tops[x] + r, c)
+    light_pass(L, c, rgb(p["cloud_hi"]), sun_dir=1, top_light=0.12, bottom_dark=0.1, tex=0.02, seed=1)
+    haze(L, fog, 0.15, 0.35, 150, 270)
+    out.append(finish(L))
+    # ilhas flutuantes com torres
+    L = Layer()
+    c = rgb(p["mid"])
+    for k in range(4):
+        ix = int(rng.integers(0, W))
+        iy = int(rng.integers(90, 170))
+        iw = int(rng.integers(50, 100))
+        L.poly([(ix - iw // 2, iy), (ix + iw // 2, iy), (ix + iw // 6, iy + iw * 0.7), (ix, iy + iw * 0.9), (ix - iw // 5, iy + iw * 0.6)], c)
+        L.rect(ix - iw // 2, iy - 3, iw, 4, rgb(p["mid_hi"]))
+        tower(L, ix - 8, iy - 2, 12, int(rng.integers(30, 60)), lighten(c, 0.15), rgb(p["window"]), cone=True, rng=rng)
+        # cascata
+        L.rect(ix + iw // 4, iy, 2, int(iw * 0.9), lighten(rgb(p["cloud_hi"]), 0.0))
+    light_pass(L, c, lighten(rgb(p["cloud_hi"]), 0.0), sun_dir=1, tex=0.03, seed=2)
+    haze(L, fog, 0.1, 0.25, 60, 270)
+    out.append(finish(L))
+    # nuvens perto (primeiro plano)
+    L = Layer()
+    c = rgb(p["near"])
+    nz = pnoise(W, 8, st["seed"] + 5, 3)
+    tops = (224 - nz * 20).astype(int)
+    L.fill_below(tops, c)
+    for x in range(0, W, 5):
+        r = int(rng.integers(10, 24))
+        L.ellipse(x - r, tops[x] - r // 2, x + r, tops[x] + r, c)
+    light_pass(L, c, rgb(p["near_hi"]), sun_dir=1, top_light=0.1, bottom_dark=0.12, tex=0.02, seed=3)
+    out.append(finish(L))
+    return out
 
 
 def paint_cave(st, rng):
     p = st["pal"]
-    far = layer()
-    d = ImageDraw.Draw(far)
+    out = []
+    L = Layer()
     fc = rgb(p["far"])
-    rect(d, 0, 0, W, 144, fc + (255,))
-    for i in range(10):
+    L.rect(0, 0, W, H, fc)
+    for i in range(16):
         x = int(rng.integers(0, W))
-        y = int(rng.integers(20, 110))
-        ellipse(d, x - 16, y - 10, x + 16, y + 10, rgb(p["far_hi"]))
-    for i in range(24):
+        y = int(rng.integers(30, 220))
+        L.ellipse(x - 34, y - 20, x + 34, y + 20, rgb(p["far_hi"]))
+    for i in range(40):
         x = int(rng.integers(0, W))
-        y = int(rng.integers(10, 130))
+        y = int(rng.integers(20, 250))
         cc = rgb(p["crystal"])
-        poly(d, [(x, y - 4), (x + 2, y), (x, y + 2), (x - 2, y)], cc)
-    mid = layer()
-    d = ImageDraw.Draw(mid)
+        sz = int(rng.integers(2, 6))
+        L.poly([(x, y - sz * 2), (x + sz, y), (x, y + sz), (x - sz, y)], cc, glow=True)
+    light_pass(L, fc, rgb(p["far_hi"]), sun_dir=1, top_light=0.0, bottom_dark=0.0, rim_w=1, tex=0.05, seed=1)
+    out.append(finish(L))
+    L = Layer()
     mc = rgb(p["mid"])
     nz = pnoise(W, 12, st["seed"] + 1, 3)
     nz2 = pnoise(W, 10, st["seed"] + 2, 3)
     for x in range(W):
-        top = int(10 + nz[x] * 22)
-        bot = int(134 - nz2[x] * 26)
-        rect(d, x, 0, 1, top, mc)
-        rect(d, x, bot, 1, 144 - bot, mc)
-    for i in range(22):
+        top = int(18 + nz[x] * 44)
+        bot = int(252 - nz2[x] * 50)
+        L.rect(x, 0, 1, top, mc)
+        L.rect(x, bot, 1, H - bot, mc)
+    for i in range(30):
         x = int(rng.integers(0, W))
-        ln = int(rng.integers(8, 26))
-        poly(d, [(x - 3, 20), (x + 3, 20), (x, 20 + ln)], mc)
+        ln = int(rng.integers(16, 54))
+        L.poly([(x - 6, 30), (x + 6, 30), (x, 30 + ln)], mc)
         x2 = int(rng.integers(0, W))
-        poly(d, [(x2 - 3, 124), (x2 + 3, 124), (x2, 124 - ln // 2)], mc)
-    near = layer()
-    d = ImageDraw.Draw(near)
-    nc = rgb(p["near"])
-    for i in range(8):
+        L.poly([(x2 - 6, 236), (x2 + 6, 236), (x2, 236 - ln // 2)], mc)
+    for i in range(10):
         x = int(rng.integers(0, W))
-        ln = int(rng.integers(30, 60))
-        poly(d, [(x - 6, 0), (x + 6, 0), (x, ln)], nc)
+        cc = rgb(p["crystal"])
+        for k in range(3):
+            h2 = int(rng.integers(8, 20))
+            ox = x + k * 5 - 5
+            L.poly([(ox - 2, 238), (ox + 2, 238), (ox + (k - 1) * 3, 238 - h2)], cc, glow=True)
+    light_pass(L, mc, lighten(mc, 0.5), sun_dir=1, top_light=0.0, bottom_dark=0.0, rim_w=1, tex=0.04, seed=2)
+    out.append(finish(L))
+    L = Layer()
+    nc = rgb(p["near"])
+    for i in range(12):
+        x = int(rng.integers(0, W))
+        ln = int(rng.integers(60, 120))
+        L.poly([(x - 12, 0), (x + 12, 0), (x, ln)], nc)
     nz = pnoise(W, 6, st["seed"] + 3, 2)
     for x in range(W):
-        bot = int(138 - nz[x] * 12)
-        rect(d, x, bot, 1, 144 - bot, nc)
-    return far, mid, near
+        bot = int(258 - nz[x] * 22)
+        L.rect(x, bot, 1, H - bot, nc)
+    light_pass(L, nc, lighten(nc, 0.4), sun_dir=1, top_light=0.0, bottom_dark=0.0, rim_w=1, tex=0.04, seed=3)
+    out.append(finish(L))
+    return out
 
 
 def paint_war(st, rng):
     p = st["pal"]
-    far = layer()
-    ridge(far, 104, 40, 3, st["seed"], rgb(p["far"]), rim=rgb(p["far_rim"]), sharp=True)
-    haze(far, st["fog"], 60, 144, 0.05, 0.45)
-    mid = layer()
-    ridge(mid, 124, 6, 4, st["seed"] + 1, rgb(p["mid"]), octaves=2)
-    d = ImageDraw.Draw(mid)
+    fog = rgb(st["fog"])
+    out = []
+    L = Layer()
+    ridge(L, 196, 76, 3, st["seed"], rgb(p["far"]), sharp=True)
+    light_pass(L, rgb(p["far"]), rgb(p["far_rim"]), sun_dir=-1, tex=0.02, seed=1)
+    haze(L, fog, 0.1, 0.45, 100, 270)
+    out.append(finish(L))
+    L = Layer()
     mc = rgb(p["mid"])
+    t = ridge(L, 232, 10, 4, st["seed"] + 1, mc, octaves=2)
     x = 0
     while x < W:
         r = rng.random()
-        if r < 0.45:
-            for k in range(int(rng.integers(6, 14))):
-                h = int(rng.integers(16, 22))
-                rect(d, x + k * 3, 124 - h, 2, h, mc)
-                poly(d, [(x + k * 3, 124 - h), (x + k * 3 + 1, 124 - h - 3), (x + k * 3 + 2, 124 - h)], mc)
-            x += 44
-        elif r < 0.8:
-            tent(d, x, 124, int(rng.integers(12, 20)), mc, rgb(p["flag"]))
-            x += 22
+        gy = int(t[x % W]) + 2
+        if r < 0.3:
+            # tenda
+            w = int(rng.integers(30, 50))
+            L.poly([(x, gy), (x + w // 2, gy - w // 2 - 6), (x + w, gy)], mc)
+            L.rect(x + w // 2 - 1, gy - w // 2 - 14, 2, 10, mc)
+            x += w + 10
+        elif r < 0.55:
+            # paliçada
+            for k in range(8):
+                hh = int(rng.integers(20, 30))
+                L.poly([(x + k * 5, gy), (x + k * 5 + 4, gy), (x + k * 5 + 4, gy - hh), (x + k * 5 + 2, gy - hh - 4), (x + k * 5, gy - hh)], mc)
+            x += 50
+        elif r < 0.7:
+            # torre de vigia com fogueira
+            L.rect(x, gy - 60, 4, 60, mc)
+            L.rect(x + 16, gy - 60, 4, 60, mc)
+            L.rect(x - 4, gy - 66, 28, 8, mc)
+            L.rect(x + 7, gy - 72, 6, 5, rgb(p["window"]), glow=True)
+            x += 40
         else:
-            tower(d, x, 124, 8, int(rng.integers(24, 36)), mc, rgb(p["window"]) + (255,), cone=False)
-            rect(d, x + 3, 124 - 44, 1, 8, mc)
-            rect(d, x + 4, 124 - 44, 4, 3, rgb(p["flag"]))
-            x += 16
-    haze(mid, st["fog"], 100, 144, 0.0, 0.25)
-    near = layer()
-    tops = ridge(near, 136, 6, 4, st["seed"] + 2, rgb(p["near"]), octaves=2)
-    d = ImageDraw.Draw(near)
-    for x in range(0, W, 90):
-        ox = x + int(rng.integers(0, 40))
-        dead_tree(d, ox, int(tops[ox % W]) + 2, int(rng.integers(34, 56)), rgb(p["near"]), rng, 3)
-    return far, mid, near
+            x += int(rng.integers(10, 30))
+    light_pass(L, mc, rgb(p["far_rim"]), sun_dir=-1, tex=0.04, seed=2)
+    haze(L, fog, 0.0, 0.2, 170, 270)
+    out.append(finish(L))
+    L = Layer()
+    nc = rgb(p["near"])
+    t = ridge(L, 254, 6, 4, st["seed"] + 2, nc, octaves=2)
+    for x in range(0, W, 7):
+        if rng.random() < 0.5:
+            hh = int(rng.integers(14, 34))
+            L.poly([(x, t[x] + 2), (x + 3, t[x] + 2), (x + 1, t[x] - hh)], nc)
+    for x in range(40, W, 200):
+        L.rect(x, 186, 2, 70, nc)
+        L.poly([(x + 2, 186), (x + 22, 190), (x + 2, 200)], rgb(p["flag"]))
+    light_pass(L, nc, mix(nc, rgb(p["far_rim"]), 0.5), sun_dir=-1, rim_w=1, tex=0.05, seed=3)
+    out.append(finish(L))
+    return out
 
 
 def paint_graveyard(st, rng):
     p = st["pal"]
-    far = layer()
-    ridge(far, 100, 26, 3, st["seed"], rgb(p["far"]), rim=rgb(p["far_rim"]), octaves=3)
-    haze(far, st["fog"], 70, 144, 0.1, 0.5)
-    mid = layer()
-    tops = ridge(mid, 120, 8, 4, st["seed"] + 1, rgb(p["mid"]), octaves=2)
-    d = ImageDraw.Draw(mid)
+    fog = rgb(st["fog"])
+    out = []
+    L = Layer()
+    fc = rgb(p["far"])
+    t = ridge(L, 214, 30, 3, st["seed"], fc, octaves=3)
+    cx = int(rng.integers(100, 700))
+    L.rect(cx, 150, 60, 66, fc)
+    L.poly([(cx - 4, 150), (cx + 30, 120), (cx + 64, 150)], fc)
+    L.rect(cx + 40, 100, 14, 60, fc)
+    L.poly([(cx + 38, 100), (cx + 47, 70), (cx + 56, 100)], fc)
+    L.rect(cx + 46, 58, 2, 14, fc)
+    L.rect(cx + 42, 62, 10, 2, fc)
+    L.rect(cx + 24, 170, 8, 14, rgb(p["window"]), glow=True)
+    light_pass(L, fc, rgb(p["far_rim"]), sun_dir=1, tex=0.03, seed=1)
+    haze(L, fog, 0.15, 0.45, 110, 270)
+    out.append(finish(L))
+    L = Layer()
     mc = rgb(p["mid"])
-    cx = int(rng.integers(60, 400))
-    gy = int(tops[cx % W]) + 2
-    building(d, cx, gy, 26, 22, mc, roof="peak")
-    tower(d, cx + 26, gy, 8, 46, mc, rgb(p["window"]) + (255,))
-    rect(d, cx + 29, gy - 60, 1, 6, mc)
-    rect(d, cx + 27, gy - 58, 5, 1, mc)
-    for x in range(0, W, 7):
-        gy = int(tops[x % W]) + 2
+    t = ridge(L, 236, 10, 4, st["seed"] + 1, mc, octaves=2)
+    x = 0
+    while x < W:
+        gy = int(t[x % W]) + 2
         r = rng.random()
-        if r < 0.35:
-            rect(d, x, gy - 5, 3, 5, mc)
-            rect(d, x, gy - 6, 3, 1, mc)
-        elif r < 0.55:
-            rect(d, x + 1, gy - 8, 1, 8, mc)
-            rect(d, x - 1, gy - 6, 5, 1, mc)
-        elif r < 0.62:
-            dead_tree(d, x, gy, int(rng.integers(18, 32)), mc, rng)
-    haze(mid, st["fog"], 100, 144, 0.0, 0.3)
-    near = layer()
-    tops = ridge(near, 136, 5, 4, st["seed"] + 2, rgb(p["near"]), octaves=2)
-    d = ImageDraw.Draw(near)
-    for x in range(0, W, 80):
-        ox = x + int(rng.integers(0, 30))
-        dead_tree(d, ox, int(tops[ox % W]) + 2, int(rng.integers(44, 70)), rgb(p["near"]), rng, 3)
-    for x in range(0, W, 3):
-        rect(d, x, int(tops[x]) - 3, 1, 3, rgb(p["near"]))
-        if x % 12 == 0:
-            rect(d, x - 1, int(tops[x]) - 2, 3, 1, rgb(p["near"]))
-    return far, mid, near
+        if r < 0.25:
+            dead_tree(L, x, gy, int(rng.integers(50, 90)), mc, rng, 4)
+            x += 40
+        elif r < 0.6:
+            L.rect(x, gy - 14, 8, 14, mc)
+            L.ellipse(x, gy - 18, x + 8, gy - 10, mc)
+            x += 16
+        else:
+            L.rect(x + 3, gy - 20, 3, 20, mc)
+            L.rect(x, gy - 15, 9, 3, mc)
+            x += 18
+    light_pass(L, mc, rgb(p["far_rim"]), sun_dir=1, tex=0.04, seed=2)
+    haze(L, fog, 0.05, 0.3, 170, 270)
+    out.append(finish(L))
+    L = Layer()
+    nc = rgb(p["near"])
+    t = ridge(L, 256, 4, 4, st["seed"] + 2, nc, octaves=2)
+    for x in range(30, W, 150):
+        dead_tree(L, x, int(t[x % W]) + 3, int(rng.integers(120, 180)), nc, rng, 6)
+    light_pass(L, nc, mix(nc, rgb(p["far_rim"]), 0.45), sun_dir=1, rim_w=1, tex=0.04, seed=3)
+    out.append(finish(L))
+    return out
 
 
 def paint_swamp(st, rng):
     p = st["pal"]
-    far = layer()
-    ridge(far, 104, 16, 3, st["seed"], rgb(p["far"]), octaves=3)
-    haze(far, st["fog"], 70, 144, 0.2, 0.6)
-    mid = layer()
-    tops = ridge(mid, 116, 4, 4, st["seed"] + 1, rgb(p["mid"]), octaves=2)
-    d = ImageDraw.Draw(mid)
+    fog = rgb(st["fog"])
+    out = []
+    L = Layer()
+    ridge(L, 200, 32, 3, st["seed"], rgb(p["far"]), octaves=3)
+    light_pass(L, rgb(p["far"]), lighten(rgb(p["far"]), 0.3), sun_dir=1, tex=0.02, seed=1)
+    haze(L, fog, 0.3, 0.6, 120, 270)
+    out.append(finish(L))
+    L = Layer()
     mc = rgb(p["mid"])
-    for x in range(0, W, 26):
-        ox = x + int(rng.integers(0, 12))
-        h = int(rng.integers(28, 54))
-        dead_tree(d, ox, int(tops[ox % W]) + 2, h, mc, rng, 3)
-        for k in range(4):
-            rect(d, ox + int(rng.integers(-6, 7)), int(tops[ox % W]) - h + 6 + k * 5, 1, int(rng.integers(4, 10)), mc)
-    haze(mid, st["fog"], 80, 130, 0.05, 0.35)
-    reflect(mid, 118, p["water"], 0.5)
-    near = layer()
-    tops = ridge(near, 132, 3, 5, st["seed"] + 2, rgb(p["near"]), octaves=2)
-    d = ImageDraw.Draw(near)
+    t = ridge(L, 218, 8, 4, st["seed"] + 1, mc, octaves=2)
+    for x in range(0, W, 48):
+        ox = x + int(rng.integers(0, 22))
+        hh = int(rng.integers(56, 100))
+        gy = int(t[ox % W]) + 3
+        dead_tree(L, ox, gy, hh, mc, rng, 5)
+        for k in range(5):
+            L.rect(ox + int(rng.integers(-12, 13)), gy - hh + 12 + k * 9, 1, int(rng.integers(8, 20)), mc)
+    light_pass(L, mc, lighten(mc, 0.4), sun_dir=1, tex=0.04, seed=2)
+    haze(L, fog, 0.05, 0.3, 150, 240)
+    reflect(L, 222, rgb(p["water"]), 0.5)
+    out.append(finish(L))
+    L = Layer()
+    nc = rgb(p["near"])
+    t = ridge(L, 250, 6, 5, st["seed"] + 2, nc, octaves=2)
     for x in range(0, W, 2):
-        if rng.random() < 0.6:
-            h = int(rng.integers(3, 12))
-            rect(d, x, int(tops[x]) - h, 1, h, rgb(p["near"]))
-    return far, mid, near
+        if rng.random() < 0.55:
+            hh = int(rng.integers(5, 22))
+            L.rect(x, int(t[x]) - hh, 1, hh, nc)
+    light_pass(L, nc, lighten(nc, 0.35), sun_dir=1, rim_w=1, tex=0.04, seed=3)
+    out.append(finish(L))
+    return out
 
 
 PAINTERS = {
@@ -694,76 +961,88 @@ PAINTERS = {
     "graveyard": paint_graveyard, "swamp": paint_swamp,
 }
 
-# Cada estilo: céu, paleta das camadas, névoa, luz ambiente sugerida,
-# partículas e o evento animado (desenhado pelo jogo por cima das camadas).
+# Cada estilo: céu, paleta das camadas, névoa, parallax e o evento animado
+# (desenhado pelo jogo por cima das camadas). Posições do sol/lua e das
+# faixas de nuvem estão em coordenadas da tela antiga (256x144) e são
+# convertidas (x1.875).
 STYLES = {
     "forest": {
         "seed": 11, "painter": "forest",
-        "sky": {"colors": ["#6fb0e0", "#a8d8f0", "#e6f4e0", "#fff2c8"], "sun": {"pos": [196, 34], "r": 7, "color": "#fff8dc", "halo": "#fff2b0", "glow": 0.45},
+        "sky": {"colors": ["#5f9fd8", "#9fd0ee", "#dff0e2", "#fff0c4"], "sun": {"pos": [196, 34], "r": 7, "color": "#fff8dc", "halo": "#fff2b0", "glow": 0.45},
                 "bands": [[62, "#ffffff", 0.35], [88, "#fff6e0", 0.25]]},
-        "pal": {"far": "#8fb8b8", "far_rim": "#c8e0d0", "mid": "#4d7f63", "mid_hi": "#78a870", "near": "#23402f"},
-        "fog": "#e8f4e8", "fog_alpha": 0.18, "event": "birds", "birds": True, "rays": True, "cloud": "#ffffff",
+        "pal": {"far": "#86aeb4", "far_rim": "#d8ecd8", "mid": "#3f7058", "mid_hi": "#8cc07a", "near": "#1a3326"},
+        "fog": "#e4f2e4", "fog_alpha": 0.16, "event": "birds", "birds": True, "rays": True, "cloud": "#ffffff",
+        "parallax": [0.03, 0.08, 0.16, 0.3, 0.62],
     },
     "castle": {
         "seed": 23, "painter": "castle",
-        "sky": {"colors": ["#1d2140", "#3a3d6a", "#8a6d8e", "#e8a888"], "sun": {"pos": [60, 40], "r": 9, "color": "#f8e8d0", "halo": "#f0c0a0", "glow": 0.3, "moon": True},
-                "stars": 40, "bands": [[70, "#c09ab0", 0.3]]},
-        "pal": {"far": "#5a5478", "far_rim": "#9a88a8", "mid": "#2e2b48", "near": "#17152a", "window": "#ffc860", "flag": "#b83a3a"},
-        "fog": "#9a8ab8", "fog_alpha": 0.14, "event": "storm",
+        "sky": {"colors": ["#171a36", "#343766", "#86698c", "#e6a486"], "sun": {"pos": [60, 40], "r": 9, "color": "#f8e8d0", "halo": "#f0c0a0", "glow": 0.3, "moon": True},
+                "stars": 80, "bands": [[70, "#c09ab0", 0.3]]},
+        "pal": {"far": "#565075", "far_rim": "#b09ab8", "mid": "#2a2744", "near": "#141226", "window": "#ffc860", "flag": "#b83a3a"},
+        "fog": "#9a8ab8", "fog_alpha": 0.12, "event": "storm",
+        "parallax": [0.05, 0.16, 0.4],
     },
     "gothic": {
         "seed": 31, "painter": "gothic",
-        "sky": {"colors": ["#141828", "#262c48", "#4a4a6a", "#7a6a7a"], "sun": {"pos": [206, 30], "r": 11, "color": "#e8e8f0", "halo": "#a0a8c8", "glow": 0.35, "moon": True},
-                "stars": 30, "bands": [[56, "#50506a", 0.4]]},
-        "pal": {"far": "#3a3c58", "mid": "#20223a", "near": "#101020", "window": "#ffd070"},
-        "fog": "#6a6a90", "fog_alpha": 0.22, "event": "titan", "weather": "rain",
+        "sky": {"colors": ["#11152a", "#232946", "#46466a", "#766678"], "sun": {"pos": [206, 30], "r": 11, "color": "#e8e8f0", "halo": "#a0a8c8", "glow": 0.35, "moon": True},
+                "stars": 60, "bands": [[56, "#50506a", 0.4]]},
+        "pal": {"far": "#363854", "mid": "#1d1f36", "near": "#0e0e1c", "window": "#ffd070"},
+        "fog": "#6a6a90", "fog_alpha": 0.2, "event": "titan", "weather": "rain",
+        "parallax": [0.06, 0.2, 0.42],
     },
     "ruins": {
         "seed": 47, "painter": "ruins",
-        "sky": {"colors": ["#5a7ab8", "#e0a0a0", "#f8c890", "#ffe8b0"], "sun": {"pos": [70, 78], "r": 12, "color": "#fff0c0", "halo": "#ffc890", "glow": 0.55},
+        "sky": {"colors": ["#5474b4", "#dc9ca0", "#f6c68e", "#ffe6ae"], "sun": {"pos": [70, 78], "r": 12, "color": "#fff0c0", "halo": "#ffc890", "glow": 0.55},
                 "bands": [[50, "#f8d0c0", 0.35], [66, "#ffe0c0", 0.3]]},
-        "pal": {"far": "#b08aa0", "far_rim": "#f0c8b0", "mid": "#6a4f62", "mid_hi": "#907080", "near": "#35263a"},
-        "fog": "#ffd8b8", "fog_alpha": 0.2, "event": "birds", "birds": True, "rays": True, "cloud": "#ffe8d8",
+        "pal": {"far": "#aa86a0", "far_rim": "#ffd8bc", "mid": "#644a5e", "mid_hi": "#907080", "near": "#301f34"},
+        "fog": "#ffd8b8", "fog_alpha": 0.18, "event": "birds", "birds": True, "rays": True, "cloud": "#ffe8d8",
+        "parallax": [0.05, 0.18, 0.4],
     },
     "desert": {
         "seed": 53, "painter": "desert",
-        "sky": {"colors": ["#4a8ad0", "#88c0e8", "#f0e0b0", "#ffd890"], "sun": {"pos": [128, 22], "r": 8, "color": "#ffffff", "halo": "#fff0c0", "glow": 0.6}},
-        "pal": {"far": "#d8b088", "far_rim": "#f8e0b8", "mid": "#c08858", "mid_hi": "#e8b078", "near": "#8a5a38", "near_hi": "#b07848"},
-        "fog": "#f8e0b0", "fog_alpha": 0.2, "event": "sandworm", "weather": "heat",
+        "sky": {"colors": ["#4284cc", "#84bce6", "#eedcae", "#ffd690"], "sun": {"pos": [128, 22], "r": 8, "color": "#ffffff", "halo": "#fff0c0", "glow": 0.6}},
+        "pal": {"far": "#d4ac86", "far_rim": "#fff0cc", "mid": "#bc8456", "mid_hi": "#f4c08a", "near": "#84563a", "near_hi": "#c48a58"},
+        "fog": "#f8e0b0", "fog_alpha": 0.18, "event": "sandworm", "weather": "heat",
+        "parallax": [0.05, 0.18, 0.4],
     },
     "sky": {
         "seed": 61, "painter": "sky",
-        "sky": {"colors": ["#3a78d8", "#78b0f0", "#c8e4ff", "#ffffff"], "sun": {"pos": [40, 26], "r": 8, "color": "#ffffff", "halo": "#fff8e0", "glow": 0.5},
+        "sky": {"colors": ["#3272d4", "#72acee", "#c4e2ff", "#ffffff"], "sun": {"pos": [40, 26], "r": 8, "color": "#ffffff", "halo": "#fff8e0", "glow": 0.5},
                 "bands": [[44, "#ffffff", 0.3]]},
-        "pal": {"far": "#9ab4d8", "cloud": "#e8f0ff", "cloud_hi": "#ffffff", "mid": "#6a7aa8", "mid_hi": "#a8e070", "near": "#dfe8f8", "near_hi": "#ffffff", "window": "#fff0a0"},
-        "fog": "#ffffff", "fog_alpha": 0.2, "event": "whale", "birds": True, "cloud": "#ffffff",
+        "pal": {"far": "#96b0d4", "cloud": "#dfe9fb", "cloud_hi": "#ffffff", "mid": "#64749e", "mid_hi": "#a8e070", "near": "#e6eefa", "near_hi": "#ffffff", "window": "#fff0a0"},
+        "fog": "#ffffff", "fog_alpha": 0.18, "event": "whale", "birds": True, "cloud": "#ffffff",
+        "parallax": [0.04, 0.16, 0.45],
     },
     "cave": {
         "seed": 71, "painter": "cave",
-        "sky": {"colors": ["#0c0c16", "#141424", "#1c1c30", "#141420"]},
-        "pal": {"far": "#1e2034", "far_hi": "#262a44", "crystal": "#70e0f0", "mid": "#12131f", "near": "#08080f"},
-        "fog": "#3a4870", "fog_alpha": 0.12, "event": "eyes", "underground": True,
+        "sky": {"colors": ["#0a0a14", "#121222", "#1a1a2e", "#12121e"]},
+        "pal": {"far": "#1c1e32", "far_hi": "#262a46", "crystal": "#70e0f0", "mid": "#11121e", "near": "#07070e"},
+        "fog": "#3a4870", "fog_alpha": 0.1, "event": "eyes", "underground": True,
+        "parallax": [0.06, 0.2, 0.42],
     },
     "war": {
         "seed": 83, "painter": "war",
-        "sky": {"colors": ["#3a1a28", "#8a3030", "#e06040", "#f8b060"], "sun": {"pos": [180, 70], "r": 14, "color": "#ffd8a0", "halo": "#ff8050", "glow": 0.5},
+        "sky": {"colors": ["#361826", "#862e2e", "#de5e3e", "#f6ae5e"], "sun": {"pos": [180, 70], "r": 14, "color": "#ffd8a0", "halo": "#ff8050", "glow": 0.5},
                 "bands": [[58, "#40202a", 0.5], [74, "#6a3030", 0.4]]},
-        "pal": {"far": "#6a3440", "far_rim": "#c06050", "mid": "#321a24", "near": "#180c12", "window": "#ffb050", "flag": "#e0c050"},
-        "fog": "#c06050", "fog_alpha": 0.18, "event": "catapults", "weather": "embers", "cloud": "#5a3036",
+        "pal": {"far": "#663240", "far_rim": "#ff8a60", "mid": "#2e1822", "near": "#160a10", "window": "#ffb050", "flag": "#e0c050"},
+        "fog": "#c06050", "fog_alpha": 0.16, "event": "catapults", "weather": "embers", "cloud": "#5a3036",
+        "parallax": [0.05, 0.18, 0.4],
     },
     "graveyard": {
         "seed": 97, "painter": "graveyard",
-        "sky": {"colors": ["#10182a", "#23304e", "#3e4e6e", "#6a7894"], "sun": {"pos": [170, 36], "r": 16, "color": "#f0f0e0", "halo": "#b8c8e0", "glow": 0.45, "moon": True},
-                "stars": 55},
-        "pal": {"far": "#34405a", "far_rim": "#6a7a98", "mid": "#1e2436", "near": "#0e1220", "window": "#d8f0a0"},
-        "fog": "#8898b8", "fog_alpha": 0.24, "event": "bats",
+        "sky": {"colors": ["#0e1628", "#202c4a", "#3a4a6a", "#667490"], "sun": {"pos": [170, 36], "r": 16, "color": "#f0f0e0", "halo": "#b8c8e0", "glow": 0.45, "moon": True},
+                "stars": 110},
+        "pal": {"far": "#323e58", "far_rim": "#9aacc8", "mid": "#1c2234", "near": "#0c101c", "window": "#d8f0a0"},
+        "fog": "#8898b8", "fog_alpha": 0.22, "event": "bats",
+        "parallax": [0.05, 0.18, 0.4],
     },
     "swamp": {
         "seed": 101, "painter": "swamp",
-        "sky": {"colors": ["#3a5048", "#6a8a70", "#a8b890", "#d0d8a8"], "sun": {"pos": [150, 50], "r": 9, "color": "#f0f0c8", "halo": "#d8e0a8", "glow": 0.35},
+        "sky": {"colors": ["#364c44", "#66866c", "#a4b48c", "#ccd4a4"], "sun": {"pos": [150, 50], "r": 9, "color": "#f0f0c8", "halo": "#d8e0a8", "glow": 0.35},
                 "bands": [[64, "#c0c8a0", 0.45], [84, "#d0d8b0", 0.4]]},
-        "pal": {"far": "#6a8068", "mid": "#3a4a38", "near": "#1c2418", "water": "#51685a"},
-        "fog": "#c8d8b0", "fog_alpha": 0.3, "event": "wisps", "birds": True, "water": True,
+        "pal": {"far": "#667c64", "mid": "#364634", "near": "#182014", "water": "#4d6456"},
+        "fog": "#c8d8b0", "fog_alpha": 0.26, "event": "wisps", "birds": True, "water": True,
+        "parallax": [0.05, 0.18, 0.4],
     },
 }
 
@@ -772,39 +1051,49 @@ def build(name):
     st = STYLES[name]
     out = os.path.join(OUT, name)
     os.makedirs(out, exist_ok=True)
+    for f in os.listdir(out):
+        if f.endswith(".png") and (f.startswith("l") or f in ("far.png", "mid.png", "near.png")):
+            os.remove(os.path.join(out, f))
+            imp = os.path.join(out, f + ".import")
+            if os.path.exists(imp):
+                os.remove(imp)
     rng = np.random.default_rng(st["seed"])
     sky(st).save(os.path.join(out, "sky.png"))
-    far, mid, near = PAINTERS[st["painter"]](st, rng)
-    far.save(os.path.join(out, "far.png"))
-    mid.save(os.path.join(out, "mid.png"))
-    near.save(os.path.join(out, "near.png"))
-    print("ok", name)
+    layers = PAINTERS[st["painter"]](st, rng)
+    for i, img in enumerate(layers):
+        img.save(os.path.join(out, "l%d.png" % i))
+    # nuvens que andam (3 tons)
+    cc = rgb(st.get("cloud", st["fog"]))
+    for k in range(4):
+        cloud_img(int(rng.integers(60, 110)), int(rng.integers(22, 34)), rng, cc, darken(cc, 0.12), lighten(cc, 0.3)).save(os.path.join(out, "cloud%d.png" % k))
+    st["_n"] = len(layers)
+    st["_fills"] = [hexs(np.array(img)[-1, :, :3].mean(axis=0).astype(int)) if np.array(img)[-1, :, 3].max() > 0 else "#000000" for img in layers]
+    print("ok", name, len(layers), "camadas")
 
 
 def meta(name):
     st = STYLES[name]
-    p = st["pal"]
-    # cor que continua abaixo de cada camada (a base da silhueta)
+    n = st.get("_n", 3)
+    par = st.get("parallax", [0.05, 0.18, 0.4])
+    par = (par + [par[-1]] * n)[:n]
+    fills = st.get("_fills", ["#000000"] * n)
     return {
-        "far_fill": p["far"], "mid_fill": p["mid"], "near_fill": p["near"],
+        "layers": [{"file": "l%d" % i, "par": par[i], "vpar": round(0.015 + par[i] * 0.18, 3), "fill": fills[i]} for i in range(n)],
         "fog": st["fog"], "fog_alpha": st["fog_alpha"], "event": st.get("event", ""),
         "birds": st.get("birds", False), "rays": st.get("rays", False),
         "weather": st.get("weather", ""), "underground": st.get("underground", False),
-        "water": st.get("water", False),
-        "parallax": [0.08, 0.2, 0.4], "vparallax": [0.02, 0.04, 0.07],
-        "cloud": st.get("cloud", st["fog"]),
+        "water": st.get("water", False), "cloud": st.get("cloud", st["fog"]),
     }
 
 
 def main():
     names = sys.argv[1:] or list(STYLES.keys())
-    for n in names:
-        build(n)
     data = {"_doc": "Gerado por tools/build_scenery.py. Estilos de cenário de fundo (camadas em assets/art/scenery/<estilo>/)."}
     if os.path.exists(DATA):
         with open(DATA) as f:
             data.update(json.load(f))
-    for n in STYLES:
+    for n in names:
+        build(n)
         data[n] = meta(n)
     with open(DATA, "w") as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
