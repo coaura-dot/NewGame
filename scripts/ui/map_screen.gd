@@ -566,7 +566,8 @@ func _draw_region() -> void:
 		var nm := str(r.get("name", ""))
 		var fw := FONT.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
 		if fw < rect.size.x * 1.6 or _rzoom > 1.4:
-			_text(Vector2(rect.get_center().x - fw * 0.5, rect.position.y + 10), nm, 9, Color(0.95, 0.9, 0.75, 0.85))
+			var nx := clampf(rect.get_center().x - fw * 0.5, 4.0, 476.0 - fw)
+			_text(Vector2(nx, rect.position.y + 10), nm, 9, Color(0.95, 0.9, 0.75, 0.85))
 	# saídas: seta + região vizinha (se o lugar da saída foi visitado)
 	for pt in lay.get("ports", []):
 		if not seen.has(int(pt["room"])):
@@ -574,8 +575,8 @@ func _draw_region() -> void:
 		var rr2: Array = rooms[int(pt["room"])]["rect"]
 		var rect2 := Rect2(off + Vector2(int(rr2[0]), int(rr2[1])) * sc, Vector2(int(rr2[2]), int(rr2[3])) * sc)
 		var to_name := str(Game.world["regions"].get(pt["to"], {}).get("name", "?"))
-		var label := "   " + to_name
-		var lw := FONT.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x
+		var label := to_name
+		var lw := FONT.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 9.0
 		var lp := rect2.get_center()
 		match str(pt["dir"]):
 			"L": lp = Vector2(rect2.position.x + 2, rect2.get_center().y + 12)
@@ -584,8 +585,9 @@ func _draw_region() -> void:
 			"D": lp = Vector2(rect2.get_center().x - lw * 0.5, rect2.end.y - 4)
 		var locked: bool = str(pt.get("requires", "")) != "" and not Game.profile.get("abilities", []).has(str(pt["requires"]))
 		var pc := Color(1.4, 0.6, 0.5) if locked else Color(0.7, 1.1, 1.5)
-		_text(lp, label, 9, pc)
-		_arrow(lp + Vector2(4, -3), str(pt["dir"]), pc)
+		lp.x = clampf(lp.x, 4.0, 476.0 - lw)
+		_arrow(lp + Vector2(3, -3), str(pt["dir"]), pc)
+		_text(lp + Vector2(9, 0), label, 9, pc)
 	# objetivo (sempre marcado: é o rumo da região)
 	var obj: Dictionary = lay.get("objective", {})
 	if not obj.is_empty() and int(obj.get("room", -1)) >= 0:

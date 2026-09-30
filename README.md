@@ -23,6 +23,17 @@ estilo Dead Cells montadas com uma biblioteca de estruturas feitas à mão, hist
 
 Técnicas: **atacar durante o dash = Corte-Relâmpago** (atravessa cortando, em qualquer direção); **todo acerto recarrega o dash e o pulo** (dash → corte → dash...); golpear **Lanternas de Ímpeto** também recarrega; baixo+ataque no ar = **pogo**; pulo durante dash no chão = **super/hyper**; aparo perfeito = câmera lenta + crítico (e rebate o tiro do Atirador de volta, fatal); baixo+pesado no ar = **Queda Esmagadora**.
 
+## Sessão 7 — escala 50% maior e regiões estilo Hollow Knight
+![regiões](docs/regioes.jpg)
+- **Tudo 50% maior** na tela: arte agora em densidade 3x (tiles de 24 px, personagens com ~45 px), mesma física.
+- **Regiões feitas de LUGARES com propósito**, não mais salas quadradas com plataformas: santuário (ou vila) no centro, **covil do guardião** ou **coração da região** no ponto mais distante, passagens para as regiões vizinhas com placa do destino, e no caminho trilhas com relevo sob o céu, galerias, poços verticais, salões com mesas de pedra ou escadarias e sacadas, ravinas, lagos, ninhos da espécie local, **cofres atrás de paredes rachadas ou portões de habilidade**, mirantes, provas e **atalhos que só abrem por uma alavanca do outro lado**. Cada lugar tem nome ("Poço dos Vaga-lumes", "Colmeia de Gato do Abismo"...).
+- **Ecossistema**: patrulhas nos caminhos, voadores nos espaços abertos, atiradores nas saliências altas, a espécie do ninho no ninho, nenhum inimigo no santuário. **Marcos visuais** (estátua colossal, árvore ancestral, cristais gigantes) no coração de cada região.
+- **Mundo com nexo**: biomas vizinhos combinam (floresta → pântano/ruínas, cidade → castelo...), o subsolo pertence à região de cima (esgotos sob a cidade, catacumbas sob o castelo), nomes próprios para cada região.
+- **Direção**: objetivo da região na HUD, nome do lugar ao entrar, e o **mapa da região** (M) desenha o terreno explorado com nomes, ícones, saídas e o objetivo (Tab = mapa do mundo com viagem rápida).
+![mapa da região](docs/mapa_regiao.png)
+- Aldeões redesenhados: o povo de cinza, sem chama (só a Faísca guarda a última brasa), com traje por ofício.
+- Garantia de travessia: todo lugar importante é alcançável do santuário e de volta (teste com todas as regiões de vários mundos).
+
 ## Sessão 6 — fim do visual "8 bit": pixel art moderna em 480x270
 ![biomas](docs/biomas.jpg)
 - **Resolução nova**: o mundo agora é desenhado em **480x270** (4x exato em 1080p) com toda a arte no **dobro da densidade** — tiles de 16 px e personagens com ~30 px de altura (antes 12-14 px). A física e as salas não mudaram.
@@ -84,4 +95,4 @@ Técnicas: **atacar durante o dash = Corte-Relâmpago** (atravessa cortando, em 
 Screenshots de vários cenários: `godot --path . res://tests/shots.tscn -- <pasta> [all|rooms|region|menu|pause|map|combat|shop|bosses|juice|overview|biomes|intro]`.
 
 ## Pendências conhecidas (próxima sessão)
-Veja `CONTEXTO_SESSAO_7.txt`: arte nova para baús/portas/tochas/NPCs, **mapas com objetivo e direção** (menos arenas, mais exploração), mapa interativo com ícones e zoom.
+Veja `CONTEXTO_SESSAO_8.txt`: arte nova para baús/portas/tochas/serras e partículas (ainda com pixels grandes), mais variações de forma por lugar, estado do mundo salvo por região (alavancas, paredes, baús) e comportamento de inimigos ligado ao lugar.

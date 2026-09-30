@@ -1,0 +1,172 @@
+===============================================================================
+ CONTEXTO PARA A SESSÃO 8 — projeto "NewGame" (subtítulo: "Cindária — a
+ última brasa"). ARQUIVO DE CONTEXTO ATUAL (substitui CONTEXTO_SESSAO_7.txt;
+ o 7, o 6 e o 5 seguem úteis como referência técnica e histórico).
+ Leia INTEIRO antes de mexer em qualquer coisa.
+===============================================================================
+
+Repositório: coaura-dot/NewGame · Branch: claude/arcade-stages-procedural-939gyg
+(desenvolver e dar push SEMPRE nela; não abrir PR sem pedido).
+Engine: Godot 4.7 (GDScript). Idioma: português (código comentado, textos e
+docs em PT-BR). O usuário tem POUCOS créditos: seja eficiente, commits e push
+cedo, e mantenha este arquivo atualizado.
+Download (ZIP da branch):
+https://github.com/coaura-dot/NewGame/archive/refs/heads/claude/arcade-stages-procedural-939gyg.zip
+O usuário abre no Godot 4.7 (C:\Users\igo\Downloads\godot): Import ->
+project.godot -> F5. Menu: "Explorar mundo (debug)" libera tudo e abre o mapa.
+
+-------------------------------------------------------------------------------
+1. PEDIDO DO USUÁRIO NA SESSÃO 7 (íntegra)
+-------------------------------------------------------------------------------
+"Olha, ficou legal, só faça a escala 50% maior. Faz tudo o que você fez mas
+com a escala 50% maior.
+
+Alem disso, o level design ainda está horrivel. Apesar da fase longa de camera
+solta, ainda é só um monte de quadrado com plataformas e bixos. Quero algo
+como hollow knight, com cada lugar sendo unico, cada local tendo seu proposito
+no mapa, cada local adaptado e harmonizado no ecossistema do jogo. Faça isso
+neste game."
+
+-------------------------------------------------------------------------------
+2. O QUE A SESSÃO 7 FEZ
+-------------------------------------------------------------------------------
+ [x] ESCALA 50% MAIOR (tudo aparece 1,5x maior; física igual):
+     - LevelConst: ART = 3 (1 unidade do mundo = 3 px de arte), ART_SCALE =
+       1/3, TILE_PX = 24, VIEW = 160x90 unidades (20 x 11,25 tiles) numa tela
+       de 480x270. Câmera com zoom 3 (look-ahead/zona morta reduzidos).
+     - tools/spritekit.py: RES = 1.5 — os personagens continuam descritos nas
+       coordenadas de desenho antigas e são amostrados numa grade 1,5x mais
+       fina (mais detalhe, contorno de 1 px mais fino). frame/origin/points
+       em data/sprites.json já saem na densidade nova.
+     - tools/build_tiles.py: T = 24, K = 1.5 (tijolos, pedras, raízes,
+       espinhos, plataformas crescem K vezes; linhas de 1 px continuam 1 px);
+       textura do miolo 192x192. TileSetBuilder usa LevelConst.TILE_PX.
+     - Textos no mundo (avisos [W], números de dano, portões) desenhados em
+       pixels de TELA (draw_set_transform 1/ART), não crescem com o zoom.
+     - Coisas antigas desenhadas em código com retângulos de 1 unidade (baú,
+       tocha, mural de missões, serra...) agora têm pixels de 3x3 — ainda
+       pedem arte nova (ver pendências).
+ [x] LEVEL DESIGN ESTILO HOLLOW KNIGHT (o grosso da sessão):
+     scripts/level/region/region_designer.gd (RegionDesigner) substitui o
+     LevelGenerator NAS REGIÕES DO MUNDO (treino e arena de chefes continuam
+     no gerador antigo de salas 40x24). Cada região é um conjunto de LUGARES
+     com nome, forma e propósito numa grade macro de células de 24x16 tiles:
+       santuario/vila  descanso, viagem rápida, NPCs (centro da região)
+       covil           arena do guardião (chefe) — portões de combate
+       coracao         salão com a relíquia + MARCO visual (sem chefe)
+       passagem/torre  saídas para as regiões vizinhas (estrada, túnel, poço,
+                       árvore/torre até o céu), com PLACA do destino
+       trilha          relevo contínuo a céu aberto (platôs, pedras, buracos)
+       galeria/gruta   túneis e câmaras (arcos em castelos, estalactites)
+       poco            poço vertical com saliências alternadas (desce da
+                       superfície com alçapão de mão única)
+       salao           grande salão: MESAS de pedra em degraus (orgânico) ou
+                       ESCADARIAS + SACADAS (castelo/templo/catacumba)
+       abismo          ravina/fosso de espinhos com pilares e plataformas
+       lago            bacia com água refletindo (WaterPool)
+       ninho           bolsas de caverna com a espécie da região (vira arena
+                       trancada com ondas se só tiver portas laterais)
+       cofre           tesouro atrás de PAREDE RACHADA ou PORTÃO DE HABILIDADE
+                       (backtracking) — baú ou relíquia no pedestal
+       mirante         pico/arco de pedra no alto com inscrição e baú
+       desafio         prova de espinhos com recompensa
+       fenda           portal dimensional (Chave Dimensional)
+     Caminhos do santuário até o objetivo e até cada saída (Dijkstra na grade
+     macro) viram lugares; ramos opcionais (cofres, mirante, prova, ninho,
+     fenda) e ATALHOS (portão de mão única que abre por alavanca do lado mais
+     distante do santuário). Superfície = linha de relevo contínua sob o céu,
+     cavernas embaixo; céu = ilhas; subsolo/interiores = tudo esculpido em
+     rocha. Portas: túneis laterais; verticais = alçapão + vigas alternadas.
+     ECOSSISTEMA: patrulhas nas trilhas/galerias, voadores em poços/abismos/
+     salões, atirador no ponto mais alto dos salões, a espécie do ninho no
+     ninho, nenhum inimigo no santuário; tochas nos lugares fechados; luz do
+     céu entrando nas cavernas; Lanternas de Ímpeto nos espaços verticais.
+     ALCANCE GARANTIDO: scripts/level/region/reach_map.gd (ReachMap) — modelo
+     conservador do pulo (sobe 3 tiles, até 5 de distância; o pulo real vai a
+     ~3,9 x 8) em "trechos" de chão; do santuário até toda porta/baú/NPC/
+     saída e de volta. Onde falta, _bridge abre o corredor e põe saliências
+     (rocha em zigue-zague no orgânico, tábuas na arquitetura); pares que não
+     resolvem são banidos; último recurso liga direto ao trecho mais perto.
+     O chão sob santuário/baús/NPCs é protegido. ~0,5 s por região.
+ [x] GEOGRAFIA COM NEXO (scripts/world/world_generator.gd): a superfície vai
+     de oeste a leste com vizinhos que combinam (floresta -> pântano/ruínas/
+     cemitério; cidade -> castelo; deserto -> templo/acampamento...), a partir
+     da floresta com a vila inicial; o subsolo pertence à superfície acima
+     (cidade -> esgotos, castelo/cemitério/ruínas -> catacumbas, floresta ->
+     tocas das raízes); o céu fica sobre ela (cidadela; torres dos magos e o
+     templo sobem até as nuvens). Nomes próprios por bioma (Bosque
+     Sussurrante, Cidade de Vésper, Catacumbas do Ossário...). A região final
+     vira castelo/catacumba/cidadela.
+ [x] DIREÇÃO:
+     - HUD: objetivo da região no canto ("Derrote X no Covil do Guardião" /
+       "Encontre a relíquia do ..."); NOME DO LUGAR aparece ao entrar nele.
+     - Placas (scripts/entities/signpost.gd) nas saídas (nome da região
+       vizinha) e no santuário apontando para o objetivo.
+     - MAPA (M) abre no MAPA DA REGIÃO: terreno explorado de verdade (bordas
+       da rocha, plataformas), nomes dos lugares, ícones (santuário, guardião,
+       tesouro, pessoas, fenda), saídas com o destino, marcador do objetivo e
+       sua posição; zoom (+/-/roda) e arrastar. Tab = mapa do mundo (viagem
+       rápida entre santuários, como antes).
+ [x] MARCOS VISUAIS (scripts/entities/landmark.gd): estátua colossal com
+     tigela de brasas, árvore ancestral com vaga-lumes ou cristais gigantes
+     (pelo bioma) no coração da região e no covil, com luz própria.
+ [x] ALDEÕES com identidade (tools/build_sprites.py: villager_<papel>): o
+     povo de cinza, mesma família da Faísca mas SEM chama (só ela guarda a
+     última brasa), manto e acessório por ofício (chapéu, capuz, elmo,
+     avental, barba). npc.gd usa a folha se existir.
+ Testes: suíte completa verde (8860 verificações). Novo:
+ tests/test_region_designer.gd (todas as regiões de 3 mundos: santuário,
+ objetivo, portões nas bordas, nomes, sem inimigos no santuário, tudo
+ alcançável nos dois sentidos). REGION_SEEDS=44,55 REGION_DUMP=<pasta>
+ REGION_ONLY=11:r05 REGION_DEBUG=1 ajudam a depurar (o dump é ASCII).
+
+-------------------------------------------------------------------------------
+3. O QUE FALTA (ordem sugerida)
+-------------------------------------------------------------------------------
+Pergunte primeiro o que o usuário achou das regiões novas (forma dos
+lugares, direção, mapa, escala 1,5x). Ajuste antes de seguir.
+
+A) ARTE ainda no estilo antigo (retângulos de 1 unidade = pixels 3x3):
+   baú, tocha, santuário/fogueira, mural de missões, portões/portas,
+   alavanca, mola, serra, cristal de dash, Lanterna de Ímpeto, plataforma
+   que cai, pickups/brasas, inscrição, altar, fenda, relíquia; partículas
+   (FX.burst), projéteis, arco do golpe. Caminho: sprites no spritekit
+   (novo "props" no build_sprites.py) exibidos com ART_SCALE, ou desenhar
+   em px de 1/ART como Signpost/Landmark.
+B) LEVEL DESIGN — próximos passos:
+   - Mais formas por lugar (hoje há ~1 carver por tipo): variações de salão
+     (catedral, cisterna, gruta de cristais), trilhas com árvores caídas e
+     pontes, cidades com telhados andáveis, vilas com casas.
+   - Portas de mão única de verdade (queda sem volta até achar o atalho),
+     paredes quebráveis que revelam atalhos, elevadores.
+   - Salvar estado do mundo por região: alavancas puxadas, paredes quebradas,
+     baús abertos, lugares explorados (hoje só "explorados" e santuário).
+   - Inimigos com comportamento de lugar (dormindo, patrulha com rota,
+     emboscada no teto) — hoje é só a posição que tem propósito.
+   - Checkpoint (banco) perto do covil; loja/NPC itinerante em lugares.
+   - Revisar o RoomReach (física real) nas regiões novas em teste lento.
+C) Mapa: marcar objetivo só depois de "ouvir falar" (NPC/placa), comprar mapa
+   (Cornifer), marcadores do jogador.
+D) Depois: música por bioma/lugar, missões reais, limpeza do legado
+   (scenes/world_map.tscn, scripts/ui/world_map.gd, LevelGenerator só para
+   treino/arena, assets/art/characters antigos), export Windows.
+
+-------------------------------------------------------------------------------
+4. COMO TRABALHAR NO CONTAINER
+-------------------------------------------------------------------------------
+ - Godot: /usr/local/bin/godot (headless) e /opt/godot-gfx (com janela).
+ - Arte (Python com numpy, pillow, scipy):
+     python3 tools/build_sprites.py [id ...]   (SPRITE_PREVIEW=<pasta> pranchas)
+     python3 tools/build_tiles.py [material ...] (TILE_PREVIEW=<pasta> prévia)
+     python3 tools/build_scenery.py [estilo ...]
+   Depois: godot --headless --path . --import
+ - Testes: godot --headless --path . res://tests/test_runner.tscn (~6 min;
+   use ulimit -v 8000000 e timeout). TEST_ONLY=test_region_designer etc.
+ - Screenshots: xvfb-run -a -s "-screen 0 1280x720x24" /opt/godot-gfx --path .
+   --rendering-driver vulkan res://tests/shots.tscn -- <pasta> <cenário>
+   (region = cada lugar da região inicial; modos = castelo, caverna, céu,
+   cidade, catacumba, pântano; map = mapa da região + mundo + HUD; e os
+   antigos rooms menu pause combat shop bosses juice overview biomes intro)
+ - Armadilhas do GDScript 4.7: `var x := <Variant>` falha (tipe explícito);
+   a fonte kenney não tem setas/losango/✓ (desenhe formas).
+===============================================================================

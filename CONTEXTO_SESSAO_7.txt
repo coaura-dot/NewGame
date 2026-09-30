@@ -1,7 +1,7 @@
 ===============================================================================
  CONTEXTO PARA A SESSÃO 7 — projeto "NewGame" (subtítulo: "Cindária — a
- última brasa"). ARQUIVO DE CONTEXTO ATUAL (substitui CONTEXTO_SESSAO_6.txt;
- o 6 e o 5 seguem úteis como referência técnica e histórico).
+ última brasa"). ARQUIVO SUBSTITUÍDO por CONTEXTO_SESSAO_8.txt (este segue
+ útil como referência técnica da sessão 6).
  Leia INTEIRO antes de mexer em qualquer coisa.
 ===============================================================================
 
