@@ -27,6 +27,10 @@ var _fall_look: float = 0.0
 var _last_pos: Vector2 = Vector2.ZERO
 var _pos: Vector2 = Vector2.ZERO
 var _bounds: Rect2 = Rect2()
+## Cenas: a câmera desliza até um ponto (em vez de seguir o jogador).
+var cine_active: bool = false
+var cine_point: Vector2 = Vector2.ZERO
+var cine_rate: float = 2.4
 
 
 func _ready() -> void:
@@ -102,6 +106,10 @@ func _physics_process(delta: float) -> void:
 	var desired := _clamp_view(_focus())
 	var rx := FOLLOW_X
 	var ry := FOLLOW_Y + (4.0 if v.y > 150.0 else 0.0)
+	if cine_active:
+		desired = _clamp_view(cine_point)
+		rx = cine_rate
+		ry = cine_rate
 	if transitioning > 0.0:
 		transitioning -= delta
 		rx = TRANSITION_RATE

@@ -1,0 +1,146 @@
+// ============================================================================
+// CINZAL — a última vila da superfície (mapa feito à mão)
+// Crepúsculo eterno, cinza caindo como neve. Da esquerda para a direita:
+// a estrada do oeste, a Capela da Vigília (onde o Lume desperta), o Campo
+// das Cinzas com os túmulos do povo, a Praça do Braseiro (o braseiro frio,
+// Vovó Borralha, o Poço Velho que desce às Galerias), a Torre do Sino e a
+// estrada leste para Vésper, no alto de um penhasco (pulo duplo).
+// Embaixo do poço: a adega secreta do mercador Tordo.
+// ============================================================================
+@map cinzal
+@size 150 48
+@default #
+@bg sky
+
+// céu e relevo
+@fill 0,0,149,30 .
+@ground 0-16:31 17-18:30 19-39:28 40-42:29 43-46:30 47-130:31 131-134:25 135-149:21
+
+@room estrada_oeste "Estrada do Oeste" kind=passagem port=L rect=0,12,19,19 bg=sky
+@end
+
+// a capela: paredes de pedra, telhado furado (a luz do crepúsculo entra),
+// portas abertas dos dois lados
+@room capela "Capela da Vigília" kind=capela at=19,18 rect=19,17,18,11 bg=wall
+ ######....######
+ #..............#
+ #..............#
+ #..............#
+ #..............#
+ #..............#
+@end
+
+@room campo "Campo das Cinzas" kind=trilha rect=37,12,25,19 bg=sky
+@end
+
+@room praca "Praça do Braseiro" kind=vila rect=62,8,44,23 bg=sky
+@end
+
+// a praça, rente ao chão: casas (h), aldeões (N), mural (Q), banco (u),
+// braseiro (H), o poço (w), caixotes (x)
+@room praca_chao "" kind=vila at=62,30 hidden
+.....h..Q...N.h.u.H.....w....N...N...N..x..
+@end
+
+// a torre do sino: plataformas em zigue-zague até o campanário
+@room torre "Torre do Sino" kind=torre at=106,6 rect=106,6,16,25 bg=wall
+################
+#..............#
+#..............#
+................
+................
+................
+................
+######----######
+#..............#
+#..............#
+#.......------.#
+#..............#
+#..............#
+#.------.......#
+#..............#
+#..............#
+#.......------.#
+#..............#
+#..............#
+#.------.......#
+#..............#
+................
+.......------...
+................
+................
+@end
+
+@room estrada_leste "Estrada de Vésper" kind=passagem port=R requires=double_jump rect=122,6,28,25 bg=sky
+@end
+
+// o Poço Velho: saliências alternadas até as Galerias; atrás da parede
+// rachada, a adega secreta do Tordo
+@room poco "Poço Velho" kind=poco port=D at=85,31 rect=84,31,6,17 bg=wall
+....
+....
+....
+..--
+....
+....
+--..B..............
+....B..............
+....B..............
+..--B...x.b.1...C..
+....
+....
+--..
+....
+..P.
+..--
+....
+1 = inscription "Tordo esteve aqui. Se você achou isto, as brasas são suas: o Tordo não volta mais do fundo." title="Bilhete"
+@end
+
+@room adega "Adega de Tordo" kind=cofre rect=89,36,15,5 bg=wall
+@end
+
+// ---------------------------------------------------------------------------
+// entidades e cenografia (coordenadas absolutas, em tiles)
+// ---------------------------------------------------------------------------
+// estrada do oeste
+@ent 3,30 arrival
+@ent 13,30 sign L "Mata do Assobio"
+@ent 7,30 decor dead_tree
+@ent 16,29 decor rubble
+// capela
+@ent 24,27 start
+@ent 28,27 decor altar
+@ent 26,27 decor candles
+@ent 30,27 decor candles
+@ent 33,27 inscription "Aqui dormia a última lâmpada dos Lampadeiros. Que acorde quando a Maré subir, e que ainda haja algo a iluminar." title="Placa da Capela"
+@ent 22,27 decor broken_statue
+@ent 27,19 light_shaft
+@ent 21,22 decor banner
+@ent 34,22 decor banner
+// campo das cinzas: túmulos do povo e um Oco que dorme
+@ent 41,28 decor fence
+@ent 44,29 decor tombstone
+@ent 47,30 decor tombstone
+@ent 50,30 enemy husk behavior=sleep
+@ent 54,30 decor tombstone
+@ent 57,30 decor dead_tree
+@ent 60,30 decor fence
+// praça: lampiões apagados que o Lume pode acender, Vovó, Fuligem, placas
+@ent 64,30 lamp
+@ent 73,30 lamp
+@ent 94,30 lamp
+@ent 103,30 lamp
+@ent 79,30 npc borralha
+@ent 90,30 npc fuligem
+@ent 83,30 sign D "Galerias Apagadas"
+@ent 101,30 decor house_mira
+// torre: o sino, uma inscrição e um baú no campanário
+@ent 113,8 decor bell
+@ent 109,12 inscription "Quando a Chama ardia, este sino tocava ao anoitecer e todas as lâmpadas de Cindária se acendiam de uma vez. Faz mil anos que ele não toca." title="Placa do Campanário"
+@ent 118,12 chest loot=fragmento_runico
+// estrada leste: a árvore morta e a placa para Vésper (no alto do penhasco)
+@ent 125,30 decor dead_tree
+@ent 128,30 sign R "Cidade de Vésper"
+@ent 145,20 arrival
+@ent 141,20 decor lamppost_broken

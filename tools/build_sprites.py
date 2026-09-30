@@ -229,6 +229,17 @@ def hero_pose(anim, t, i, n):
         p["scarf_len"] = 15 - 4 * k
         p["flame_h"] = max(0.0, 9 * (1 - k * 1.2))
         p["eyes"] = "hurt" if k < 0.5 else "closed"
+    elif anim == "off":
+        # apagado (antes do despertar): encolhido, chama e olhos apagados
+        p["bob"] = 4.5
+        p["crouch"] = 4.5
+        p["legs"] = [(-3.5, 0.0, 1.0), (3.5, 0.0, 1.0)]
+        p["flare"] = 2.2
+        p["scarf_ang"] = 92
+        p["scarf_amp"] = 0.1
+        p["tilt"] = -0.12
+        p["flame_h"] = 0.0
+        p["eyes"] = "closed"
     elif anim == "sleep":
         p["bob"] = 4.0
         p["crouch"] = 4.0
@@ -580,7 +591,7 @@ HERO_ANIMS = {
     "idle": (8, 7, True), "run": (8, 14, True), "jump": (2, 10, False), "fall": (4, 10, True),
     "dash": (3, 18, False), "crouch": (2, 8, False), "wall": (4, 8, True), "climb": (4, 10, True),
     "attack": (3, 12, False), "cast": (3, 10, False), "hurt": (2, 10, False), "death": (7, 10, False),
-    "sleep": (6, 4, True),
+    "sleep": (6, 4, True), "off": (1, 1, True),
 }
 
 
@@ -834,12 +845,156 @@ def villager_pose(anim, t, i, n):
 VILLAGER_ANIMS = {"idle": (8, 6, True), "move": (8, 12, True)}
 
 
+# ===========================================================================
+# PERSONAGENS DA HISTÓRIA (data/story.json)
+# ===========================================================================
+
+M_SHAWL = Mat("#5a3a52", n=5, spread=0.6, rim=0.6, rim_color="#a07a98", outline="#1a0c16")
+M_STICK = Mat(["#2a1a10", "#4a3020", "#6a4a30", "#8a6a48"], rim=0.3, outline="#120a06")
+M_FEATHER = Mat("#d8c070", n=4, spread=0.5, rim=0.6, outline="#3a2a10")
+M_SATCHEL = Mat("#6a4a2a", n=4, spread=0.6, rim=0.4, outline="#1a1008")
+M_PAPER = Mat(["#a89878", "#c8b894", "#e8dcc0", "#fff6e0"], rim=0.3, outline="#3a3020")
+M_BIGHAT = Mat("#3a2e24", n=4, spread=0.6, rim=0.5, rim_color="#7a6a58", outline="#0e0a06")
+M_PACK = Mat("#5a4632", n=4, spread=0.6, rim=0.4, outline="#160e08")
+M_RUST = Mat(["#1a1412", "#2e2320", "#4a3830", "#6a5244", "#8a7060"], spec=0.5, rim=0.6, rim_color="#9a8a78", outline="#060404", wrap=0.4)
+M_DEADGLASS = Mat(["#0c0a0e", "#16131a", "#221e28", "#302a38", "#443c50"], spec=1.0, rim=0.0, outline="#040306", wrap=0.6, ambient=0.4)
+M_ARMOR = Mat(["#20222c", "#3a3e4e", "#5c6278", "#8a92aa", "#c0c8dc"], spec=0.9, rim=0.6, rim_color="#d8e0f0", outline="#0a0b10", wrap=0.45)
+M_CAPE = Mat(["#1e080a", "#3a1014", "#5a1a1e", "#7a2a2a", "#9a3e36"], rim=0.7, rim_color="#c86a5a", outline="#0a0304", wrap=0.35)
+
+
+def _story_pal(cloak, lining, scarf, ash="#d9d2c6", eye="#e8a860"):
+    return _vpal(cloak, lining, scarf, ash=ash, eye=eye)
+
+
+def draw_borralha(c, p, t):
+    p = dict(p)
+    p["flame_h"] = 0.0
+    p["lean"] = p["lean"] - 1.2
+    p["head_dy"] = p.get("head_dy", 0.0) + 1.5
+    pal = _story_pal("#4a3e48", "#8a6a50", "#7a5a6a", ash="#c8c0b8", eye="#d89a5a")
+    info = draw_ashfolk(c, p, t, pal)
+    hx, hy = info["head"]
+    hy += 7.0
+    # xale sobre a cabeça e os ombros
+    c.poly([(hx - 7.8, hy + 3.0), (hx - 7.0, hy - 4.0), (hx - 2.0, hy - 8.4), (hx + 3.6, hy - 7.6), (hx + 7.4, hy - 2.6),
+            (hx + 6.6, hy + 0.5), (hx + 3.0, hy - 5.0), (hx - 3.4, hy - 4.6), (hx - 5.6, hy + 1.0), (hx - 4.0, hy + 9.0), (hx - 8.6, hy + 9.0)],
+           M_SHAWL, z=6.0, bevel=2.0, folds=(1.0, 1.2, t * 2.0, 0.12))
+    # bengala
+    bx = hx + 6.5
+    c.capsule(bx, hy + 6.0, bx + 1.0, 0.0, 0.8, 0.8, M_STICK, z=6.5)
+    c.ellipse(bx - 0.2, hy + 5.4, 1.4, 1.1, M_STICK, z=6.6)
+    # óculos redondos na ponta do nariz
+    c.line(hx + 1.5, hy + 0.2, hx + 5.2, hy + 0.2, hexc("#c8b070"))
+    return info
+
+
+def draw_fuligem(c, p, t):
+    p = dict(p)
+    p["flame_h"] = 0.0
+    p["crouch"] = p.get("crouch", 0.0) + 3.2
+    p["legs"] = [(fx * 0.8, fy, 0.15) for (fx, fy, b) in p["legs"]]
+    p["scarf_len"] = p["scarf_len"] + 3
+    pal = _story_pal("#5a4a3a", "#a07048", "#c8402a", ash="#8a8078", eye="#ffb050")
+    info = draw_ashfolk(c, p, t, pal)
+    hx, hy = info["head"]
+    hy += 7.0
+    # manchas de fuligem no rosto
+    for (dx, dy) in [(-3.4, 2.4), (-2.6, 3.0), (4.8, -3.6), (-4.6, -2.0)]:
+        c.dot(hx + dx, hy + dy, hexc("#4a4440"))
+    # topete arrepiado
+    c.poly([(hx - 3.0, hy - 5.4), (hx - 1.0, hy - 8.8), (hx + 0.6, hy - 6.0), (hx + 2.6, hy - 8.0), (hx + 3.4, hy - 5.0)], pal["ash"], z=4.2, bevel=1.0)
+    return info
+
+
+def draw_mira(c, p, t):
+    p = dict(p)
+    p["flame_h"] = 0.0
+    pal = _story_pal("#2e4a4e", "#c8a050", "#a8783a", ash="#dcd6ca", eye="#8ac0e0")
+    info = draw_ashfolk(c, p, t, pal)
+    hx, hy = info["head"]
+    hy += 7.0
+    # chapéu de aba larga com pena
+    c.ellipse(hx + 0.4, hy - 4.6, 10.4, 1.7, M_BIGHAT, z=6.0)
+    c.ellipse(hx - 0.2, hy - 7.2, 5.2, 3.2, M_BIGHAT, z=6.1)
+    c.ribbon([(hx - 3.0, hy - 8.0), (hx - 6.0, hy - 11.0), (hx - 9.5, hy - 12.0), (hx - 12.0, hy - 11.4)], [1.8, 2.2, 1.8, 0.8], M_FEATHER, z=6.2)
+    # bolsa de mapas com rolos de papel saindo
+    sx, sy = hx - 6.0, hy + 13.0
+    c.ellipse(sx, sy, 2.8, 3.2, M_SATCHEL, z=6.4)
+    c.capsule(sx - 1.0, sy - 3.0, sx - 2.0, sy - 7.0, 0.9, 0.9, M_PAPER, z=6.3)
+    c.capsule(sx + 1.0, sy - 3.0, sx + 1.6, sy - 6.4, 0.8, 0.8, M_PAPER, z=6.3)
+    # pena de escrever na mão
+    hxx, hyy = info["hand"]
+    c.line(hxx - 1, hyy + 1, hxx + 2, hyy - 4, hexc("#f0e8d8"))
+    return info
+
+
+def draw_tordo(c, p, t):
+    p = dict(p)
+    p["flame_h"] = 0.0
+    pal = _story_pal("#5a4a2a", "#c89a40", "#b8782a", ash="#d4ccbe", eye="#e8a860")
+    info = draw_ashfolk(c, p, t, pal)
+    hx, hy = info["head"]
+    hy += 7.0
+    # mochila enorme com lanternas penduradas (atrás)
+    c.poly([(hx - 12.0, hy + 3.0), (hx - 3.0, hy + 3.0), (hx - 2.0, hy + 17.0), (hx - 13.0, hy + 17.0)], M_PACK, z=0.5, bevel=2.2)
+    c.ellipse(hx - 13.0, hy + 8.0, 1.8, 2.2, M_RUST, z=0.8)
+    c.ellipse(hx - 13.0, hy + 8.4, 1.0, 1.2, Mat(["#b0601a", "#e0902a", "#ffc860"], rim=0.0, glow=(90, 50, 10, 255)), z=0.9)
+    # chapéu ENORME (Fuligem avisou)
+    c.ellipse(hx + 0.2, hy - 4.8, 11.6, 2.0, M_BIGHAT, z=6.0)
+    c.poly([(hx - 5.4, hy - 5.0), (hx - 4.0, hy - 13.0), (hx + 3.0, hy - 14.0), (hx + 5.6, hy - 5.0)], M_BIGHAT, z=6.1, bevel=2.0)
+    c.capsule(hx - 5.0, hy - 6.6, hx + 5.2, hy - 6.6, 0.8, 0.8, Mat("#8a2a2a", n=4, rim=0.4, outline="#200808"), z=6.2)
+    return info
+
+
+GASPAR_PAL = {
+    "iron": M_RUST, "glass": M_DEADGLASS, "poncho": M_CAPE,
+    "trim": Mat("#8a7a4a", n=4, spread=0.55, rim=0.4, outline="#201a08"),
+    "ribbon": Mat(["#1a1618", "#2a2428", "#3a3238", "#4e444a", "#665a60"], rim=0.6, outline="#060506"),
+    "leg": M_ARMOR, "boot": M_ARMOR,
+}
+
+
+def draw_gaspar(c, p, t):
+    p = dict(p)
+    p["flame_h"] = 0.0  # a chama dele se apagou
+    p["scarf_len"] = p["scarf_len"] * 0.7
+    info = draw_lume(c, p, t, GASPAR_PAL)
+    lx, ly = info["core"]
+    # só uma faísca no fundo do pavio
+    if int(t * 12) % 6 != 5:
+        c.dot(lx + 0.4, ly + 4.2, hexc("#ff7a2a"), glow=True)
+    # ombreiras e peitoral de armadura
+    top = ly + 8.6
+    c.ellipse(lx - 5.0, top + 1.2, 3.0, 2.2, M_ARMOR, z=5.0)
+    c.ellipse(lx + 5.2, top + 1.4, 3.0, 2.2, M_ARMOR, z=5.0)
+    c.poly([(lx - 3.4, top + 0.5), (lx + 3.6, top + 0.5), (lx + 3.0, top + 6.5), (lx - 2.8, top + 6.5)], M_ARMOR, z=4.9, bevel=1.6)
+    # espadão fincado no chão, as mãos no punho
+    sx = lx + 8.0
+    c.poly([(sx - 1.2, top + 4.0), (sx + 1.2, top + 4.0), (sx + 1.0, -0.5), (sx, 1.0), (sx - 1.0, -0.5)], M_STEEL, z=5.5, bevel=0.8)
+    c.capsule(sx - 3.0, top + 3.6, sx + 3.0, top + 3.6, 0.8, 0.8, M_GOLD, z=5.6)
+    c.capsule(sx, top + 3.4, sx, top - 1.0, 0.9, 0.9, M_GRIP, z=5.6)
+    return info
+
+
+def story_pose(anim, t, i, n):
+    return hero_pose("run" if anim == "move" else "idle", t, i, n)
+
+
+STORY_NPCS = {
+    "npc_borralha": draw_borralha, "npc_fuligem": draw_fuligem, "npc_mira": draw_mira,
+    "npc_tordo": draw_tordo, "npc_gaspar": draw_gaspar,
+}
+
+
 CHARACTERS = {
     "weapons": build_weapons,
     "duelist": lambda meta: render_character("duelist", (HERO_W, HERO_H, HERO_OX, HERO_OY), DUELIST_ANIMS, duelist_pose, draw_duelist, meta),
     "hero": lambda meta: render_character("hero", (HERO_W, HERO_H, HERO_OX, HERO_OY), HERO_ANIMS, hero_pose, draw_hero, meta),
 }
 
+
+for _sid, _fn in STORY_NPCS.items():
+    CHARACTERS[_sid] = (lambda sid, fn: (lambda meta: render_character(sid, (HERO_W, HERO_H, HERO_OX, HERO_OY), VILLAGER_ANIMS, story_pose, fn, meta)))(_sid, _fn)
 
 for _role in VILLAGERS:
     CHARACTERS["villager_" + _role] = (lambda r: (lambda meta: render_character("villager_" + r, (HERO_W, HERO_H, HERO_OX, HERO_OY), VILLAGER_ANIMS, villager_pose, draw_villager(r), meta)))(_role)

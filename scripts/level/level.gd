@@ -31,6 +31,8 @@ var entities: Node2D
 var hud: Node
 var pause_menu: Node
 var postfx: PostFX
+var dialogue: DialogueBox
+var cutscene: CutscenePlayer
 var checkpoint: Node = null
 var spawn_pos: Vector2 = Vector2.ZERO
 var boss_defeated: bool = false
@@ -62,8 +64,11 @@ var world_display: SubViewportContainer
 
 func _ready() -> void:
 	_resolve_params()
-	if world_mode:
-		# regiões do mundo: lugares com propósito (estilo Hollow Knight)
+	if world_mode and MapLoader.exists(str(params.get("map", ""))):
+		# região feita à mão (data/maps/<id>.txt)
+		layout = MapLoader.load_map(str(params["map"]), params, DB)
+	elif world_mode:
+		# regiões sem mapa: lugares gerados com propósito (RegionDesigner)
 		layout = RegionDesigner.generate(params, DB)
 	else:
 		var lib := ChunkLibrary.new()
@@ -88,7 +93,17 @@ func _ready() -> void:
 	Music.play_ambience(str(biome.get("ambience", "")))
 	Audio.set_space(str(biome.get("space", "open")))
 	Events.room_entered.emit({"index": 0})
-	pass # o nome da região aparece no cartão de título da HUD
+	if world_mode:
+		call_deferred("_story_on_enter")
+
+
+## Cena automática ao entrar na região (ex.: o despertar do Lume na capela).
+func _story_on_enter() -> void:
+	for e in Story.data().get("on_enter", []):
+		var sc := str(e.get("scene", ""))
+		if str(e.get("region", "")) == region_id and not Story.has_flag("scene:" + sc) and Story.check(str(e.get("if", ""))):
+			cutscene.play(sc)
+			return
 
 
 func _resolve_params() -> void:
@@ -153,6 +168,7 @@ func _resolve_params() -> void:
 		"npcs": npc_ids,
 		"abilities": Game.profile.get("abilities", []),
 		"rift": rift,
+		"map": str(region.get("map", "")),
 	}
 	if siege:
 		params["boss"] = "archdemon"
@@ -264,6 +280,8 @@ func _spawn_entities() -> void:
 			"enemy", "flyer", "boss":
 				var id: String = data.get("enemy", "skeleton")
 				node = _make_enemy(id, tier, _tile_feet(e["tile"]) if e["type"] == "enemy" else _tile_center(e["tile"]), room)
+				if str(data.get("behavior", "")) != "":
+					node.set_meta("behavior", str(data["behavior"]))
 				if e["type"] == "boss":
 					boss_node = node
 			"chest":
@@ -363,8 +381,30 @@ func _spawn_entities() -> void:
 				var ins := Inscription.new()
 				ins.biome_id = str(data.get("biome", params.get("biome", "")))
 				ins.index = int(data.get("idx", 0))
+				ins.custom_text = str(data.get("text", ""))
+				ins.custom_title = str(data.get("title", ""))
+				if ins.custom_text != "":
+					ins.lore_key = "%s:%d,%d" % [region_id, int(e["tile"][0]), int(e["tile"][1])]
 				ins.position = _tile_feet(e["tile"])
 				node = ins
+			"story_npc":
+				var sn := StoryNPC.new()
+				sn.npc_id = str(data.get("npc", ""))
+				sn.position = _tile_feet(e["tile"])
+				node = sn
+			"lamp":
+				var lp := LampPost.new()
+				lp.lamp_key = "%s:%d,%d" % [region_id, int(e["tile"][0]), int(e["tile"][1])]
+				lp.color = torch_color
+				lp.position = _tile_feet(e["tile"])
+				node = lp
+			"trigger":
+				var tg := CutsceneTrigger.new()
+				tg.scene_id = str(data.get("scene", ""))
+				tg.once = bool(data.get("once", true))
+				tg.size = Vector2(int(data.get("w", 3)), int(data.get("h", 4))) * T
+				tg.position = _tile_corner(e["tile"])
+				node = tg
 			"impeto_orb":
 				var orb := ImpetoOrb.new()
 				orb.position = _tile_center(e["tile"])
@@ -521,6 +561,9 @@ func _shaft_height(tile: Array) -> float:
 
 
 func _make_enemy(id: String, tier: int, pos: Vector2, room: int) -> Enemy:
+	if DB.enemy(id).is_empty():
+		push_warning("inimigo desconhecido: " + id)
+		id = "skeleton"
 	var en := Enemy.new()
 	en.setup(id, tier, params.get("dimension", "prima"))
 	en.position = pos
@@ -546,6 +589,11 @@ func _spawn_player() -> void:
 	var amb := AmbientParticles.new()
 	amb.setup(biome.get("particles", "dust"), camera)
 	world.add_child(amb)
+	if layout.has("decor"):
+		var dl := DecorLayer.new()
+		dl.camera = camera
+		dl.build(layout, str(params.get("biome", "")), biome)
+		world.add_child(dl)
 	if str(biome.get("props", "")) != "":
 		var props := PropsLayer.new()
 		props.camera = camera
@@ -572,6 +620,11 @@ func _build_layers() -> void:
 	pause_menu = load("res://scripts/ui/pause_menu.gd").new()
 	pause_menu.level = self
 	add_child(pause_menu)
+	dialogue = DialogueBox.new()
+	add_child(dialogue)
+	cutscene = CutscenePlayer.new()
+	cutscene.level = self
+	add_child(cutscene)
 	if world_mode:
 		map_screen = load("res://scripts/ui/map_screen.gd").new()
 		map_screen.level = self

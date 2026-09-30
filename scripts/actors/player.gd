@@ -289,6 +289,17 @@ func _actor_physics(d: float, raw: float) -> void:
 	attack.speed_mult = 1.0
 	attack.tick(d)
 	_record_history(d)
+	if cutscene_lock and state in [State.NORMAL, State.ATTACK, State.DODGE, State.SIGIL]:
+		# em cena: só anda (se o roteiro mandar) e cai
+		if state != State.NORMAL:
+			attack.cancel()
+			_set_state(State.NORMAL)
+		_run(d)
+		_fall(d)
+		_move(d)
+		_after_move(d)
+		_animate()
+		return
 	match state:
 		State.NORMAL: _st_normal(d)
 		State.DASH: _st_dash(d)
@@ -306,7 +317,17 @@ func _actor_physics(d: float, raw: float) -> void:
 	_animate()
 
 
+## Cena/diálogo em andamento: o jogador não controla o Lume (a cena pode
+## fazê-lo andar com script_move = -1/0/1).
+var cutscene_lock: bool = false
+var script_move: float = 0.0
+
+
 func _read_input() -> void:
+	if cutscene_lock:
+		input_x = script_move
+		input_y = 0.0
+		return
 	input_x = Input.get_axis("move_left", "move_right")
 	input_y = Input.get_axis("move_up", "move_down")
 	input_x = signf(input_x) if absf(input_x) > 0.3 else 0.0
@@ -1507,11 +1528,20 @@ func transition_boost() -> void:
 	var_jump_speed = JUMP_SPEED
 
 
+## Animação imposta por uma cena (ex.: "sleep" no despertar). Vazio = normal.
+var force_anim: String = ""
+
+
 func _animate() -> void:
 	if sprite == null:
 		return
 	_moods(get_physics_process_delta_time())
 	sprite.attack_pose = attack.progress() if attack.is_busy() else 0.0
+	if force_anim != "":
+		play_anim(force_anim)
+		if light and sprite.has_sheet():
+			light.position = sprite.point("core")
+		return
 	match state:
 		State.DASH, State.DODGE:
 			play_anim("dash")

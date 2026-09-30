@@ -161,6 +161,56 @@ func toast(text: String) -> void:
 		_toasts.get_child(0).queue_free()
 
 
+## Cartão de título grande (cenas da história).
+func show_title(title: String, sub: String, dur: float = 4.0) -> void:
+	_region_title = title
+	_region_sub = sub
+	_region_title_t = dur
+
+
+## Serviço de um personagem da história depois da conversa (loja, mapa...).
+func open_story_service(npc_id: String, service: String) -> void:
+	match service:
+		"map":
+			_open_map_shop(npc_id)
+		_:
+			if Game.social.get("npcs", {}).has(npc_id):
+				open_dialogue(npc_id)
+
+
+## Mira vende o mapa completo da região atual (ou de outra já visitada).
+func _open_map_shop(npc_id: String) -> void:
+	var p := UIKit.panel(Vector2(300, 0))
+	var v := UIKit.vbox(4)
+	p.add_child(v)
+	v.add_child(UIKit.title("Mapas de Mira", 16))
+	var bought: Array = Game.profile.get("maps_bought", [])
+	var any := false
+	for id in Game.world.get("regions", {}).keys():
+		var r: Dictionary = Game.world["regions"][id]
+		if r.get("dimension", "prima") != "prima" or not r.get("visited", false) or bought.has(id):
+			continue
+		any = true
+		var price := 30 + 20 * int(r.get("tier", 1))
+		var rid: String = id
+		v.add_child(UIKit.button("%s — %d brasas" % [r["name"], price], func():
+			if int(Game.profile.get("currency", 0)) < price:
+				toast("Brasas insuficientes.")
+				return
+			Game.profile["currency"] = int(Game.profile["currency"]) - price
+			if not Game.profile.has("maps_bought"):
+				Game.profile["maps_bought"] = []
+			Game.profile["maps_bought"].append(rid)
+			Audio.play("pickup")
+			toast("Mapa comprado: " + str(Game.world["regions"][rid]["name"]))
+			Game.save()
+			_open_map_shop(npc_id), 260))
+	if not any:
+		v.add_child(UIKit.label("“Ainda não desenhei os lugares por onde você andou... ou você já tem todos.”", 11, UIKit.DIM))
+	v.add_child(UIKit.button("Sair", close_panel, 60))
+	_open_panel(p)
+
+
 func show_boss(b: Node) -> void:
 	if boss != b:
 		var info: Dictionary = DB.lore.get("bosses", {}).get(str(b.enemy_id), {})
@@ -354,8 +404,14 @@ func _draw_hud() -> void:
 		var br: float = boss.hp / maxf(boss.max_hp(), 1.0)
 		_text(Vector2(140, 246), boss.data.get("name", "Chefe"), 12, Color(1.6, 0.7, 0.5))
 		_bar(Rect2(140, 250, 200, 6), br, Color(1.4, 0.35, 0.2))
-	# objetivo da região (canto de cima, discreto)
-	if level and level.world_mode and level.layout.has("objective"):
+	# objetivo: o da história (se houver) ou o da região (canto de cima)
+	var story_obj := Story.objective() if level and level.world_mode else ""
+	if story_obj != "":
+		var sc := Color(1.9, 1.25, 0.6, 0.85)
+		var sp := Vector2(13, 55)
+		d.draw_colored_polygon(PackedVector2Array([sp + Vector2(0, -3), sp + Vector2(3, 0), sp + Vector2(0, 3), sp + Vector2(-3, 0)]), sc)
+		_text(Vector2(19, 58), story_obj, 9, sc)
+	elif level and level.world_mode and level.layout.has("objective"):
 		var obj: Dictionary = level.layout["objective"]
 		if not obj.is_empty():
 			var done: bool = level.region.get("cleared", false)

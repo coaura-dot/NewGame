@@ -304,6 +304,97 @@ static func generate(seed_value: int, db: Node = null) -> Dictionary:
 	return world
 
 
+## O MUNDO FIXO de Cindária (data/world.json): regiões, vizinhos, chefes e
+## habilidades desenhados à mão, como no Hollow Knight. As regiões com
+## "map" usam o mapa feito à mão (MapLoader); as outras são geradas pelo
+## RegionDesigner com semente fixa (a mesma em todo jogo novo).
+static func fixed(db: Node = null) -> Dictionary:
+	var f := FileAccess.open("res://data/world.json", FileAccess.READ)
+	if f == null:
+		return generate(4242, db)
+	var src: Dictionary = JSON.parse_string(f.get_as_text())
+	var world := {
+		"seed": 0, "fixed": true, "regions": {}, "edges": [],
+		"start": str(src["start"]), "finale": str(src["finale"]),
+		"abilities_order": src.get("abilities_order", []).duplicate(),
+	}
+	var ids: Array = src["regions"].keys()
+	for id in ids:
+		var s: Dictionary = src["regions"][id]
+		var g: Array = s.get("grid", [0, 0])
+		var gy := int(g[1])
+		var layer := "surface" if gy == 0 else ("sky" if gy < 0 else "underground")
+		var lh: float = LAYER_HEIGHT[layer] - (10.0 if gy >= 2 else 0.0)
+		world["regions"][id] = {
+			"id": id,
+			"name": str(s["name"]),
+			"biome": str(s["biome"]),
+			"layer": layer,
+			"deep": gy >= 2,
+			"pos": [int(g[0]) * 20.0, lh, gy * -18.0],
+			"grid": [int(g[0]), gy],
+			"band": 0,
+			"depth": 0,
+			"tier": int(s.get("tier", 1)),
+			"hub": str(s.get("hub", "")),
+			"boss": str(s.get("boss", "")),
+			"grants": str(s.get("grants", "")),
+			"rewards": s.get("rewards", []).duplicate(),
+			"optional": bool(s.get("optional", false)),
+			"dimension": "prima",
+			"map": str(s.get("map", "")),
+			"cleared": false,
+			"destroyed": false,
+			"visited": false,
+			"level_seed": absi(hash("cindaria:" + str(id))) % 2147483647,
+		}
+	for e in src["edges"]:
+		var dir := str(e["dir"])
+		var back := {"R": "L", "L": "R", "U": "D", "D": "U"}[dir]
+		var la: String = world["regions"][e["a"]]["layer"]
+		var lb: String = world["regions"][e["b"]]["layer"]
+		var kind := "road"
+		if la == "sky" or lb == "sky":
+			kind = "sky_bridge"
+		elif la == "underground" or lb == "underground":
+			kind = "tunnel"
+		world["edges"].append({"a": str(e["a"]), "b": str(e["b"]), "requires": str(e.get("requires", "")),
+			"kind": kind, "dir_a": dir, "dir_b": back})
+	# profundidade (distância em passos do início) e faixas
+	var dist := {world["start"]: 0}
+	var q: Array = [world["start"]]
+	while not q.is_empty():
+		var u: String = q.pop_front()
+		for nb in neighbors(world, u):
+			if not dist.has(nb["id"]):
+				dist[nb["id"]] = int(dist[u]) + 1
+				q.append(nb["id"])
+	for id in world["regions"].keys():
+		var r: Dictionary = world["regions"][id]
+		r["depth"] = int(dist.get(id, 0))
+		r["band"] = int(dist.get(id, 0)) / 2
+	# fendas para os Reflexos (mundos paralelos)
+	var k := 0
+	for rf in src.get("rifts", []):
+		var anchor: String = str(rf["anchor"])
+		var ar: Dictionary = world["regions"][anchor]
+		var dim_id: String = str(rf["dimension"])
+		var dim: Dictionary = db.dimension(dim_id) if db else {}
+		var id := "d%02d" % k
+		k += 1
+		world["regions"][id] = {
+			"id": id, "name": "%s — %s" % [dim.get("name", dim_id), ar["name"]], "biome": ar["biome"],
+			"layer": ar["layer"], "deep": ar.get("deep", false),
+			"pos": [float(ar["pos"][0]) + 6.0, float(ar["pos"][1]) + 7.0, float(ar["pos"][2]) + 6.0],
+			"grid": ar["grid"], "band": ar["band"], "depth": int(ar["depth"]) + 1,
+			"tier": mini(int(ar["tier"]) + 1, 3), "hub": "", "boss": "", "grants": "", "rewards": [],
+			"optional": true, "dimension": dim_id, "map": "", "cleared": false, "destroyed": false,
+			"visited": false, "level_seed": absi(hash("cindaria:" + id)) % 2147483647,
+		}
+		world["edges"].append({"a": anchor, "b": id, "requires": "dimension_shift", "kind": "rift"})
+	return world
+
+
 static func _ekey(a: int, b: int) -> String:
 	return "%d-%d" % [mini(a, b), maxi(a, b)]
 

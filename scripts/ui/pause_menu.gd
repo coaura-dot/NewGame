@@ -220,13 +220,17 @@ func _show_codex() -> void:
 	var iv := _tab(tabs, "Inscrições")
 	var read: Array = Game.profile.get("codex", [])
 	var by_biome := {}
+	for ct in Game.profile.get("codex_texts", []):
+		var rn := str(Game.world.get("regions", {}).get(str(ct[0]), {}).get("name", ""))
+		iv.add_child(UIKit.label(("%s — %s" % [rn, str(ct[1])]) if str(ct[1]) != "" else rn, 12, UIKit.GOLD))
+		iv.add_child(_wrap("“" + str(ct[2]) + "”"))
 	for id in read:
 		var parts: PackedStringArray = str(id).split(":")
-		if parts.size() == 2:
+		if parts.size() == 2 and str(parts[1]).find(",") < 0:
 			if not by_biome.has(parts[0]):
 				by_biome[parts[0]] = []
 			by_biome[parts[0]].append(int(parts[1]))
-	if by_biome.is_empty():
+	if by_biome.is_empty() and Game.profile.get("codex_texts", []).is_empty():
 		iv.add_child(UIKit.label("Leia as inscrições de pedra espalhadas pelas regiões.", 11, UIKit.DIM))
 	for b in by_biome.keys():
 		iv.add_child(UIKit.label(str(DB.biome(b).get("name", b)), 12, UIKit.GOLD))

@@ -663,5 +663,144 @@
    0.22,
    0.82
   ]
+ },
+ "cinzal": {
+  "music": "vila",
+  "name": "Cinzal",
+  "tileset": "ruins",
+  "background": "town",
+  "tint": [
+   1,
+   1,
+   1
+  ],
+  "ambient": [
+   0.46,
+   0.4,
+   0.5
+  ],
+  "torch": [
+   1.9,
+   1.0,
+   0.5
+  ],
+  "particles": "ash",
+  "sky_light": [
+   1.1,
+   0.8,
+   0.7
+  ],
+  "hub": "vila",
+  "enemies": {
+   "skeleton": 3,
+   "diver": 1
+  },
+  "tags": [
+   "outdoor",
+   "dark"
+  ],
+  "scenery": "graveyard",
+  "ambience": "vento",
+  "space": "open",
+  "water": false,
+  "props": "ruins",
+  "water_color": [
+   0.2,
+   0.24,
+   0.32,
+   0.8
+  ]
+ },
+ "galerias": {
+  "music": "catacumbas",
+  "name": "Galerias Apagadas",
+  "tileset": "catacomb",
+  "background": "temple",
+  "tint": [
+   1,
+   1,
+   1
+  ],
+  "ambient": [
+   0.24,
+   0.28,
+   0.38
+  ],
+  "torch": [
+   1.8,
+   1.1,
+   0.55
+  ],
+  "particles": "dust",
+  "hub": "",
+  "enemies": {
+   "skeleton": 4,
+   "wraith": 2,
+   "diver": 2,
+   "shieldbearer": 1,
+   "leaper": 1
+  },
+  "tags": [
+   "indoor",
+   "underground",
+   "dark"
+  ],
+  "scenery": "cave",
+  "ambience": "caverna",
+  "space": "cave",
+  "water": false,
+  "props": "catacomb",
+  "water_color": [
+   0.14,
+   0.2,
+   0.3,
+   0.82
+  ]
+ },
+ "bosque": {
+  "music": "floresta",
+  "name": "Bosque Sussurrante",
+  "tileset": "forest",
+  "background": "cemetery",
+  "tint": [
+   1,
+   1,
+   1
+  ],
+  "ambient": [
+   0.26,
+   0.36,
+   0.3
+  ],
+  "torch": [
+   1.2,
+   1.6,
+   0.8
+  ],
+  "particles": "fireflies",
+  "hub": "",
+  "enemies": {
+   "leaper": 3,
+   "hellcat": 2,
+   "wraith": 2,
+   "diver": 2,
+   "hound": 1
+  },
+  "tags": [
+   "underground",
+   "nature",
+   "dark"
+  ],
+  "scenery": "cave",
+  "ambience": "floresta",
+  "space": "cave",
+  "water": true,
+  "props": "forest",
+  "water_color": [
+   0.14,
+   0.3,
+   0.3,
+   0.8
+  ]
  }
 }

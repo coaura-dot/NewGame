@@ -8,8 +8,8 @@ extends CanvasLayer
 const FONT := preload("res://assets/fonts/kenney_pixel.ttf")
 const CW := 74.0 ## largura de uma região no mapa (unidades de UI 480x270)
 const CH := 58.0 ## altura de uma faixa (céu / superfície / subsolo)
-const ROW := {-1: 0, 0: 1, 1: 2}
-const LAYER_NAMES := ["CÉU", "SUPERFÍCIE", "SUBSOLO"]
+const ROW := {-1: 0, 0: 1, 1: 2, 2: 3}
+const LAYER_NAMES := ["CÉU", "SUPERFÍCIE", "SUBSOLO", "PROFUNDEZAS"]
 
 var level: Node = null
 var is_open: bool = false
@@ -323,8 +323,8 @@ func _on_draw() -> void:
 	var d := _draw
 	# fundo: céu, superfície, subsolo (corte lateral)
 	d.draw_rect(Rect2(0, 0, 480, 270), Color(0.04, 0.035, 0.07, 0.96))
-	var bands := [Color(0.16, 0.22, 0.38, 0.55), Color(0.2, 0.26, 0.2, 0.5), Color(0.17, 0.12, 0.1, 0.6)]
-	for i in 3:
+	var bands := [Color(0.16, 0.22, 0.38, 0.55), Color(0.2, 0.26, 0.2, 0.5), Color(0.17, 0.12, 0.1, 0.6), Color(0.1, 0.07, 0.1, 0.7)]
+	for i in 4:
 		var y := 22.0 + i * CH - 4.0
 		d.draw_rect(Rect2(0, y, 480, CH), bands[i])
 		_text(Vector2(4, y + 10), LAYER_NAMES[i], 9, Color(0.8, 0.8, 0.9, 0.45))
@@ -487,15 +487,19 @@ func _build_region_texture() -> void:
 		seen[int(i)] = true
 	var bg: PackedStringArray = lay.get("bg", PackedStringArray())
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	var edge := Color(0.93, 0.85, 0.66)
-	var open := Color(0.16, 0.14, 0.2, 0.92)
-	var plat := Color(0.75, 0.66, 0.5)
+	# mapa comprado de Mira: a região inteira aparece (o que não foi
+	# explorado fica mais apagado)
+	var full: bool = Game.profile.get("maps_bought", []).has(level.region_id)
 	for y in h:
 		var row: String = rows[y]
 		for x in w:
 			var o: int = int(owners[(y / ch) * gw + (x / cw)])
-			if o < 0 or not seen.has(o):
+			if o < 0 or (not seen.has(o) and not full):
 				continue
+			var dim := 1.0 if seen.has(o) else 0.45
+			var edge := Color(0.93, 0.85, 0.66, dim)
+			var open := Color(0.16, 0.14, 0.2, 0.92 * dim)
+			var plat := Color(0.75, 0.66, 0.5, dim)
 			var c := row.unicode_at(x)
 			if c == 35:
 				var border := false
@@ -539,6 +543,10 @@ func _draw_region() -> void:
 	for i in _explored():
 		seen[int(i)] = true
 	var rooms: Array = lay["rooms"]
+	if Game.profile.get("maps_bought", []).has(level.region_id):
+		for r in rooms:
+			if not r.get("hidden", false):
+				seen[int(r["index"])] = true
 	# ícones das coisas importantes nos lugares visitados
 	for e in lay["entities"]:
 		var room := int(e.get("room", -1))

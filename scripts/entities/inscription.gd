@@ -5,6 +5,10 @@ extends Interactable
 
 var biome_id: String = ""
 var index: int = 0
+## texto escrito no mapa feito à mão (substitui o do bioma)
+var custom_text: String = ""
+var custom_title: String = ""
+var lore_key: String = ""
 var _t: float = 0.0
 
 
@@ -16,10 +20,14 @@ func _ready() -> void:
 
 
 func lore_id() -> String:
+	if lore_key != "":
+		return lore_key
 	return "%s:%d" % [biome_id, index]
 
 
 func text() -> String:
+	if custom_text != "":
+		return custom_text
 	var lines: Array = DB.lore.get("biomes", {}).get(biome_id, [])
 	if lines.is_empty():
 		return "As letras estão gastas demais para ler."
@@ -32,9 +40,17 @@ func interact(player: Node) -> void:
 		if not Game.profile.has("codex"):
 			Game.profile["codex"] = []
 		if not read_before:
-			Game.profile["codex"].append(lore_id())
+			if custom_text != "":
+				# textos dos mapas feitos à mão: guardados com título e região
+				if not Game.profile.has("codex_texts"):
+					Game.profile["codex_texts"] = []
+				Game.profile["codex_texts"].append([str(Game.profile.get("region", "")), custom_title, custom_text])
+				Game.profile["codex"].append(lore_id())
+			else:
+				Game.profile["codex"].append(lore_id())
 	if level and level.hud and level.hud.has_method("show_lore"):
-		level.hud.show_lore(DB.biome(biome_id).get("name", "Inscrição"), text(), not read_before)
+		var title: String = custom_title if custom_title != "" else str(DB.biome(biome_id).get("name", "Inscrição"))
+		level.hud.show_lore(title, text(), not read_before)
 	if player.has_method("emote"):
 		player.emote("...", 1.2)
 

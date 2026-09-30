@@ -40,6 +40,10 @@ signal reputation_changed(region_id: String, value: int)
 signal affinity_changed(npc_id: String, value: int)
 signal quest_updated(quest_id: String)
 signal dialogue_requested(npc_id: String)
+## Lampião aceso pelo Lume (chave única: região:x,y)
+signal lamp_lit(key: String)
+## Diálogo/cena da história (StoryNPC, gatilhos): começou / terminou
+signal story_event(id: String)
 
 # UI / sistema
 signal settings_changed

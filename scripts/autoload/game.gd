@@ -57,7 +57,10 @@ func _ready() -> void:
 func new_game(seed_in: int = -1, save_slot: int = 0) -> void:
 	seed_value = seed_in if seed_in >= 0 else int(Time.get_unix_time_from_system()) % 1000000
 	slot = save_slot
-	world = WorldGenerator.generate(seed_value, DB)
+	# o mundo de Cindária é fixo (data/world.json); a semente só varia o
+	# que é secundário (aldeões, estoques, regiões sem mapa feito à mão)
+	world = WorldGenerator.fixed(DB)
+	world["seed"] = seed_value
 	profile = START_PROFILE.duplicate(true)
 	profile["region"] = world["start"]
 	social = SocialSystem.create(world, seed_value, DB)
